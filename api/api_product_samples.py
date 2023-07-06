@@ -2,14 +2,14 @@ import requests
 from api import api_login
 from common import Random
 
-fat = api_login.fat
+env = api_login.url
 num = Random.random_str_abc(5)
 
 
 class ApiProductSamples:
     # 新增学习样例
     def samples_add(self, token, code, manageid):
-        url = fat + "/miai/brainstorm/knowledgeproductsample/add"
+        url = env + "/miai/brainstorm/knowledgeproductsample/add"
 
         data = {"name": "cs_" + num, "detail": "说明说明说明", "sampleType": 1, "file": [],
                 "imgPath": "knowledge/1613771427075735553/King/sample/44352815613748c581e027764fb12ad6/600.png",
@@ -24,7 +24,7 @@ class ApiProductSamples:
 
     # 查询学习样例
     def samples_query(self, token, code, manageid):
-        url = fat + "/miai/brainstorm/knowledgeproductsample/page"
+        url = env + "/miai/brainstorm/knowledgeproductsample/page"
 
         data = {"data": {"name": "", "type": 2}, "page": {"pageIndex": 1, "pageSize": 10}}
 
@@ -37,7 +37,7 @@ class ApiProductSamples:
 
     # 删除学习样例
     def samples_delete(self, token, code, manageid, productSampleId):
-        url = fat + "/miai/brainstorm/knowledgeproductsample/delete/" + productSampleId
+        url = env + "/miai/brainstorm/knowledgeproductsample/delete/" + productSampleId
 
         header = {"content-type": "application/json", "Authorization": token, "Miai-Product-Code": code,
                   "Miaispacemanageid": manageid}

@@ -6,7 +6,7 @@ from api import api_login
 from common import Read_excel, Assert
 
 assertions = Assert.Assertions()
-fat = api_login.fat
+env = api_login.url
 token = api_login.ApiLogin().login()
 code = api_login.code
 manageid = api_login.manageid
@@ -27,7 +27,7 @@ class TestProductSamples:
     # 新增学习样例参数化
     @pytest.mark.parametrize('name,detail,sampleType,photoId,msg', excel_list, ids=ids_list)
     def test_samples_add(self, name, detail, sampleType, photoId, msg):
-        url = fat + "/miai/brainstorm/knowledgeproductsample/add"
+        url = env + "/miai/brainstorm/knowledgeproductsample/add"
 
         data = {"name": name, "detail": detail, "sampleType": sampleType, "file": [],
                 "imgPath": "knowledge/1613771427075735553/King/sample/44352815613748c581e027764fb12ad6/600.png",

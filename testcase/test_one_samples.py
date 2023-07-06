@@ -1,8 +1,9 @@
-import requests
-from api import api_login
-from common import read_excel, Assert
-import pytest
 import allure
+import pytest
+import requests
+
+from api import api_login
+from common import Read_excel, Assert
 
 assertions = Assert.Assertions()
 fat = api_login.fat
@@ -10,8 +11,8 @@ token = api_login.ApiLogin().login()
 code = api_login.code
 manageid = api_login.manageid
 
-# 单独执行需要..  用run执行需要.
-excel_list = read_excel.read_excel_list('./testdata/samples.xls')
+# 单独执行写..  用run执行写.
+excel_list = Read_excel.read_excel_list('./testdata/samples.xls')
 ids_list = []
 for i in range(len(excel_list)):
     # 删除excel_list中每个小list的最后一个元素,并赋值给ids_pop
@@ -22,8 +23,8 @@ for i in range(len(excel_list)):
 
 @allure.feature("知识库-产品样例模块")
 class TestProductSamples:
-    # 新增学习样例
     @allure.story('新增学习样例')
+    # 新增学习样例参数化
     @pytest.mark.parametrize('name,detail,sampleType,photoId,msg', excel_list, ids=ids_list)
     def test_samples_add(self, name, detail, sampleType, photoId, msg):
         url = fat + "/miai/brainstorm/knowledgeproductsample/add"

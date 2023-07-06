@@ -1,9 +1,9 @@
 import requests
 from api import api_login
-from common import random
+from common import Random
 
 fat = api_login.fat
-num = random.random_str_abc(5)
+num = Random.random_str_abc(5)
 
 
 class ApiProductSamples:

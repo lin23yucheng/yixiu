@@ -1,3 +1,5 @@
+import re
+
 import requests
 import pytest
 import allure
@@ -12,8 +14,10 @@ manageid = api_login.manageid
 productSampleId = 0
 
 
-# 场景：学习样例的增删改查
+# 场景：学习样例的增查删
+@allure.feature("场景：学习样例增改删")
 class Test_product_samples:
+    @allure.story("新增学习样例")
     def test_samples_add(self):
         addData = api_product_samples.ApiProductSamples().samples_add(token, code, manageid)
         addData_dict = addData.json()
@@ -21,18 +25,25 @@ class Test_product_samples:
         assertions.assert_in_text(addData_dict['msg'], '成功')
         # print(addData_dict)
 
+    @allure.story("查询学习样例提取刚新增的ID值")
     def test_samples_query(self):
         queryData = api_product_samples.ApiProductSamples().samples_query(token, code, manageid)
         queryData_dict = queryData.json()
         assertions.assert_code(queryData.status_code, 200)
         assertions.assert_in_text(queryData_dict['msg'], '成功')
+        query_data_text = queryData.text
         # print(queryData_dict)
-        data_list = queryData_dict['data']
-        list_list = data_list['list']
-        number_list = list_list[0]
-        global productSampleId
-        productSampleId = number_list['productSampleId']
+        # data_list = queryData_dict['data']
+        # list_list = data_list['list']
+        # number_list = list_list[0]
+        # global productSampleId
+        # productSampleId = number_list['productSampleId']
 
+        # 正则提取productSampleId值
+        global productSampleId
+        productSampleId = re.search('"productSampleId":"(.*?)"', query_data_text).group(1)
+
+    @allure.story("删除刚新增的学习样例")
     def test_samples_delete(self):
         deleteData = api_product_samples.ApiProductSamples().samples_delete(token, code, manageid, productSampleId)
         deleteData_dict = deleteData.json()

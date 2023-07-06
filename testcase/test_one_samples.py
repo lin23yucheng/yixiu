@@ -17,6 +17,7 @@ ids_list = []
 for i in range(len(excel_list)):
     # 删除excel_list中每个小list的最后一个元素,并赋值给ids_pop
     ids_pop = excel_list[i].pop(0)
+    print(type(ids_pop))
     # 将ids_pop添加到 ids_list 里面
     ids_list.append(ids_pop)
 
@@ -27,6 +28,10 @@ class TestProductSamples:
     # 新增学习样例参数化
     @pytest.mark.parametrize('name,detail,sampleType,photoId,msg', excel_list, ids=ids_list)
     def test_samples_add(self, name, detail, sampleType, photoId, msg):
+        if photoId == "":
+            photoId = photoId
+        else:
+            photoId = int(photoId)
         url = env + "/miai/brainstorm/knowledgeproductsample/add"
 
         data = {"name": name, "detail": detail, "sampleType": sampleType, "file": [],

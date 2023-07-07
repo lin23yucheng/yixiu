@@ -1,13 +1,12 @@
 import re
-
 import requests
 import pytest
 import allure
+
 from common import Assert
 from api import api_login, api_product_samples
 
 assertions = Assert.Assertions()
-
 token = api_login.ApiLogin().login()
 code = api_login.code
 manageid = api_login.manageid

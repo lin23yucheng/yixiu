@@ -26,7 +26,7 @@ if env == "dev":
 else:
     if env == "fat":
         token_url = "https://fat-sso.svfactory.com:6143/auth/realms/uuam/protocol/openid-connect/token"
-        username = "19166459858"
+        username = "linyucheng"
         password = 123456
         # 一休云地址
         url = "https://fat-manage.svfactory.com:6143"
@@ -51,7 +51,7 @@ class ApiLogin:
         token_type = login_rep.json()["token_type"]
         access_token = login_rep.json()["access_token"]
         token = token_type + " " + access_token
-        print(token)
+        # print(token)
         return token
 
 

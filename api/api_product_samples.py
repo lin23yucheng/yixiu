@@ -1,3 +1,6 @@
+"""
+产品样例相关接口封装
+"""
 import requests
 
 from api import api_login

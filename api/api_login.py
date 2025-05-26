@@ -7,7 +7,7 @@ import configparser
 
 # 读取配置
 config = configparser.ConfigParser()
-config.read("../config/env_config.ini")
+config.read("./config/env_config.ini")
 section = "global"
 
 env = config.get(section, "execution_env")

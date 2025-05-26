@@ -1,17 +1,25 @@
 import re
-import requests
 import pytest
 import allure
-from common import Random
+import time
 from common import Assert
 from api import api_login
+from common.Request_Response import ApiClient
 
 assertions = Assert.Assertions()
 env = api_login.url
 token = api_login.ApiLogin().login()
 code = api_login.code
 manageid = api_login.manageid
-num = Random.random_str_abc(5)
+time_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
+
+# 初始化API客户端
+base_headers = {
+    "Authorization": token,
+    "Miai-Product-Code": code,
+    "Miaispacemanageid": manageid
+}
+client = ApiClient(base_headers=base_headers)
 
 
 @allure.feature("场景：检测样例增删改查")
@@ -19,95 +27,88 @@ class Test_check_samples:
     @classmethod
     def setup_class(cls):
         """类级别初始化：上传图片并获取 data_value（仅执行一次）"""
-        cls.upload_pictures()  # 调用类方法
-        cls.productSampleId = None  # 初始化类属性
+        cls.upload_pictures()
+        cls.productSampleId = None
 
     @classmethod
     def upload_pictures(cls):
-        """上传图片（类方法，非测试用例）"""
+        """上传图片（类方法）"""
         url = env + "/miai/brainstorm/knowledgeproductsample/upload"
         file_path = r"C:\Users\admin\Desktop\1.png"
 
-        with open(file_path, 'rb') as file:
-            files = {'file': file}
-            header = {
-                "Authorization": token,
-                "Miai-Product-Code": code,
-                "Miaispacemanageid": manageid
-            }
-            upload_response = requests.post(url, headers=header, files=files)
+        with allure.step("上传测试文件"):
+            with open(file_path, 'rb') as file:
+                files = {'file': file}
+                response = client.post(url, files=files)
 
-        upload_response_dict = upload_response.json()
-        assertions.assert_code(upload_response.status_code, 200)
-        assertions.assert_in_text(upload_response_dict['msg'], '成功')
-
-        # 使用类属性存储结果（cls 替代 self）
-        cls.data_value = upload_response_dict['data']
-        print(f"提取的文件路径: {cls.data_value}")
+            response_data = response.json()
+            assertions.assert_code(response.status_code, 200)
+            assertions.assert_in_text(response_data['msg'], '成功')
+            cls.data_value = response_data['data']
+            allure.attach(
+                f"上传成功文件路径：{cls.data_value}",
+                name="Upload Result",
+                attachment_type=allure.attachment_type.TEXT
+            )
 
     @allure.story("新增检测样例")
     def test_samples_add(self):
         url = env + "/miai/brainstorm/knowledgeproductsample/add"
-        data = {
-            "name": f"CS_{num}",
-            "detail": "接口自动化" + num,
+        payload = {
+            "name": f"CS_{time_str}",
+            "detail": "接口自动化" + time_str,
             "sampleType": 1,
             "file": [],
-            "imgPath": self.data_value,  # 使用类属性
+            "imgPath": self.data_value,
             "photoId": 2,
             "type": 1
         }
-        header = {
-            "content-type": "application/json",
-            "Authorization": token,
-            "Miai-Product-Code": code,
-            "Miaispacemanageid": manageid
-        }
-        rep_samples_add = requests.post(url, json=data, headers=header)
-        rep_samples_add_dict = rep_samples_add.json()
-        print(rep_samples_add_dict)
-        assertions.assert_code(rep_samples_add.status_code, 200)
-        assertions.assert_in_text(rep_samples_add_dict['msg'], '成功')
+
+        with allure.step("执行新增操作"):
+            response = client.post(url, json=payload)
+            response_data = response.json()
+
+            assertions.assert_code(response.status_code, 200)
+            assertions.assert_in_text(response_data['msg'], '成功')
 
     @allure.story("查询检测样例提取刚新增的ID值")
     def test_samples_query(self):
         url = env + "/miai/brainstorm/knowledgeproductsample/page"
-        data = {"data": {"name": f"CS_{num}", "type": 1}, "page": {"pageIndex": 1, "pageSize": 10}}
-        header = {
-            "content-type": "application/json",
-            "Authorization": token,
-            "Miai-Product-Code": code,
-            "Miaispacemanageid": manageid
+        payload = {
+            "data": {"name": f"CS_{time_str}", "type": 1},
+            "page": {"pageIndex": 1, "pageSize": 10}
         }
-        rep_samples_query = requests.post(url, json=data, headers=header)
-        rep_samples_query_dict = rep_samples_query.json()
-        print(rep_samples_query_dict)
-        assertions.assert_code(rep_samples_query.status_code, 200)
-        assertions.assert_in_text(rep_samples_query_dict['msg'], '成功')
 
-        query_data_text = rep_samples_query.text
-        # 使用正则表达式提取 productSampleId
-        match = re.search('"productSampleId":"(.*?)"', query_data_text)
-        if match:
-            # 存储到类属性中
-            self.__class__.productSampleId = match.group(1)
-            print(f"提取到的 productSampleId: {self.productSampleId}")
-        else:
-            pytest.fail("未找到 productSampleId")
+        with allure.step("执行查询操作"):
+            response = client.post(url, json=payload)
+            response_data = response.json()
+
+            assertions.assert_code(response.status_code, 200)
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 提取productSampleId
+            match = re.search('"productSampleId":"(.*?)"', response.text)
+            if match:
+                self.__class__.productSampleId = match.group(1)
+                allure.attach(
+                    f"提取到的productSampleId: {self.productSampleId}",
+                    name="Extracted ID",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+            else:
+                pytest.fail("未找到 productSampleId")
 
     @allure.story("修改刚新增的检测样例")
     def test_samples_update(self):
-        # 确保 productSampleId 已获取
         assert self.productSampleId is not None, "未获取到 productSampleId"
-
         url = env + f"/miai/brainstorm/knowledgeproductsample/update/{self.productSampleId}"
-        data = {
+        payload = {
             "productSampleId": self.productSampleId,
             "spaceManageId": manageid,
             "productCode": code,
-            "name": "CS_update_" + num,
+            "name": "CS_update_" + time_str,
             "sampleType": 2,
-            "detail": "接口自动化update_" + num,
+            "detail": "接口自动化update_" + time_str,
             "imgPath": self.data_value,
             "photoId": 5,
             "type": 1,
@@ -117,133 +118,117 @@ class Test_check_samples:
             "grid_order": 1,
             "file": [{}]
         }
-        header = {
-            "content-type": "application/json",
-            "Authorization": token,
-            "Miai-Product-Code": code,
-            "Miaispacemanageid": manageid
-        }
-        rep_samples_update = requests.post(url, json=data, headers=header)
-        rep_samples_update_dict = rep_samples_update.json()
-        print(rep_samples_update.text)
-        assertions.assert_code(rep_samples_update.status_code, 200)
-        assertions.assert_in_text(rep_samples_update_dict['msg'], '成功')
+
+        with allure.step("执行修改操作"):
+            response = client.post(url, json=payload)
+            response_data = response.json()
+
+            assertions.assert_code(response.status_code, 200)
+            assertions.assert_in_text(response_data['msg'], '成功')
 
     @allure.story("删除刚新增的检测样例")
     def test_samples_delete(self):
-        # 确保 productSampleId 已获取
         assert self.productSampleId is not None, "未获取到 productSampleId"
-
         url = env + f"/miai/brainstorm/knowledgeproductsample/delete/{self.productSampleId}"
-        header = {
-            "content-type": "application/json",
-            "Authorization": token,
-            "Miai-Product-Code": code,
-            "Miaispacemanageid": manageid
-        }
-        rep_samples_delete = requests.post(url, headers=header)
-        print(rep_samples_delete.text)
-        delete_data_dict = rep_samples_delete.json()
-        assertions.assert_code(rep_samples_delete.status_code, 200)
-        assertions.assert_in_text(delete_data_dict['msg'], '成功')
+
+        with allure.step("执行删除操作"):
+            response = client.post(url)
+            response_data = response.json()
+
+            assertions.assert_code(response.status_code, 200)
+            assertions.assert_in_text(response_data['msg'], '成功')
 
 
-# -------------------------------------------------------------------#
+# --------------------------------------------------------------------------------#
+
 
 @allure.feature("场景：学习样例增删改查")
 class Test_study_samples:
     @classmethod
     def setup_class(cls):
         """类级别初始化：上传图片并获取 data_value（仅执行一次）"""
-        cls.upload_pictures()  # 调用类方法
-        cls.productSampleId = None  # 初始化类属性
+        cls.upload_pictures()
+        cls.productSampleId = None
 
     @classmethod
     def upload_pictures(cls):
-        """上传图片（类方法，非测试用例）"""
+        """上传图片（类方法）"""
         url = env + "/miai/brainstorm/knowledgeproductsample/upload"
         file_path = r"C:\Users\admin\Desktop\项目文件\一休云\上传使用\上传图片\图片\555.jpg"
 
-        with open(file_path, 'rb') as file:
-            files = {'file': file}
-            header = {
-                "Authorization": token,
-                "Miai-Product-Code": code,
-                "Miaispacemanageid": manageid
-            }
-            upload_response = requests.post(url, headers=header, files=files)
+        with allure.step("上传测试文件"):
+            with open(file_path, 'rb') as file:
+                files = {'file': file}
+                response = client.post(url, files=files)
 
-        upload_response_dict = upload_response.json()
-        assertions.assert_code(upload_response.status_code, 200)
-        assertions.assert_in_text(upload_response_dict['msg'], '成功')
-
-        # 使用类属性存储结果（cls 替代 self）
-        cls.data_value = upload_response_dict['data']
-        print(f"提取的文件路径: {cls.data_value}")
+            response_data = response.json()
+            assertions.assert_code(response.status_code, 200)
+            assertions.assert_in_text(response_data['msg'], '成功')
+            cls.data_value = response_data['data']
+            allure.attach(
+                f"上传成功文件路径：{cls.data_value}",
+                name="Upload Result",
+                attachment_type=allure.attachment_type.TEXT
+            )
 
     @allure.story("新增学习样例")
     def test_samples_add(self):
         url = env + "/miai/brainstorm/knowledgeproductsample/add"
-        data = {
-            "name": f"CS_{num}",
-            "detail": "接口自动化" + num,
+        payload = {
+            "name": f"CS_{time_str}",
+            "detail": "接口自动化" + time_str,
             "sampleType": 1,
             "file": [],
-            "imgPath": self.data_value,  # 使用类属性
+            "imgPath": self.data_value,
             "photoId": 2,
             "type": 2
         }
-        header = {
-            "content-type": "application/json",
-            "Authorization": token,
-            "Miai-Product-Code": code,
-            "Miaispacemanageid": manageid
-        }
-        rep_samples_add = requests.post(url, json=data, headers=header)
-        rep_samples_add_dict = rep_samples_add.json()
-        print(rep_samples_add_dict)
-        assertions.assert_code(rep_samples_add.status_code, 200)
-        assertions.assert_in_text(rep_samples_add_dict['msg'], '成功')
+
+        with allure.step("执行新增操作"):
+            response = client.post(url, json=payload)
+            response_data = response.json()
+
+            assertions.assert_code(response.status_code, 200)
+            assertions.assert_in_text(response_data['msg'], '成功')
 
     @allure.story("查询学习样例提取刚新增的ID值")
     def test_samples_query(self):
         url = env + "/miai/brainstorm/knowledgeproductsample/page"
-        data = {"data": {"name": f"CS_{num}", "type": 2}, "page": {"pageIndex": 1, "pageSize": 10}}
-        header = {
-            "content-type": "application/json",
-            "Authorization": token,
-            "Miai-Product-Code": code,
-            "Miaispacemanageid": manageid
+        payload = {
+            "data": {"name": f"CS_{time_str}", "type": 2},
+            "page": {"pageIndex": 1, "pageSize": 10}
         }
-        rep_samples_query = requests.post(url, json=data, headers=header)
-        rep_samples_query_dict = rep_samples_query.json()
-        print(rep_samples_query_dict)
-        assertions.assert_code(rep_samples_query.status_code, 200)
-        assertions.assert_in_text(rep_samples_query_dict['msg'], '成功')
 
-        query_data_text = rep_samples_query.text
-        # 使用正则表达式提取 productSampleId
-        match = re.search('"productSampleId":"(.*?)"', query_data_text)
-        if match:
-            # 存储到类属性中
-            self.__class__.productSampleId = match.group(1)
-            print(f"提取到的 productSampleId: {self.productSampleId}")
-        else:
-            pytest.fail("未找到 productSampleId")
+        with allure.step("执行查询操作"):
+            response = client.post(url, json=payload)
+            response_data = response.json()
+
+            assertions.assert_code(response.status_code, 200)
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 提取productSampleId
+            match = re.search('"productSampleId":"(.*?)"', response.text)
+            if match:
+                self.__class__.productSampleId = match.group(1)
+                allure.attach(
+                    f"提取到的productSampleId: {self.productSampleId}",
+                    name="Extracted ID",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+            else:
+                pytest.fail("未找到 productSampleId")
 
     @allure.story("修改刚新增的学习样例")
     def test_samples_update(self):
-        # 确保 productSampleId 已获取
         assert self.productSampleId is not None, "未获取到 productSampleId"
-
         url = env + f"/miai/brainstorm/knowledgeproductsample/update/{self.productSampleId}"
-        data = {
+        payload = {
             "productSampleId": self.productSampleId,
             "spaceManageId": manageid,
             "productCode": code,
-            "name": "CS_update_" + num,
+            "name": "CS_update_" + time_str,
             "sampleType": 2,
-            "detail": "接口自动化update_" + num,
+            "detail": "接口自动化update_" + time_str,
             "imgPath": self.data_value,
             "photoId": 5,
             "type": 2,
@@ -253,35 +238,25 @@ class Test_study_samples:
             "grid_order": 1,
             "file": [{}]
         }
-        header = {
-            "content-type": "application/json",
-            "Authorization": token,
-            "Miai-Product-Code": code,
-            "Miaispacemanageid": manageid
-        }
-        rep_samples_update = requests.post(url, json=data, headers=header)
-        rep_samples_update_dict = rep_samples_update.json()
-        print(rep_samples_update.text)
-        assertions.assert_code(rep_samples_update.status_code, 200)
-        assertions.assert_in_text(rep_samples_update_dict['msg'], '成功')
+
+        with allure.step("执行修改操作"):
+            response = client.post(url, json=payload)
+            response_data = response.json()
+
+            assertions.assert_code(response.status_code, 200)
+            assertions.assert_in_text(response_data['msg'], '成功')
 
     @allure.story("删除刚新增的学习样例")
     def test_samples_delete(self):
-        # 确保 productSampleId 已获取
         assert self.productSampleId is not None, "未获取到 productSampleId"
-
         url = env + f"/miai/brainstorm/knowledgeproductsample/delete/{self.productSampleId}"
-        header = {
-            "content-type": "application/json",
-            "Authorization": token,
-            "Miai-Product-Code": code,
-            "Miaispacemanageid": manageid
-        }
-        rep_samples_delete = requests.post(url, headers=header)
-        print(rep_samples_delete.text)
-        delete_data_dict = rep_samples_delete.json()
-        assertions.assert_code(rep_samples_delete.status_code, 200)
-        assertions.assert_in_text(delete_data_dict['msg'], '成功')
+
+        with allure.step("执行删除操作"):
+            response = client.post(url)
+            response_data = response.json()
+
+            assertions.assert_code(response.status_code, 200)
+            assertions.assert_in_text(response_data['msg'], '成功')
 
 
 if __name__ == '__main__':

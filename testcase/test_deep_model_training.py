@@ -180,6 +180,9 @@ class Test_deep_model_training:
         with allure.step("步骤5：监控追加数据处理进度"):
             self._monitor_training_progress()
 
+        with allure.step("步骤6：开始模型训练"):
+            pass
+
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v', '--alluredir=./allure-results'])

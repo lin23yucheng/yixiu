@@ -7,11 +7,9 @@ import pytest
 
 
 def run_tests():
-    # ================== 配置区（直接修改这里即可）================== #
-    target_file = "testcase/test_product_samples.py"  # 要执行的测试文件路径
-    target_class = None  # 要执行的测试类名（如：Test_check_samples）
-    target_method = None  # 要执行的测试方法名（如：test_samples_add）
-    # ================== 以下代码无需修改 ================== #
+    target_file = "testcase/test_deep_model_training.py"  # 要执行的测试文件路径
+    target_class = None  # 要执行的测试类名
+    target_method = None  # 要执行的测试方法名
 
     # 添加项目根目录到Python路径
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))

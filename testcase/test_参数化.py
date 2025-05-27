@@ -100,6 +100,27 @@ class Test_product_samples:
             assertions.assert_in_text(deleteData_dict['msg'], '成功')
             # print(deleteData_dict)
 
-
+        # with allure.step("步骤3：处理时间统计"):
+        #     # 计算总耗时
+        #     total_duration = int(time.time() - total_start)
+        #     process_duration = int(time.time() - self.creation_time)
+        #
+        #     # 格式化成可读时间
+        #     def format_time(seconds):
+        #         mins, secs = divmod(seconds, 60)
+        #         hours, mins = divmod(mins, 60)
+        #         return f"{hours}h {mins}m {secs}s" if hours else f"{mins}m {secs}s"
+        #
+        #     # 添加到Allure报告
+        #     allure.attach(
+        #         f"总执行时间：{format_time(total_duration)}\n"
+        #         f"纯处理等待时间：{format_time(process_duration)}",
+        #         name="时间统计汇总",
+        #         attachment_type=allure.attachment_type.TEXT
+        #     )
+        #
+        #     # 控制台打印
+        #     print(f"\nTotal execution time: {format_time(total_duration)}")
+        #     print(f"Pure processing time: {format_time(process_duration)}")
 if __name__ == '__main__':
     pass

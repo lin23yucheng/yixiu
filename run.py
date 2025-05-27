@@ -1,6 +1,3 @@
-"""
-修改后支持硬编码路径的run.py
-"""
 import os
 import sys
 import pytest

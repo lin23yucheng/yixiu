@@ -1,7 +1,6 @@
 """
 产品样例接口自动化流程
 """
-
 import re
 import pytest
 import allure

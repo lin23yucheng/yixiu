@@ -30,13 +30,13 @@ class ApiComprehensiveSampleLibrary:
         return self.client.post(url, json=payload)
 
     # 综合样本库-创建深度训练任务(目标检测)
-    def create_deep_training_tasks(self, defectName, photoId, cut):
+    def create_deep_training_tasks(self, defectName, photoId, cut,taskName):
         url = f"{env}/miai/brainstorm/global/sample/createTrainTask"
         payload = {"endTime": None, "startTime": None, "imgName": "", "visualGrade": [], "bashSampleType": [],
                    "productId": [self.product_info_id], "defectName": defectName, "photoId": photoId,
                    "classifyType": [],
                    "imageDefinition": [], "sampleType": [], "dataAlgorithmSampleType": [], "deepModelSampleType": [],
-                   "selectIds": [], "notSelectIds": [], "taskName": f"接口自动化-{time_str}", "testSetMinValue": 0,
+                   "selectIds": [], "notSelectIds": [], "taskName": taskName, "testSetMinValue": 0,
                    "testSetProportion": 30,
                    "caseId": "detection", "caseName": "目标检测/分割", "cut": True, "filter": False, "remark": "",
                    "defectCount": "[{\"labelName\":\"\",\"count\":\"\"}]", "cutHeight": cut, "cutWidth": cut, "type": 1}

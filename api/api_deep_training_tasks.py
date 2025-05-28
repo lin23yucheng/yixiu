@@ -104,7 +104,7 @@ class ApiPostProcess:
         payload = {"verifyId": verifyId,
                    "thresholds": [{"showName": "全局阈值", "label": "all", "score": "0.1"},
                                   {"showName": "裂边阈值", "label": "liebian",
-                                   "score": "0.7"},
+                                   "score": "0.2"},
                                   {"showName": "伤阈值", "label": "shang", "score": "0.08"}],
                    "filterNonDetection": False}
 

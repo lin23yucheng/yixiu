@@ -1,7 +1,3 @@
-"""
-封装log方法
-"""
-
 import logging
 import os
 import time
@@ -15,82 +11,84 @@ LEVELS = {
 }
 
 logger = logging.getLogger()
-level = 'default'
+level = 'info'  # 默认日志级别设为info
 
 
 def create_file(filename):
-    path = filename[0:filename.rfind('/')]
-    if not os.path.isdir(path):
-        os.makedirs(path)
-    if not os.path.isfile(filename):
-        fd = open(filename, mode='w', encoding='utf-8')
-        fd.close()
-    else:
-        pass
+    """创建日志文件及目录"""
+    try:
+        path = filename[0:filename.rfind('/')]
+        if not os.path.isdir(path):
+            os.makedirs(path, exist_ok=True)
+        if not os.path.isfile(filename):
+            with open(filename, mode='w', encoding='utf-8') as f:
+                pass
+    except Exception as e:
+        print(f"Error creating log file: {e}")
 
 
-def set_handler(levels):
-    if levels == 'error':
-        logger.addHandler(MyLog.err_handler)
-    logger.addHandler(MyLog.handler)
-
-
-def remove_handler(levels):
-    if levels == 'error':
-        logger.removeHandler(MyLog.err_handler)
-    logger.removeHandler(MyLog.handler)
-
-
-def get_current_time():
-    return time.strftime(MyLog.date, time.localtime(time.time()))
+def set_log_level(log_level):
+    """设置日志级别"""
+    global level
+    level = log_level
+    logger.setLevel(LEVELS.get(level, logging.INFO))
 
 
 class MyLog:
+    """日志封装类"""
     path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     log_file = path + '/Log/log.log'
     err_file = path + '/Log/err.log'
-    logger.setLevel(LEVELS.get(level, logging.NOTSET))
+    date_format = '%Y-%m-%d %H:%M:%S'
+
+    # 创建文件
     create_file(log_file)
     create_file(err_file)
-    date = '%Y-%m-%d %H:%M:%S'
 
+    # 配置处理器
     handler = logging.FileHandler(log_file, encoding='utf-8')
     err_handler = logging.FileHandler(err_file, encoding='utf-8')
 
-    @staticmethod
-    def debug(log_meg):
-        set_handler('debug')
-        logger.debug("[DEBUG " + get_current_time() + "]" + log_meg)
-        remove_handler('debug')
+    # 设置日志格式
+    formatter = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(message)s',
+        datefmt=date_format
+    )
+    handler.setFormatter(formatter)
+    err_handler.setFormatter(formatter)
+
+    # 添加处理器（仅一次）
+    logger.addHandler(handler)
+    logger.addHandler(err_handler)
+
+    # 设置日志级别
+    logger.setLevel(LEVELS.get(level, logging.INFO))
 
     @staticmethod
-    def info(log_meg):
-        set_handler('info')
-        logger.info("[INFO " + get_current_time() + "]" + log_meg)
-        remove_handler('info')
+    def debug(log_msg):
+        logger.debug(log_msg)
 
     @staticmethod
-    def warning(log_meg):
-        set_handler('warning')
-        logger.warning("[WARNING " + get_current_time() + "]" + log_meg)
-        remove_handler('warning')
+    def info(log_msg):
+        logger.info(log_msg)
 
     @staticmethod
-    def error(log_meg):
-        set_handler('error')
-        logger.error("[ERROR " + get_current_time() + "]" + log_meg)
-        remove_handler('error')
+    def warning(log_msg):
+        logger.warning(log_msg)
 
     @staticmethod
-    def critical(log_meg):
-        set_handler('critical')
-        logger.error("[CRITICAL " + get_current_time() + "]" + log_meg)
-        remove_handler('critical')
+    def error(log_msg):
+        logger.error(log_msg)
+
+    @staticmethod
+    def critical(log_msg):
+        logger.critical(log_msg)
 
 
 if __name__ == "__main__":
-    MyLog.debug("This is debug message")
-    MyLog.info("This is info message")
-    MyLog.warning("This is warning message")
-    MyLog.error("This is error")
-    MyLog.critical("This is critical message")
+    # 测试日志功能
+    MyLog.debug("This is a debug message")
+    MyLog.info("This is an info message")
+    MyLog.warning("This is a warning message")
+    MyLog.error("This is an error message")
+    MyLog.critical("This is a critical message")

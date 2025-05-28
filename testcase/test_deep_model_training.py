@@ -4,6 +4,8 @@
 import pytest
 import allure
 import time
+import os
+from configparser import ConfigParser
 from common.Request_Response import ApiClient
 from common import Assert
 from api import api_login, api_comprehensive_sample_library, api_deep_training_tasks
@@ -75,6 +77,8 @@ class Test_deep_model_training:
 
                     status = current_task['dataStatus']
                     self.trainTaskId = current_task['trainTaskId']
+                    self.__class__.trainTaskId = current_task['trainTaskId']  # 关键：赋值给类变量
+
                     allure.attach(
                         f"当前状态: {status} (0=处理中, 1=完成, 2=异常)",
                         name="状态解析"
@@ -148,6 +152,8 @@ class Test_deep_model_training:
                     train_status = current_record['trainStatus']
                     verify_status = current_record.get('verifyStatus', None)
                     self.modelTrainId = current_record['modelTrainId']
+                    self.__class__.modelTrainId = current_record['modelTrainId']  # 关键：赋值给类变量
+
                     # 时间统计
                     current_duration = int(time.time() - start_time)
                     mins, secs = divmod(current_duration, 60)
@@ -226,11 +232,12 @@ class Test_deep_model_training:
                         f"\ncommitStatus={commit_status} "
                         f"(0=未提交,1=已提交,2=提交中,3=提交失败)\n"
                         f"{time_message}\n"
+                        f"-------------------------------\n"
                     )
                     allure.attach(status_info, name="提交状态详情")
 
                     # 控制台实时打印
-                    print(f"提交状态: {status_info}", end="-------------------------------")
+                    print(f"提交状态: {status_info}", end="")
 
                     # 状态机判断
                     if commit_status == 3:
@@ -247,7 +254,31 @@ class Test_deep_model_training:
                     # 间隔等待
                     time.sleep(self.poll_interval)
 
-    @allure.story("创建/追加深度训练任务并监控数据处理状态")
+    def teardown_class(cls):
+        """将生成的ID写入配置文件"""
+        if not cls.trainTaskId or not cls.modelTrainId:
+            print("警告：任务ID或模型ID未获取到，可能流程未完成")
+            return
+
+        config_path = os.path.abspath(os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),  # 向上一级，回到项目根目录
+            'config/env_config.ini'  # 根目录下的 config 目录
+        ))
+
+        config = ConfigParser()
+        config.read(config_path)
+
+        if not config.has_section('persistent_ids'):
+            config.add_section('persistent_ids')
+
+        config.set('persistent_ids', 'train_task_id', str(cls.trainTaskId))
+        config.set('persistent_ids', 'model_train_id', str(cls.modelTrainId))
+
+        with open(config_path, 'w') as f:
+            config.write(f)
+        print(f"已写入配置文件：{config_path}")
+
+    @allure.story("深度模型训练&提交")
     def test_train_task_workflow(self):
         total_start = time.time()  # 记录总开始时间
 

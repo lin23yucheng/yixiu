@@ -4,7 +4,7 @@ import pytest
 
 
 def run_tests():
-    target_file = "testcase/test_deep_model_training.py"  # 要执行的测试文件路径
+    target_file = "testcase/test_post_process.py"  # 要执行的测试文件路径
     target_class = None  # 要执行的测试类名
     target_method = None  # 要执行的测试方法名
 

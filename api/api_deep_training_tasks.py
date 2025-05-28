@@ -15,6 +15,7 @@ base_headers = {
 global_client = ApiClient(base_headers=base_headers)
 
 
+# --------------------------------深度训练任务列表页--------------------------------
 class ApiDeepTrainTasks:
     def __init__(self, client: ApiClient):
         self.client = client
@@ -39,6 +40,7 @@ class ApiDeepTrainTasks:
         return self.client.post(url, json=payload)
 
 
+# --------------------------------模型训练--------------------------------
 class ApiModelTrain:
     def __init__(self, client: ApiClient):
         self.client = client
@@ -48,14 +50,14 @@ class ApiModelTrain:
     def query_model(self):
         url = f"{env}/miai/brainstorm/newmodelcasetemplate/list/1"
         response = self.client.post(url, json=None)
-        response.raise_for_status()  # 检查HTTP状态码（如果状态码不是200，会抛出HTTPError）
+        response.raise_for_status()
         return response
 
     # 训练机器查询
     def query_machine(self):
         url = f"{env}/miai/brainstorm/computingpower/enabledcomputinglist"
         response = self.client.post(url, json=None)
-        response.raise_for_status()  # 检查HTTP状态码（如果状态码不是200，会抛出HTTPError）
+        response.raise_for_status()
         return response
 
     # 开始模型训练
@@ -75,7 +77,7 @@ class ApiModelTrain:
     def query_train_records(self, trainTaskId):
         url = f"{env}/miai/brainstorm/newmodeltrain/page"
         payload = {"data": {"trainTaskId": trainTaskId, "onlyMachineTable": False},
-                   "page": {"pageIndex": 1, "pageSize": 100}}
+                   "page": {"pageIndex": 1, "pageSize": 10}}
         response = self.client.post(url, json=payload)
         response.raise_for_status()
         return response
@@ -86,6 +88,51 @@ class ApiModelTrain:
         payload = {"modelName": modelName, "sides": [{"photoId": "", "productCode": "", "productId": 0}],
                    "modelThreshold": 0.1, "iouThreshold": 0.45, "modelTrainId": modelTrainId}
         response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+
+# --------------------------------后处理--------------------------------
+class ApiPostProcess:
+    def __init__(self, client: ApiClient):
+        self.client = client
+        self.product_info_id = api_space.ApiSpace().product_query()
+
+    # 报表分析
+    def report_analysis(self, verifyId):
+        url = f"{env}/miai/brainstorm/model/verify/report/reanalysis"
+        payload = {"verifyId": verifyId,
+                   "thresholds": [{"showName": "全局阈值", "label": "all", "score": "0.1"},
+                                  {"showName": "裂边阈值", "label": "liebian",
+                                   "score": "0.7"},
+                                  {"showName": "伤阈值", "label": "shang", "score": "0.08"}],
+                   "filterNonDetection": False}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 报表分析-状态查询
+    def report_analysis_status(self, verifyId):
+        url = f"{env}/miai/brainstorm/model/verify/processStatus/{verifyId}"
+
+        response = self.client.post(url, json=None)
+        response.raise_for_status()
+        return response
+
+    # 样本分析
+    def sample_analysis(self, verifyId):
+        url = f"{env}/miai/brainstorm/model/verify/report/sampleAnalysis/{verifyId}"
+
+        response = self.client.post(url, json=None)
+        response.raise_for_status()
+        return response
+
+    # 样本分析-状态查询
+    def sample_analysis_status(self, verifyId):
+        url = f"{env}/miai/brainstorm/model/verify/processStatus/{verifyId}"
+
+        response = self.client.post(url, json=None)
         response.raise_for_status()
         return response
 

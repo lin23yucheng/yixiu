@@ -10,6 +10,13 @@ class Assertions:
     def __init__(self):
         self.log = Log.MyLog()
 
+    @staticmethod
+    def assert_is_not_none(value, message):
+        """检查值是否为 None，否则抛出断言错误"""
+        if value is None:
+            raise AssertionError(message)
+        return True
+
     def assert_code(self, code, expected_code):
         """
         验证response状态码

@@ -12,6 +12,10 @@ login = ApiLogin()
 token = login.login()
 
 
+# 代码推送
+# git push -u gitlab main
+# git push -u origin main
+
 class ApiSpace:
     # 产品查询
     def product_query(self):

@@ -4,7 +4,6 @@ import pytest
 
 
 def run_test():
-    # target_file = "testcase/test_deep_model_training.py"
     target_file = "testcase/test_post_process.py"
     target_class = None  # 要执行的测试类名
     target_method = None  # 要执行的测试方法名
@@ -83,10 +82,10 @@ def run_tests():
 
         # 执行参数（不再使用--clean-alluredir）
         pytest_args = [
-            "-v",
-            "-s",
+            "-v",  # 详细输出
+            "-s",  # 禁止捕获输出
             target_path,
-            f"--alluredir={allure_results}",
+            f"--alluredir={allure_results}",  # Allure报告存储路径
         ]
 
         # 执行测试
@@ -100,6 +99,8 @@ def run_tests():
     # 所有测试执行完毕后生成合并报告
     os.system(f"allure generate {allure_results} -o {allure_report} --clean")
     print(f"\n所有测试执行完毕，合并报告路径：file://{os.path.abspath(allure_report)}/index.html")
+
+
 
 
 if __name__ == "__main__":

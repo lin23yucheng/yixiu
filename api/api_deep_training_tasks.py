@@ -139,7 +139,7 @@ class ApiPostProcess:
 
 if __name__ == '__main__':
     product_id = api_space.ApiSpace().product_query()
-    api = ApiModelTrain(global_client)  # 使用 global_client 而不是新建实例
+    api = ApiModelTrain(global_client)
 
     query_model_data = api.query_model()
     print("模型方案接口返回JSON:")

@@ -100,7 +100,48 @@ def run_tests():
     os.system(f"allure generate {allure_results} -o {allure_report} --clean")
     print(f"\n所有测试执行完毕，合并报告路径：file://{os.path.abspath(allure_report)}/index.html")
 
+def run_test2():
+    target_file = "testcase/test_post_process.py"
+
+    # 添加项目根目录到Python路径
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+    # 构建目标路径
+    target_path = target_file.replace('/', os.sep)
+    if not os.path.exists(target_path):
+        print(f"错误：测试文件 {target_path} 不存在！")
+        sys.exit(1)
+
+    # 配置报告路径
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    allure_results = os.path.join(base_dir, "report", "allure-results")
+    allure_report = os.path.join(base_dir, "report", "allure-report")
+
+    # 清空结果目录（确保新执行不会包含旧结果）
+    if os.path.exists(allure_results):
+        import shutil
+        shutil.rmtree(allure_results)
+    os.makedirs(allure_results, exist_ok=True)
+
+    # 执行参数
+    pytest_args = [
+        "-v",  # 详细输出
+        "-s",  # 禁止捕获输出
+        target_path,
+        f"--alluredir={allure_results}",  # Allure报告存储路径
+    ]
+
+    # 执行测试
+    exit_code = pytest.main(pytest_args)
+
+    # 生成报告
+    if exit_code in [0, 1]:
+        os.system(f"allure generate {allure_results} -o {allure_report} --clean")
+        print(f"报告路径：file://{os.path.abspath(allure_report)}/index.html")
+    else:
+        print("执行过程发生严重错误")
 
 if __name__ == "__main__":
     # run_test()
-    run_tests()
+    # run_tests()
+    run_test2()

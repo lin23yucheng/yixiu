@@ -1,4 +1,5 @@
 import os
+import random
 import time
 import pytest
 import allure
@@ -54,90 +55,25 @@ class Test_post_process:
         cls.api_deep = api_deep_training_tasks.ApiDeepTrainTasks(global_client)
         cls.api_model = api_deep_training_tasks.ApiModelTrain(global_client)
         cls.api_process = api_deep_training_tasks.ApiPostProcess(global_client)
-        cls.task_name = f"接口自动化-{time_str}"
+        # cls.task_name = f"接口自动化-{time_str}"
         cls.max_wait_seconds = 1800  # 最大等待30分钟
         cls.poll_interval = 5  # 轮询间隔5秒
         cls.start_timestamp = None  # 新增时间记录点
         cls.trainTaskId = None
         cls.verifyId = None
+        cls.task_name = None
 
-    def _monitor_report_analysis_progress(self):
-        """报表分析状态监控"""
-        start_time = time.time()  # 记录开始时间
-        attempt = 0  # 初始化尝试次数
-
-        with allure.step("监控报表分析状态"):  # Allure报告步骤：监控报表分析状态
-            while True:  # 循环直到条件满足或超时
-                attempt += 1  # 增加尝试次数
-                with allure.step(f"第{attempt}次提交状态检查"):  # Allure报告步骤：第X次提交状态检查
-                    # 发送查询请求以获取报表分析状态
-                    response = self.api_process.report_analysis_status(self.verifyId)
-                    assertions.assert_code(response.status_code, 200)  # 断言响应状态码为200
-
-                    # 解析响应数据为JSON格式
-                    response_data = response.json()
-                    # 检查响应数据中的'data'字段是否存在且为字典类型
-                    data = response_data.get('data')
-                    if not isinstance(data, dict):
-                        allure.attach(f"响应中data字段格式错误: {response_data}", name="错误详情")  # 将错误详情附加到Allure报告
-                        pytest.fail("接口返回data字段格式不符合预期")  # 测试失败并提供错误信息
-
-                    # 从'data'字典中获取'subStatus'字段
-                    subStatus = data.get('subStatus')
-
-                    # 将原始响应数据附加到Allure报告
-                    allure.attach(
-                        str(response_data),
-                        name="提交状态响应数据",
-                        attachment_type=allure.attachment_type.JSON
-                    )
-
-                    # 计算当前持续时间并格式化为分钟和秒
-                    current_duration = int(time.time() - start_time)
-                    mins, secs = divmod(current_duration, 60)
-                    time_message = f"报表分析等待时间：{mins}分{secs}秒"
-
-                    # 汇总状态信息，包括subStatus和等待时间
-                    status_info = (
-                        f"\nsubStatus={subStatus} "
-                        f"(1=分析中,2=分析完成)\n"
-                        f"{time_message}\n"
-                        f"-------------------------------\n"
-                    )
-                    allure.attach(status_info, name="报表分析状态详情")  # 将状态信息附加到Allure报告
-
-                    # 在控制台实时打印报表分析状态
-                    print(f"报表分析状态: {status_info}", end="")
-
-                    # 根据subStatus判断当前状态
-                    if subStatus == 2:
-                        allure.attach("报表分析已完成", name="最终状态")  # 将最终状态附加到Allure报告
-                        time.sleep(3)  # 等待3秒
-                        return True  # 返回True表示分析完成
-                    elif subStatus == 1:
-                        pass  # 继续循环，表示仍在分析中
-                    else:
-                        pytest.fail(f"未知状态码: {subStatus}")  # 测试失败，未知状态码
-
-                    # 检查是否超时（30分钟）
-                    elapsed = time.time() - start_time
-                    if elapsed > self.max_wait_seconds:
-                        pytest.fail(f"报表分析卡住，请检查日志（等待超过{self.max_wait_seconds}秒)")  # 测试失败，超时
-
-                    # 等待指定的时间间隔后继续下一次检查
-                    time.sleep(self.poll_interval)
-
-    def _monitor_sample_analysis_progress(self):
-        """样本分析状态监控"""
+    def _monitor_analysis_progress(self, analysis_type, api_call):
+        """通用的状态监控方法"""
         start_time = time.time()
         attempt = 0
 
-        with allure.step("监控样本分析状态"):
+        with allure.step(f"监控{analysis_type}状态"):
             while True:
                 attempt += 1
                 with allure.step(f"第{attempt}次提交状态检查"):
                     # 发送查询请求
-                    response = self.api_process.sample_analysis_status(self.verifyId)
+                    response = api_call(self.verifyId)
                     assertions.assert_code(response.status_code, 200)
 
                     # 解析响应数据
@@ -148,20 +84,20 @@ class Test_post_process:
                         allure.attach(f"响应中data字段格式错误: {response_data}", name="错误详情")
                         pytest.fail("接口返回data字段格式不符合预期")
 
-                        # 从嵌套结构中获取subStatus
+                    # 从嵌套结构中获取subStatus
                     subStatus = data.get('subStatus')
 
                     # 记录原始响应到Allure
                     allure.attach(
                         str(response_data),
-                        name="样本分析响应数据",
+                        name=f"{analysis_type}响应数据",
                         attachment_type=allure.attachment_type.JSON
                     )
 
                     # 时间统计
                     current_duration = int(time.time() - start_time)
                     mins, secs = divmod(current_duration, 60)
-                    time_message = f"样本分析等待时间：{mins}分{secs}秒"
+                    time_message = f"{analysis_type}等待时间：{mins}分{secs}秒"
 
                     # 状态信息汇总
                     status_info = (
@@ -170,14 +106,14 @@ class Test_post_process:
                         f"{time_message}\n"
                         f"-------------------------------\n"
                     )
-                    allure.attach(status_info, name="样本分析状态详情")
+                    allure.attach(status_info, name=f"{analysis_type}状态详情")
 
                     # 控制台实时打印
-                    print(f"样本分析状态: {status_info}", end="")
+                    print(f"{analysis_type}状态: {status_info}", end="")
 
                     # 状态判断
                     if subStatus == 2:
-                        allure.attach("样本分析已完成", name="最终状态")
+                        allure.attach(f"{analysis_type}已完成", name="最终状态")
                         time.sleep(3)
                         return True
                     elif subStatus == 1:
@@ -188,7 +124,89 @@ class Test_post_process:
                     # 超时检查（30分钟）
                     elapsed = time.time() - start_time
                     if elapsed > self.max_wait_seconds:
-                        pytest.fail(f"样本分析卡住，请检查日志（等待超过{self.max_wait_seconds}秒）")
+                        pytest.fail(f"{analysis_type}卡住，请检查日志（等待超过{self.max_wait_seconds}秒）")
+
+                    # 间隔等待
+                    time.sleep(self.poll_interval)
+
+    def _monitor_cut_progress(self):
+        """数据处理状态监控"""
+        start_time = time.time()
+        self.start_timestamp = start_time  # 记录开始时间
+        attempt = 0
+
+        with allure.step("监控训练任务进度"):
+            while True:
+                attempt += 1
+                with allure.step(f"第{attempt}次状态检查"):
+                    # 发送查询请求
+                    response = self.api_deep.query_train_tasks(self.task_name)
+                    assertions.assert_code(response.status_code, 200)
+
+                    # 解析响应数据
+                    response_data = response.json()
+                    tasks = response_data['data']['list']
+
+                    # 记录原始响应
+                    allure.attach(
+                        str(response_data),
+                        name="原始响应数据",
+                        attachment_type=allure.attachment_type.JSON
+                    )
+
+                    # 验证任务存在
+                    if not tasks:
+                        pytest.fail(f"未找到任务: {self.task_name}")
+
+                    # 获取任务状态
+                    current_task = next(
+                        (t for t in tasks if t['taskName'] == self.task_name),
+                        None
+                    )
+                    if not current_task:
+                        pytest.fail(f"任务列表匹配失败: {self.task_name}")
+
+                    status = current_task['dataStatus']
+                    self.trainTaskId = current_task['trainTaskId']
+                    self.__class__.trainTaskId = current_task['trainTaskId']  # 关键：赋值给类变量
+
+                    allure.attach(
+                        f"当前状态: {status} (0=处理中, 1=完成, 2=异常)",
+                        name="状态解析"
+                    )
+                    allure.attach(
+                        f"trainTaskId: {self.trainTaskId}",
+                        name="任务ID",
+                        attachment_type=allure.attachment_type.TEXT
+                    )
+
+                    # 新增时间统计部分
+                    current_duration = int(time.time() - start_time)
+                    mins, secs = divmod(current_duration, 60)
+                    time_message = f"处理已等待时间：{mins}分{secs}秒"
+
+                    # 记录到Allure
+                    allure.attach(
+                        time_message,
+                        name="耗时统计",
+                        attachment_type=allure.attachment_type.TEXT
+                    )
+
+                    # 控制台实时打印
+                    print(f"\r数据处理时间: {mins}m {secs}s", end="")
+
+                    # 状态判断
+                    if status == 1:
+                        allure.attach("训练任务已完成", name="状态更新")
+                        print("\n数据处理已完成")
+                        return True
+                    elif status == 2:
+                        pytest.fail(f"训练异常: {current_task.get('errorMsg', '处理异常')}")
+
+                    # 超时检查
+                    elapsed = time.time() - start_time
+                    if elapsed > self.max_wait_seconds:
+                        pytest.fail(f"训练超时: 等待{self.max_wait_seconds}秒未完成")
 
                     # 间隔等待
                     time.sleep(self.poll_interval)
@@ -210,7 +228,7 @@ class Test_post_process:
             assertions.assert_in_text(response_data['msg'], '成功')
 
             # 提取训练集verify_id
-            # verify_id = None
+            verify_id = None
             for task in response_data.get('data', {}).get('list', []):
                 # 遍历verifyRecord查找包含'训练集'的条目
                 for record in task.get('verifyRecord', []):
@@ -220,6 +238,15 @@ class Test_post_process:
                         break
                 if verify_id:
                     break
+
+            # 提取taskName值
+            train_list = response_data.get('data', {}).get('list', [])
+            if not train_list:
+                pytest.fail("未找到训练记录")
+
+            first_sample = train_list[0]
+            task_name = first_sample.get('taskName')
+            self.__class__.task_name = task_name  # 关键：赋值给类变量
 
             # 确保找到有效ID
             assertions.assert_is_not_none(
@@ -234,7 +261,6 @@ class Test_post_process:
             )
 
         with allure.step("步骤2：报表分析"):
-
             with allure.step("子步骤1：提交报表分析"):
                 response = self.api_process.report_analysis(
                     verifyId=self.verifyId
@@ -253,10 +279,9 @@ class Test_post_process:
 
             # 监控报表分析状态
             with allure.step("子步骤2：监控报表分析状态"):
-                self._monitor_report_analysis_progress()
+                self._monitor_analysis_progress("报表分析", self.api_process.report_analysis_status)
 
         with allure.step("步骤3：样本分析"):
-
             with allure.step("子步骤1：提交样本分析"):
                 response = self.api_process.sample_analysis(
                     verifyId=self.verifyId
@@ -274,8 +299,389 @@ class Test_post_process:
                 )
 
             # 监控样本分析状态
-            with allure.step("子步骤2：监控报表分析状态"):
-                self._monitor_sample_analysis_progress()
+            with allure.step("子步骤2：监控样本分析状态"):
+                self._monitor_analysis_progress("样本分析", self.api_process.sample_analysis_status)
 
-        with allure.step("步骤4:查询过检样本"):
-            pass
+    @allure.story("过检样本标记&拷贝增广")
+    def test_over_samples(self):
+        with allure.step("步骤1: 标记过检样本"):
+            with allure.step("子步骤1：查询过检样本"):
+                # 调用query_over_samples方法查询过检样本
+                response = self.api_process.query_over_samples(
+                    verifyId=self.verifyId
+                )
+
+                # 响应断言
+                assertions.assert_code(response.status_code, 200)
+                response_data = response.json()
+                assertions.assert_in_text(response_data['msg'], '成功')
+
+                # 提取第一条记录的id和imgName
+                over_samples_list = response_data.get('data', {}).get('list', [])
+                if not over_samples_list:
+                    pytest.fail("未找到过检样本数据")
+
+                first_sample = over_samples_list[0]
+                sample_id = first_sample.get('id')
+                img_name = first_sample.get('imgName')
+
+                # 断言提取的id和imgName不为空
+                assertions.assert_is_not_none(sample_id, "过检样本id不能为空")
+                assertions.assert_is_not_none(img_name, "过检样本imgName不能为空")
+
+                # 记录日志到Allure报告
+                allure.attach(
+                    f"过检样本id: {sample_id}, imgName: {img_name}",
+                    name="过检样本信息",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
+                # 控制台打印
+                print(f"过检样本id: {sample_id}, imgName: {img_name}")
+
+            with allure.step("子步骤2：查询过检图片GT/PRE"):
+                # 调用query_gt_pre_data方法查询图片GT/PRE数据
+                response = self.api_process.query_gt_pre_data(
+                    image_id=sample_id,
+                    verifyId=self.verifyId
+                )
+
+                # 响应断言
+                assertions.assert_code(response.status_code, 200)
+                response_data = response.json()
+                assertions.assert_in_text(response_data['msg'], '成功')
+
+                # 提取GT和PRE数据
+                gt_pre_data = response_data.get('data', {}).get('gtAndPre', {}).get('shapes', [])
+
+                # 确保gt_pre_data是一个列表
+                if not isinstance(gt_pre_data, list):
+                    pytest.fail(f"gt_pre_data不是一个列表: {gt_pre_data}")
+
+                # 找到type字段等于0的第一条数据的id
+                defect_id = None
+                for item in gt_pre_data:
+                    if item.get('type') == "0":  # 注意引号
+                        defect_id = item.get('id')
+                        break
+
+                # 断言提取的defect_id不为空
+                assertions.assert_is_not_none(defect_id, "未找到type为0的缺陷ID")
+
+                # 记录日志到Allure报告
+                allure.attach(
+                    f"缺陷ID: {defect_id}",
+                    name="缺陷ID",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
+                # 控制台打印
+                print(f"缺陷ID: {defect_id}")
+
+            with allure.step("子步骤3：标记空过杀"):
+                postprocess_label = "kongguosha"
+                response = self.api_process.batch_mark(
+                    defect_id=defect_id,
+                    postprocess_label=postprocess_label,
+                    verifyId=self.verifyId,
+                    image_id=sample_id,
+                    img_name=img_name
+                )
+
+                # 响应断言
+                assertions.assert_code(response.status_code, 200)
+                response_data = response.json()
+                assertions.assert_in_text(response_data['msg'], '成功')
+
+                # 记录日志到Allure报告
+                allure.attach(
+                    f"标记空过杀响应: {response_data}",
+                    name="标记空过杀信息",
+                    attachment_type=allure.attachment_type.JSON
+                )
+
+                # 控制台打印
+                print(f"标记空过杀响应: {response_data}")
+
+        with allure.step("步骤2: 过检样本拷贝增广"):
+            num = random.randint(1, 5)  # 随机选择1到5之间的数字
+            response = self.api_process.copy_to_trainset(
+                train_task_id=self.trainTaskId,
+                num=num,
+                verifyId=self.verifyId,
+                image_id=sample_id,
+                copy_type=0
+            )
+
+            # 响应断言
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 记录日志到Allure报告
+            allure.attach(
+                f"拷贝到训练集响应: {response_data}",
+                name="过检样本拷贝增广信息",
+                attachment_type=allure.attachment_type.JSON
+            )
+
+            # 控制台打印
+            print(f"过检样本拷贝增广响应: {response_data}")
+
+        with allure.step("步骤3: 监控过检拷贝进度"):
+            self._monitor_cut_progress()
+
+    @allure.story("漏检样本标记&拷贝增广")
+    def test_miss_samples(self):
+
+        with allure.step("步骤1: 标记漏检样本"):
+            with allure.step("子步骤1：查询漏检样本"):
+                response = self.api_process.query_miss_samples(
+                    verifyId=self.verifyId
+                )
+
+                # 响应断言
+                assertions.assert_code(response.status_code, 200)
+                response_data = response.json()
+                assertions.assert_in_text(response_data['msg'], '成功')
+
+                # 提取第一条记录的id和imgName
+                over_samples_list = response_data.get('data', {}).get('list', [])
+                if not over_samples_list:
+                    pytest.fail("未找到漏检样本数据")
+
+                first_sample = over_samples_list[0]
+                sample_id = first_sample.get('id')
+                img_name = first_sample.get('imgName')
+
+                # 断言提取的id和imgName不为空
+                assertions.assert_is_not_none(sample_id, "漏检样本id不能为空")
+                assertions.assert_is_not_none(img_name, "漏检样本imgName不能为空")
+
+                # 记录日志到Allure报告
+                allure.attach(
+                    f"漏检样本id: {sample_id}, imgName: {img_name}",
+                    name="漏检样本信息",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
+                # 控制台打印
+                print(f"漏检样本id: {sample_id}, imgName: {img_name}")
+
+            with allure.step("子步骤2：查询漏检图片GT/PRE"):
+                response = self.api_process.query_gt_pre_data(
+                    image_id=sample_id,
+                    verifyId=self.verifyId
+                )
+
+                # 响应断言
+                assertions.assert_code(response.status_code, 200)
+                response_data = response.json()
+                assertions.assert_in_text(response_data['msg'], '成功')
+
+                # 提取GT和PRE数据
+                gt_pre_data = response_data.get('data', {}).get('gtAndPre', {}).get('shapes', [])
+
+                # 确保gt_pre_data是一个列表
+                if not isinstance(gt_pre_data, list):
+                    pytest.fail(f"gt_pre_data不是一个列表: {gt_pre_data}")
+
+                # 找到type字段等于1的第一条数据的id
+                defect_id = None
+                for item in gt_pre_data:
+                    if item.get('type') == "1":  # 注意引号
+                        defect_id = item.get('id')
+                        break
+
+                # 断言提取的defect_id不为空
+                assertions.assert_is_not_none(defect_id, "未找到type为1的缺陷ID")
+
+                # 记录日志到Allure报告
+                allure.attach(
+                    f"缺陷ID: {defect_id}",
+                    name="缺陷ID",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
+                # 控制台打印
+                print(f"缺陷ID: {defect_id}")
+
+            with allure.step("子步骤3：标记漏检增强"):
+                postprocess_label = "loujianzengqiang"
+                response = self.api_process.batch_mark(
+                    defect_id=defect_id,
+                    postprocess_label=postprocess_label,
+                    verifyId=self.verifyId,
+                    image_id=sample_id,
+                    img_name=img_name
+                )
+
+                # 响应断言
+                assertions.assert_code(response.status_code, 200)
+                response_data = response.json()
+                assertions.assert_in_text(response_data['msg'], '成功')
+
+                # 记录日志到Allure报告
+                allure.attach(
+                    f"标记漏检增强响应: {response_data}",
+                    name="标记漏检增强信息",
+                    attachment_type=allure.attachment_type.JSON
+                )
+
+                # 控制台打印
+                print(f"标记漏检增强响应: {response_data}")
+
+        with allure.step("步骤2: 漏检样本拷贝增广"):
+            num = random.randint(1, 5)  # 随机选择1到5之间的数字
+            response = self.api_process.copy_to_trainset(
+                train_task_id=self.trainTaskId,
+                num=num,
+                verifyId=self.verifyId,
+                image_id=sample_id,
+                copy_type=1
+            )
+
+            # 响应断言
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 记录日志到Allure报告
+            allure.attach(
+                f"拷贝到训练集响应: {response_data}",
+                name="漏检样本拷贝增广信息",
+                attachment_type=allure.attachment_type.JSON
+            )
+
+            # 控制台打印
+            print(f"漏检样本拷贝增广响应: {response_data}")
+
+        with allure.step("步骤3: 监控漏检拷贝进度"):
+            self._monitor_cut_progress()
+
+    @allure.story("错检样本标记&拷贝增广")
+    def test_error_samples(self):
+        with allure.step("步骤1: 标记错检样本"):
+            with allure.step("子步骤1：查询错检样本"):
+                response = self.api_process.query_error_samples(
+                    verifyId=self.verifyId
+                )
+
+                # 响应断言
+                assertions.assert_code(response.status_code, 200)
+                response_data = response.json()
+                assertions.assert_in_text(response_data['msg'], '成功')
+
+                # 提取第一条记录的id和imgName
+                over_samples_list = response_data.get('data', {}).get('list', [])
+                if not over_samples_list:
+                    pytest.fail("未找到过检样本数据")
+
+                first_sample = over_samples_list[0]
+                sample_id = first_sample.get('id')
+                img_name = first_sample.get('imgName')
+
+                # 断言提取的id和imgName不为空
+                assertions.assert_is_not_none(sample_id, "错检样本id不能为空")
+                assertions.assert_is_not_none(img_name, "错检样本imgName不能为空")
+
+                # 记录日志到Allure报告
+                allure.attach(
+                    f"错检样本id: {sample_id}, imgName: {img_name}",
+                    name="错检样本信息",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
+                # 控制台打印
+                print(f"错检样本id: {sample_id}, imgName: {img_name}")
+
+            with allure.step("子步骤2：查询错检图片GT/PRE"):
+                response = self.api_process.query_gt_pre_data(
+                    image_id=sample_id,
+                    verifyId=self.verifyId
+                )
+
+                # 响应断言
+                assertions.assert_code(response.status_code, 200)
+                response_data = response.json()
+                assertions.assert_in_text(response_data['msg'], '成功')
+
+                # 提取GT和PRE数据
+                gt_pre_data = response_data.get('data', {}).get('gtAndPre', {}).get('shapes', [])
+
+                # 确保gt_pre_data是一个列表
+                if not isinstance(gt_pre_data, list):
+                    pytest.fail(f"gt_pre_data不是一个列表: {gt_pre_data}")
+
+                # 找到type字段等于2的第一条数据的id
+                defect_id = None
+                for item in gt_pre_data:
+                    if item.get('type') == "2":  # 注意引号
+                        defect_id = item.get('id')
+                        break
+
+                # 断言提取的defect_id不为空
+                assertions.assert_is_not_none(defect_id, "未找到type为2的缺陷ID")
+
+                # 记录日志到Allure报告
+                allure.attach(
+                    f"缺陷ID: {defect_id}",
+                    name="缺陷ID",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
+                # 控制台打印
+                print(f"缺陷ID: {defect_id}")
+
+            with allure.step("子步骤3：标记错检增强"):
+                postprocess_label = "cuojianzengqiang"
+                response = self.api_process.batch_mark(
+                    defect_id=defect_id,
+                    postprocess_label=postprocess_label,
+                    verifyId=self.verifyId,
+                    image_id=sample_id,
+                    img_name=img_name
+                )
+
+                # 响应断言
+                assertions.assert_code(response.status_code, 200)
+                response_data = response.json()
+                assertions.assert_in_text(response_data['msg'], '成功')
+
+                # 记录日志到Allure报告
+                allure.attach(
+                    f"标记错检增强响应: {response_data}",
+                    name="标记错检增强信息",
+                    attachment_type=allure.attachment_type.JSON
+                )
+
+                # 控制台打印
+                print(f"标记错检增强响应: {response_data}")
+
+        with allure.step("步骤2: 错检样本拷贝增广"):
+            num = random.randint(1, 5)
+            response = self.api_process.copy_to_trainset(
+                train_task_id=self.trainTaskId,
+                num=num,
+                verifyId=self.verifyId,
+                image_id=sample_id,
+                copy_type=2
+            )
+
+            # 响应断言
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 记录日志到Allure报告
+            allure.attach(
+                f"拷贝到训练集响应: {response_data}",
+                name="错检样本拷贝增广信息",
+                attachment_type=allure.attachment_type.JSON
+            )
+
+            # 控制台打印
+            print(f"错检样本拷贝增广响应: {response_data}")
+
+        with allure.step("步骤3: 监控错检拷贝进度"):
+            self._monitor_cut_progress()

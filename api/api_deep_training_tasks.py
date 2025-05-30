@@ -136,6 +136,51 @@ class ApiPostProcess:
         response.raise_for_status()
         return response
 
+    # 查询过检样本(sampleStatus："analyzed"=已分析)
+    def query_over_samples(self, verifyId, sample_status):
+        url = f"{env}/miai/brainstorm/es/sample/analysis/overkillPage"
+        payload = {"data": {"visualGrade": [None], "productId": [None], "defectName": [None], "photoId": [None],
+                            "classifyType": [None], "sampleType": [None], "imageDefinition": [None],
+                            "sampleStatus": [sample_status], "preLabel": [None], "modelVerifyId": verifyId,
+                            "sortDirection": 0, "imgName": "", "score": 1, "scoreType": 1},
+                   "page": {"pageIndex": 1, "pageSize": 16}}
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 查询图片中GT/PRE数据
+    def query_gt_pre_data(self, image_id, verifyId):
+        url = f"{env}/miai/brainstorm/es/sample/analysis/getGtPre"
+        payload = {"id": image_id, "modelVerifyId": verifyId}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 标记空过杀/结构性过杀/取消标记
+    def mark_empty_overkill(self, defect_id, postprocess_label, verifyId, image_id, img_name):
+        url = f"{env}/miai/brainstorm/es/sample/analysis/setPostProcessLabel"
+        payload = {"defectIdList": [defect_id], "postProcessLabel": postprocess_label,
+                   "modelVerifyId": verifyId, "id": image_id,
+                   "imgName": img_name}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 拷贝到训练集
+    def copy_to_trainset(self, train_task_id, num, verifyId, sample_status, image_id):
+        url = f"{env}/miai/brainstorm/es/sample/analysis/copytotrain"
+        payload = {"targetTrainTaskId": train_task_id, "cutNum": num, "modelVerifyId": verifyId,
+                   "imgName": "", "score": 1, "scoreType": 1, "selectIds": [image_id], "notSelectIds": [],
+                   "type": 0, "visualGrade": [None], "productId": [None], "defectName": [None], "photoId": [None],
+                   "classifyType": [None], "sampleType": [None], "imageDefinition": [None],
+                   "sampleStatus": [sample_status], "preLabel": [None], "postProcessLabel": [None]}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
 
 if __name__ == '__main__':
     product_id = api_space.ApiSpace().product_query()

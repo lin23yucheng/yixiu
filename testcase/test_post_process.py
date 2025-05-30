@@ -127,8 +127,6 @@ class Test_post_process:
                     # 等待指定的时间间隔后继续下一次检查
                     time.sleep(self.poll_interval)
 
-
-
     def _monitor_sample_analysis_progress(self):
         """样本分析状态监控"""
         start_time = time.time()
@@ -278,3 +276,6 @@ class Test_post_process:
             # 监控样本分析状态
             with allure.step("子步骤2：监控报表分析状态"):
                 self._monitor_sample_analysis_progress()
+
+        with allure.step("步骤4:查询过检样本"):
+            pass

@@ -101,8 +101,6 @@ def run_tests():
     print(f"\n所有测试执行完毕，合并报告路径：file://{os.path.abspath(allure_report)}/index.html")
 
 
-
-
 if __name__ == "__main__":
-    run_test()
-    # run_tests()
+    # run_test()
+    run_tests()

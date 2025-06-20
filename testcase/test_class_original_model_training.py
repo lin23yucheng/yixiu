@@ -1,6 +1,8 @@
 """
-深度模型训练接口自动化流程
+深度分类大图模型训练接口自动化流程
 """
+from time import sleep
+
 import pytest
 import allure
 import time
@@ -24,14 +26,14 @@ global_client = ApiClient(base_headers=base_headers)
 
 
 @allure.feature("场景：深度模型训练全流程")
-class Test_deep_model_training:
+class Test_class_cut_model_training:
     @classmethod
     def setup_class(cls):
         """初始化接口封装实例"""
         cls.api_comprehensive = api_comprehensive_sample_library.ApiComprehensiveSampleLibrary(global_client)
         cls.api_deep = api_deep_training_tasks.ApiDeepTrainTasks(global_client)
         cls.api_model = api_deep_training_tasks.ApiModelTrain(global_client)
-        cls.task_name = f"接口自动化-{time_str}-目标检测"  # 统一任务名称格式
+        cls.task_name = f"接口自动化-{time_str}-分类大图"  # 统一任务名称格式
         cls.max_wait_seconds = 1800  # 最大等待30分钟
         cls.poll_interval = 10  # 轮询间隔10秒
         cls.start_timestamp = None  # 新增时间记录点
@@ -268,32 +270,32 @@ class Test_deep_model_training:
         config = ConfigParser()
         config.read(config_path)
 
-        if not config.has_section('persistent_ids'):
-            config.add_section('persistent_ids')
+        if not config.has_section('class_original_ids'):
+            config.add_section('class_original_ids')
 
-        config.set('persistent_ids', 'train_task_id', str(cls.trainTaskId))
-        config.set('persistent_ids', 'model_train_id', str(cls.modelTrainId))
+        config.set('class_original_ids', 'train_task_id', str(cls.trainTaskId))
+        config.set('class_original_ids', 'model_train_id', str(cls.modelTrainId))
 
         with open(config_path, 'w') as f:
             config.write(f)
         print(f"已写入配置文件：{config_path}")
 
-    @allure.story("目标检测/分割模型训练&提交")
-    def test_train_task_workflow(self):
+    @allure.story("图像分类（大图）模型训练&提交")
+    def test_class_cut_task_workflow(self):
         total_start = time.time()  # 记录总开始时间
 
-        with allure.step("步骤1：创建深度训练任务"):
-            self.cut_value = 1024
+        with allure.step("步骤1：创建分类大图训练任务"):
+            sleep(2)
             response = self.api_comprehensive.create_deep_training_tasks(
-                defectName=["shang"],
-                photoId=["1", "2", "3"],
-                cut=self.cut_value,
+                defectName=[],
+                photoId=[],
+                cut=224,
                 taskName=self.task_name,
-                classifyType=[],
-                caseId="detection",
-                caseName="目标检测/分割",
-                type=1,
-                iscut=True
+                classifyType=["liebian", "liangdian"],
+                caseId="cls_model",
+                caseName="图像分类",
+                type=2,
+                iscut=False
             )
 
             # 验证初始响应
@@ -312,60 +314,8 @@ class Test_deep_model_training:
         with allure.step("步骤2：监控创建数据处理进度"):
             self._monitor_cut_progress()
 
-        with allure.step("步骤3：追加ok图"):
-            if not self.trainTaskId:
-                pytest.fail("trainTaskId未被正确获取，请检查监控方法")
-            response = self.api_comprehensive.append_deep_training_tasks2(
-                defectName=None,
-                photoId=["3"],
-                sampleType=["ok"],
-                trainId=self.trainTaskId,
-                datasetType=1
-            )
-
-            # 验证初始响应
-            assertions.assert_code(response.status_code, 200)
-            response_data = response.json()
-            assertions.assert_in_text(response_data['msg'], '成功')
-
-        with allure.step("步骤4：监控追加数据处理进度"):
-            self._monitor_cut_progress()
-
-        with allure.step("步骤5：开始模型训练"):
-            # -------------------- 查询模型方案 --------------------
-            with allure.step("子步骤1：查询模型方案获取caseId"):
-                model_response = self.api_model.query_model()
-                assertions.assert_code(model_response.status_code, 200)
-                model_data = model_response.json()
-                assertions.assert_in_text(model_data['msg'], '操作成功')
-
-                # 解析case映射关系
-                cut_case_mapping = {
-                    768: "DetS V2 实例分割",
-                    1024: "Det V2 目标检测",
-                    2048: "Det V1 目标检测"
-                }
-                if self.cut_value not in cut_case_mapping:
-                    pytest.fail(f"Invalid cut value: {self.cut_value}, expected 1024/768/2048")
-                target_case_name = cut_case_mapping[self.cut_value]
-
-                # 查找匹配的case
-                matched_case = next(
-                    (case for case in model_data['data'] if case['caseName'] == target_case_name),
-                    None
-                )
-                if not matched_case:
-                    pytest.fail(f"Case '{target_case_name}' not found in model response")
-                case_id = matched_case['caseId']
-
-                allure.attach(
-                    f"Selected caseId: {case_id} (cut={self.cut_value})",
-                    name="Model Case Selection",
-                    attachment_type=allure.attachment_type.TEXT
-                )
-
-            # -------------------- 查询训练机器 --------------------
-            with allure.step("子步骤2：查询训练机器获取computingPowerId"):
+        with allure.step("步骤3：开始分类大图模型训练"):
+            with allure.step("子步骤1：查询训练机器获取computingPowerId"):
                 machine_response = self.api_model.query_machine()
                 assertions.assert_code(machine_response.status_code, 200)
                 machine_data = machine_response.json()
@@ -386,21 +336,19 @@ class Test_deep_model_training:
                     attachment_type=allure.attachment_type.TEXT
                 )
 
-            # -------------------- 开始深度模型训练 --------------------
-            with allure.step("子步骤3：组装参数并开始训练"):
-                train_response = self.api_model.start_train(case_id, -1, computing_power_id, self.trainTaskId, "", "",
-                                                            "1704414001586651234")
+            with allure.step("子步骤2：组装参数并开始训练"):
+                train_response = self.api_model.start_train("official_yolov8_cls_model", -1, computing_power_id,
+                                                            self.trainTaskId, "768", "768", "1704414001586651246")
                 assertions.assert_code(train_response.status_code, 200)
                 train_data = train_response.json()
                 assertions.assert_in_text(train_data['msg'], '操作成功')
 
-        with allure.step("步骤6：监控训练进度"):
+        with allure.step("步骤4：监控训练进度"):
             self._monitor_train_progress()
             time.sleep(3)
 
-        with allure.step("步骤7：提交模型"):
-            # 提交模型
-            with allure.step("子步骤1：发起模型提交"):
+        with allure.step("步骤5：提交模型"):
+            with allure.step("子步骤1：发起分类大图模型提交"):
                 submit_response = self.api_model.submit_model(
                     modelName=self.task_name,
                     modelTrainId=self.modelTrainId
@@ -422,10 +370,10 @@ class Test_deep_model_training:
             # 最终成功提示
 
         allure.dynamic.description(
-            "深度模型训练（目标检测）测试完成！\n"
+            "深度模型训练（分类大图）测试完成！\n"
             f"总耗时: {time.strftime('%H:%M:%S', time.gmtime(time.time() - total_start))}"
         )
-        print("\n\n\033[92m深度目标检测模型训练-自动化流程测试完成！\033[0m")
+        print("\n\n\033[92m深度分类大图模型训练-自动化流程测试完成！\033[0m")
         print(f"总耗时: {time.strftime('%H:%M:%S', time.gmtime(time.time() - total_start))}")
 
 

@@ -53,7 +53,7 @@ def run_test1():
 
 # 2.执行.py文件下test开头的所有类和方法
 def run_test2():
-    target_file = "testcase/test_post_process.py"
+    target_file = "testcase/test_class_original_model_training.py"
 
     # 添加项目根目录到Python路径
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -220,6 +220,6 @@ def run_test4():
 
 if __name__ == "__main__":
     # run_test1()     # 执行.py文件下的某一类某一方法，调试单接口可以使用
-    run_test2()     # 执行.py文件下test开头的所有类和方法
+    run_test2()  # 执行.py文件下test开头的所有类和方法
     # run_test3()     # 按顺序执行所有的.py文件
     # run_test4()     # 兼容同时执行和按顺序执行

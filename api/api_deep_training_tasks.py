@@ -61,14 +61,14 @@ class ApiModelTrain:
         return response
 
     # 开始模型训练
-    def start_train(self, caseId, modelSize, computingPowerId, trainTaskId):
+    def start_train(self, caseId, modelSize, computingPowerId, trainTaskId, Width, Height, modelCaseTemplateId):
         url = f"{env}/miai/brainstorm/newmodeltrain/startTrain"
-        payload = {"resizeWidth": "", "resizeHeight": "", "caseId": caseId, "modelSize": modelSize,
-                   "gpuCount": "1", "gpuSize": 1024, "source": 0, "keepLabels": [],
+        payload = {"resizeWidth": Width, "resizeHeight": Height, "caseId": caseId, "modelSize": modelSize,
+                   "gpuCount": "1", "gpuSize": 999, "source": 0, "keepLabels": [],
                    "computingPowerId": computingPowerId, "trainParams": True, "schemePhase": 1,
                    "paramSetting1": {"epoch": 30, "batchSize": 16, "lr": 0.0002}, "paramSetting2": None,
                    "trainTaskId": trainTaskId, "remark": f"接口自动化训练-{time_str}",
-                   "modelCaseTemplateId": "1704414001586651234"}
+                   "modelCaseTemplateId": modelCaseTemplateId}
         response = self.client.post(url, json=payload)
         response.raise_for_status()
         return response

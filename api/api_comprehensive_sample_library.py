@@ -30,16 +30,18 @@ class ApiComprehensiveSampleLibrary:
         return self.client.post(url, json=payload)
 
     # 综合样本库-创建深度训练任务(目标检测)
-    def create_deep_training_tasks(self, defectName, photoId, cut,taskName):
+    def create_deep_training_tasks(self, defectName, photoId, cut, taskName, classifyType, caseId, caseName, type,
+                                   iscut):
         url = f"{env}/miai/brainstorm/global/sample/createTrainTask"
         payload = {"endTime": None, "startTime": None, "imgName": "", "visualGrade": [], "bashSampleType": [],
                    "productId": [self.product_info_id], "defectName": defectName, "photoId": photoId,
-                   "classifyType": [],
+                   "classifyType": classifyType,
                    "imageDefinition": [], "sampleType": [], "dataAlgorithmSampleType": [], "deepModelSampleType": [],
                    "selectIds": [], "notSelectIds": [], "taskName": taskName, "testSetMinValue": 0,
                    "testSetProportion": 30,
-                   "caseId": "detection", "caseName": "目标检测/分割", "cut": True, "filter": False, "remark": "",
-                   "defectCount": "[{\"labelName\":\"\",\"count\":\"\"}]", "cutHeight": cut, "cutWidth": cut, "type": 1}
+                   "caseId": caseId, "caseName": caseName, "cut": iscut, "filter": False, "remark": "",
+                   "defectCount": "[{\"labelName\":\"\",\"count\":\"\"}]", "cutHeight": cut, "cutWidth": cut,
+                   "typeMapping": "{\"liangdian\":\"liangdian\",\"liebian\":\"liebian\"}", "type": type}
         return self.client.post(url, json=payload)
 
     # 综合样本库-追加到深度训练任务(目标检测-按比例划分)

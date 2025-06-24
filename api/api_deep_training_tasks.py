@@ -201,6 +201,31 @@ class ApiPostProcess:
         response.raise_for_status()
         return response
 
+    # 分类切图查看样本分析
+    def classify_cutting(self, class_verifyId):
+        url = f"{env}/miai/brainstorm/es/sample/analysis/page"
+        payload = {"data": {"visualGrade": [None], "productId": [None], "defectName": [None], "photoId": [None],
+                            "classifyType": [None], "imageDefinition": [None], "sampleType": [None], "preLabel": [None],
+                            "gtLabel": [None], "modelVerifyId": class_verifyId, "sortDirection": 0,
+                            "imgName": "", "score": 1, "scoreType": 1}, "page": {"pageIndex": 1, "pageSize": 16}}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 分类切图拷贝增广
+    def class_copy(self, class_trainTaskId, class_verifyId, copy_id):
+        url = f"{env}/miai/brainstorm/es/sample/analysis/classify/copy"
+        payload = {"targetTrainTaskId": class_trainTaskId, "cutNum": 5, "modelVerifyId": class_verifyId,
+                   "imgName": "", "selectIds": copy_id, "notSelectIds": [],
+                   "visualGrade": [None], "productId": [None], "defectName": [None], "photoId": [None],
+                   "classifyType": [None], "imageDefinition": [None], "sampleType": [None], "preLabel": [None],
+                   "gtLabel": [None]}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
 
 if __name__ == '__main__':
     product_id = api_space.ApiSpace().product_query()

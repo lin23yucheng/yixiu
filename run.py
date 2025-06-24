@@ -1,158 +1,61 @@
 import os
 import sys
+import time
 import pytest
+import shutil
 from threading import Thread
+from common.Log import MyLog, set_log_level  # 导入日志模块
+
+# 设置全局日志级别
+set_log_level('info')
 
 
-# 1.执行.py文件下的某一类某一方法，调试单接口可以使用
-def run_test1():
-    target_file = "testcase/test_post_process.py"
-    target_class = None  # 要执行的测试类名
-    target_method = None  # 要执行的测试方法名
+def reset_logs():
+    """清除之前的日志内容（通过关闭处理器并重新初始化）"""
+    from common.Log import logger, MyLog
 
-    # 添加项目根目录到Python路径
-    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    # 获取正确的日志目录路径
+    log_dir = MyLog.get_log_dir()
+    print(f"日志目录: {log_dir}")
 
-    # 构建目标路径
-    target_path = target_file.replace('/', os.sep)
-    if not os.path.exists(target_path):
-        print(f"错误：测试文件 {target_path} 不存在！")
-        sys.exit(1)
+    # 关闭所有处理器
+    for handler in logger.handlers[:]:
+        try:
+            handler.flush()
+            handler.close()
+        except Exception as e:
+            print(f"关闭日志处理器失败: {e}")
+        finally:
+            logger.removeHandler(handler)
 
-    # 组合执行目标
-    target = target_path
-    if target_class:
-        target += f"::{target_class}"
-        if target_method:
-            target += f"::{target_method}"
+    # 等待确保文件句柄释放
+    time.sleep(1)
 
-    # 配置报告路径
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    allure_results = os.path.join(base_dir, "report", "allure-results")
-    allure_report = os.path.join(base_dir, "report", "allure-report")
+    # 删除日志目录
+    if os.path.exists(log_dir):
+        try:
+            shutil.rmtree(log_dir)
+            print(f"已删除日志目录: {log_dir}")
+        except Exception as e:
+            print(f"删除日志目录失败: {e}")
 
-    # 执行参数
-    pytest_args = [
-        "-v",
-        "-s",
-        target,
-        f"--alluredir={allure_results}",
-        "--clean-alluredir"
-    ]
+    # 重新创建目录
+    os.makedirs(log_dir, exist_ok=True)
 
-    # 执行测试
-    exit_code = pytest.main(pytest_args)
+    # 重新初始化日志处理器
+    MyLog.reinit_handlers()
 
-    # 生成报告
-    if exit_code in [0, 1]:
-        os.system(f"allure generate {allure_results} -o {allure_report} --clean")
-        print(f"报告路径：file://{os.path.abspath(allure_report)}/index.html")
-    else:
-        print("执行过程发生严重错误")
+    MyLog.info("已清除历史日志文件")
 
 
-# 2.执行.py文件下test开头的所有类和方法
-def run_test2():
-    target_file = "testcase/test_class_original_model_training.py"
-
-    # 添加项目根目录到Python路径
-    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-    # 构建目标路径
-    target_path = target_file.replace('/', os.sep)
-    if not os.path.exists(target_path):
-        print(f"错误：测试文件 {target_path} 不存在！")
-        sys.exit(1)
-
-    # 配置报告路径
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    allure_results = os.path.join(base_dir, "report", "allure-results")
-    allure_report = os.path.join(base_dir, "report", "allure-report")
-
-    # 清空结果目录（确保新执行不会包含旧结果）
-    if os.path.exists(allure_results):
-        import shutil
-        shutil.rmtree(allure_results)
-    os.makedirs(allure_results, exist_ok=True)
-
-    # 执行参数
-    pytest_args = [
-        "-v",  # 详细输出
-        "-s",  # 禁止捕获输出
-        target_path,
-        f"--alluredir={allure_results}",  # Allure报告存储路径
-    ]
-
-    # 执行测试
-    exit_code = pytest.main(pytest_args)
-
-    # 生成报告
-    if exit_code in [0, 1]:
-        os.system(f"allure generate {allure_results} -o {allure_report} --clean")
-        print(f"报告路径：file://{os.path.abspath(allure_report)}/index.html")
-    else:
-        print("执行过程发生严重错误")
-
-
-# 3.按顺序执行所有的.py文件
-def run_test3():
-    # 定义按顺序执行的测试文件列表
-    test_files = [
-        "testcase/test_deep_model_training.py",
-        "testcase/test_post_process.py"
-    ]
-
-    # 添加项目根目录到Python路径
-    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-    # 配置报告路径
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    allure_results = os.path.join(base_dir, "report", "allure-results")
-    allure_report = os.path.join(base_dir, "report", "allure-report")
-
-    # 在执行任何测试前，先清空结果目录（确保新执行不会包含旧结果）
-    if os.path.exists(allure_results):
-        import shutil
-        shutil.rmtree(allure_results)
-    os.makedirs(allure_results, exist_ok=True)
-
-    # 迭代执行测试文件
-    for test_file in test_files:
-        # 构建目标路径
-        target_path = test_file.replace('/', os.sep)
-        if not os.path.exists(target_path):
-            print(f"错误：测试文件 {target_path} 不存在！")
-            sys.exit(1)
-
-        print(f"\n开始执行测试文件：{test_file}")
-
-        # 执行参数（不再使用--clean-alluredir）
-        pytest_args = [
-            "-v",  # 详细输出
-            "-s",  # 禁止捕获输出
-            target_path,
-            f"--alluredir={allure_results}",  # Allure报告存储路径
-        ]
-
-        # 执行测试
-        exit_code = pytest.main(pytest_args)
-
-        # 检查退出代码，非0/1表示严重错误，终止执行
-        if exit_code not in [0, 1]:
-            print(f"执行测试文件 {test_file} 发生严重错误，程序终止")
-            sys.exit(exit_code)
-
-    # 所有测试执行完毕后生成合并报告
-    os.system(f"allure generate {allure_results} -o {allure_report} --clean")
-    print(f"\n所有测试执行完毕，合并报告路径：file://{os.path.abspath(allure_report)}/index.html")
-
-
-# 执行单个测试文件的方法
 def execute_test(test_file, allure_results):
+    """执行单个测试文件"""
+    MyLog.info(f"开始执行测试文件: {test_file}")
+
     # 构建目标路径
     target_path = test_file.replace('/', os.sep)
     if not os.path.exists(target_path):
-        print(f"错误：测试文件 {target_path} 不存在！")
+        MyLog.error(f"错误：测试文件 {target_path} 不存在！")
         return 1
 
     # 执行参数
@@ -165,14 +68,24 @@ def execute_test(test_file, allure_results):
 
     # 执行测试
     exit_code = pytest.main(pytest_args)
+
+    if exit_code in [0, 1]:
+        MyLog.info(f"测试文件 {test_file} 执行完成")
+    else:
+        MyLog.error(f"测试文件 {test_file} 执行失败，退出码: {exit_code}")
+
     return exit_code
 
 
-# 4.兼容同时执行和按顺序执行
-def run_test4():
-    # 定义按顺序执行的测试文件列表
-    parallel_test_files = ["testcase/1.py", "testcase/3.py", "testcase/4.py"]
-    sequential_test_files = ["testcase/2.py"]
+def run_selected_tests():
+    """执行指定测试文件"""
+    reset_logs()  # 清除之前的日志
+    MyLog.info("===== 开始执行测试任务 =====")
+
+    # 定义要执行的测试文件列表
+    test_files = [
+        "testcase/test_post_process.py"
+    ]
 
     # 添加项目根目录到Python路径
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -182,11 +95,61 @@ def run_test4():
     allure_results = os.path.join(base_dir, "report", "allure-results")
     allure_report = os.path.join(base_dir, "report", "allure-report")
 
-    # 在执行任何测试前，先清空结果目录（确保新执行不会包含旧结果）
+    # 清空结果目录
     if os.path.exists(allure_results):
-        import shutil
         shutil.rmtree(allure_results)
     os.makedirs(allure_results, exist_ok=True)
+    MyLog.info("已清理历史报告数据")
+
+    # 记录开始时间
+    start_time = time.time()
+    MyLog.info(f"开始执行所有测试文件 at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
+
+    # 迭代执行测试文件
+    for test_file in test_files:
+        exit_code = execute_test(test_file, allure_results)
+
+        # 检查退出代码
+        if exit_code not in [0, 1]:
+            MyLog.critical(f"执行测试文件 {test_file} 发生严重错误，程序终止")
+            sys.exit(exit_code)
+
+    # 记录结束时间
+    end_time = time.time()
+    MyLog.info(f"完成执行所有测试文件 at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
+    MyLog.info(f"总执行耗时: {end_time - start_time:.2f} 秒")
+
+    # 生成报告
+    os.system(f"allure generate {allure_results} -o {allure_report} --clean")
+    MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
+    MyLog.info("===== 测试任务完成 =====")
+
+
+def run_parallel_tests():
+    """并行执行测试文件"""
+    reset_logs()  # 清除之前的日志
+    MyLog.info("===== 开始并行执行测试 =====")
+
+    # 定义测试文件
+    parallel_test_files = ["testcase/test_post_process.py"]
+
+    # 添加项目根目录到Python路径
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+    # 配置报告路径
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    allure_results = os.path.join(base_dir, "report", "allure-results")
+    allure_report = os.path.join(base_dir, "report", "allure-report")
+
+    # 清空结果目录
+    if os.path.exists(allure_results):
+        shutil.rmtree(allure_results)
+    os.makedirs(allure_results, exist_ok=True)
+    MyLog.info("已清理历史报告数据")
+
+    # 记录开始时间
+    start_time = time.time()
+    MyLog.info(f"开始并行测试 at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
 
     # 并行执行测试文件
     threads = []
@@ -199,27 +162,24 @@ def run_test4():
     for thread in threads:
         thread.join()
 
-    # 获取1.py的退出代码
-    exit_code_1 = threads[0].exit_code
+    # 记录结束时间
+    end_time = time.time()
+    MyLog.info(f"完成并行测试 at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
+    MyLog.info(f"总执行耗时: {end_time - start_time:.2f} 秒")
 
-    # 如果1.py执行成功，则开始执行2.py
-    if exit_code_1 in [0, 1]:
-        print(f"\n开始执行测试文件：{sequential_test_files[0]}")
-        exit_code_2 = execute_test(sequential_test_files[0], allure_results)
-        if exit_code_2 not in [0, 1]:
-            print(f"执行测试文件 {sequential_test_files[0]} 发生严重错误，程序终止")
-            sys.exit(exit_code_2)
-    else:
-        print(f"测试文件 {parallel_test_files[0]} 执行失败，跳过 {sequential_test_files[0]} 的执行")
-        sys.exit(exit_code_1)
-
-    # 所有测试执行完毕后生成合并报告
+    # 生成报告
     os.system(f"allure generate {allure_results} -o {allure_report} --clean")
-    print(f"\n所有测试执行完毕，合并报告路径：file://{os.path.abspath(allure_report)}/index.html")
+    MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
+    MyLog.info("===== 并行测试完成 =====")
 
 
 if __name__ == "__main__":
-    # run_test1()     # 执行.py文件下的某一类某一方法，调试单接口可以使用
-    run_test2()  # 执行.py文件下test开头的所有类和方法
-    # run_test3()     # 按顺序执行所有的.py文件
-    # run_test4()     # 兼容同时执行和按顺序执行
+    print("===== 测试执行程序启动 =====")
+    MyLog.info("===== 测试执行程序启动 =====")
+
+    # 选择执行模式
+    run_selected_tests()  # 顺序执行
+    # run_parallel_tests()  # 并行执行
+
+    MyLog.info("===== 测试执行程序结束 =====")
+    print("===== 测试执行程序结束 =====")

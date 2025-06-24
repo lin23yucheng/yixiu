@@ -370,10 +370,10 @@ class Test_class_cut_model_training:
             # 最终成功提示
 
         allure.dynamic.description(
-            "深度模型训练（分类大图）测试完成！\n"
+            "深度（分类大图）模型训练测试完成！\n"
             f"总耗时: {time.strftime('%H:%M:%S', time.gmtime(time.time() - total_start))}"
         )
-        print("\n\n\033[92m深度分类大图模型训练-自动化流程测试完成！\033[0m")
+        print("\n\n\033[92m深度（分类大图）-自动化模型训练测试完成！\033[0m")
         print(f"总耗时: {time.strftime('%H:%M:%S', time.gmtime(time.time() - total_start))}")
 
 

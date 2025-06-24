@@ -21,34 +21,40 @@ base_headers = {
 global_client = ApiClient(base_headers=base_headers)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def get_persistent_ids():
     """从配置文件中读取ID"""
+    # 构建配置文件路径
     config_path = os.path.abspath(os.path.join(
         os.path.dirname(os.path.dirname(__file__)),  # 向上一级，回到项目根目录
         'config/env_config.ini'  # 根目录下的 config 目录
     ))
 
+    # 检查配置文件是否存在
     if not os.path.exists(config_path):
         pytest.skip("配置文件不存在")
 
+    # 初始化ConfigParser并读取配置文件
     config = ConfigParser()
     config.read(config_path)
 
-    # 获取值
+    # 获取配置文件中的ID值
     ids = {
         'train_task_id': config.get('persistent_ids', 'train_task_id', fallback=None),
-        'model_train_id': config.get('persistent_ids', 'model_train_id', fallback=None)
+        'model_train_id': config.get('persistent_ids', 'model_train_id', fallback=None),
+        'class_cut_train_task_id': config.get('class_cut_ids', 'train_task_id', fallback=None),
+        'class_cut_model_train_id': config.get('class_cut_ids', 'model_train_id', fallback=None),
+        'class_original_train_task_id': config.get('class_original_ids', 'train_task_id', fallback=None),
+        'class_original_model_train_id': config.get('class_original_ids', 'model_train_id', fallback=None)
     }
 
-    # 空值检查
+    # 检查是否有任何ID值为None
     if None in ids.values():
         pytest.skip("训练任务ID未就绪")
     return ids
 
-
 @allure.feature("场景：深度模型后处理全流程")
-class Test_post_process:
+class TestPostProcess:
     @classmethod
     def setup_class(cls):
         """初始化接口封装实例"""
@@ -62,6 +68,12 @@ class Test_post_process:
         cls.trainTaskId = None
         cls.verifyId = None
         cls.task_name = None
+        cls.class_cut_trainTaskId = None
+        cls.class_cut_verifyId = None
+        cls.class_cut_task_name = None
+        cls.class_original_trainTaskId = None
+        cls.class_original_verifyId = None
+        cls.class_original_task_name = None
 
     def _monitor_analysis_progress(self, analysis_type, api_call):
         """通用的状态监控方法"""
@@ -129,7 +141,7 @@ class Test_post_process:
                     # 间隔等待
                     time.sleep(self.poll_interval)
 
-    def _monitor_cut_progress(self):
+    def _monitor_cut_progress(self, task_name):
         """数据处理状态监控"""
         start_time = time.time()
         self.start_timestamp = start_time  # 记录开始时间
@@ -140,7 +152,7 @@ class Test_post_process:
                 attempt += 1
                 with allure.step(f"第{attempt}次状态检查"):
                     # 发送查询请求
-                    response = self.api_deep.query_train_tasks(self.task_name)
+                    response = self.api_deep.query_train_tasks(task_name)
                     assertions.assert_code(response.status_code, 200)
 
                     # 解析响应数据
@@ -156,29 +168,29 @@ class Test_post_process:
 
                     # 验证任务存在
                     if not tasks:
-                        pytest.fail(f"未找到任务: {self.task_name}")
+                        pytest.fail(f"未找到任务: {task_name}")
 
                     # 获取任务状态
                     current_task = next(
-                        (t for t in tasks if t['taskName'] == self.task_name),
+                        (t for t in tasks if t['taskName'] == task_name),
                         None
                     )
                     if not current_task:
-                        pytest.fail(f"任务列表匹配失败: {self.task_name}")
+                        pytest.fail(f"任务列表匹配失败: {task_name}")
 
                     status = current_task['dataStatus']
-                    self.trainTaskId = current_task['trainTaskId']
-                    self.__class__.trainTaskId = current_task['trainTaskId']  # 关键：赋值给类变量
+                    # self.trainTaskId = current_task['trainTaskId']
+                    # self.__class__.trainTaskId = current_task['trainTaskId']  # 关键：赋值给类变量
 
                     allure.attach(
                         f"当前状态: {status} (0=处理中, 1=完成, 2=异常)",
                         name="状态解析"
                     )
-                    allure.attach(
-                        f"trainTaskId: {self.trainTaskId}",
-                        name="任务ID",
-                        attachment_type=allure.attachment_type.TEXT
-                    )
+                    # allure.attach(
+                    #     f"trainTaskId: {self.trainTaskId}",
+                    #     name="任务ID",
+                    #     attachment_type=allure.attachment_type.TEXT
+                    # )
 
                     # 新增时间统计部分
                     current_duration = int(time.time() - start_time)
@@ -211,7 +223,7 @@ class Test_post_process:
                     # 间隔等待
                     time.sleep(self.poll_interval)
 
-    @allure.story("深度模型报表&样本分析")
+    @allure.story("深度模型报表样本分析")
     def test_analysis(self, get_persistent_ids):  # 注入fixture
         train_task_id = get_persistent_ids['train_task_id']  # 从配置获取ID
         self.__class__.trainTaskId = get_persistent_ids['train_task_id']  # 关键：赋值给类变量
@@ -429,7 +441,7 @@ class Test_post_process:
             print(f"过检样本拷贝增广响应: {response_data}")
 
         with allure.step("步骤3: 监控过检拷贝进度"):
-            self._monitor_cut_progress()
+            self._monitor_cut_progress(self.task_name)
 
     @allure.story("漏检样本标记&拷贝增广")
     def test_miss_samples(self):
@@ -557,7 +569,7 @@ class Test_post_process:
             print(f"漏检样本拷贝增广响应: {response_data}")
 
         with allure.step("步骤3: 监控漏检拷贝进度"):
-            self._monitor_cut_progress()
+            self._monitor_cut_progress(self.task_name)
 
     @allure.story("错检样本标记&拷贝增广")
     def test_error_samples(self):
@@ -684,4 +696,161 @@ class Test_post_process:
             print(f"错检样本拷贝增广响应: {response_data}")
 
         with allure.step("步骤3: 监控错检拷贝进度"):
-            self._monitor_cut_progress()
+            self._monitor_cut_progress(self.task_name)
+
+    @allure.story("分类切图拷贝增广")
+    def test_class_cut_copy(self, get_persistent_ids):  # 注入fixture
+        class_cut_train_task_id = get_persistent_ids['class_cut_train_task_id']  # 从配置获取ID
+        self.__class__.class_cut_trainTaskId = get_persistent_ids['class_cut_train_task_id']  # 关键：赋值给类变量
+
+        with allure.step("步骤1：训练记录查询获取分类切图训练集验证的verifyId"):
+            response = self.api_model.query_train_records(
+                trainTaskId=class_cut_train_task_id
+            )
+
+            # 响应断言
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 提取训练集verify_id
+            class_cut_verify_id = None
+            for task in response_data.get('data', {}).get('list', []):
+                # 遍历verifyRecord查找包含'训练集'的条目
+                for record in task.get('verifyRecord', []):
+                    if '训练集' in record.get('name', ''):
+                        class_cut_verify_id = record.get('id')
+                        self.__class__.class_cut_verifyId = class_cut_verify_id  # 关键：赋值给类变量
+                        break
+                if class_cut_verify_id:
+                    break
+
+            # 提取taskName值
+            train_list = response_data.get('data', {}).get('list', [])
+            if not train_list:
+                pytest.fail("未找到训练记录")
+
+            first_sample = train_list[0]
+            class_cut_task_name = first_sample.get('taskName')
+            self.__class__.class_cut_task_name = class_cut_task_name  # 关键：赋值给类变量
+
+            # 确保找到有效ID
+            assertions.assert_is_not_none(
+                self.class_cut_verifyId,
+                f"未找到分类切图训练集verifyRecordID，响应数据：{response_data}"
+            )
+
+            allure.attach(
+                f"分类切图训练集验证id: {self.class_cut_verifyId}",
+                name="分类切图训练集-verifyId",
+                attachment_type=allure.attachment_type.TEXT
+            )
+
+        with allure.step("步骤2：分类切图后处理查看样本分析"):
+            response = self.api_process.classify_cutting(
+                class_verifyId=self.class_cut_verifyId
+            )
+
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 提取id值并拼接成list
+            class_cut_id_list = response_data.get('data', {}).get('list', [])
+            if len(class_cut_id_list) < 3:
+                pytest.fail("响应数据中的list长度不足3")
+            class_cut_id = [class_cut_id_list[0]['id'], class_cut_id_list[1]['id'], class_cut_id_list[2]['id']]
+
+        with allure.step("步骤3：分类切图拷贝增广"):
+            response = self.api_process.class_copy(
+                class_trainTaskId=self.class_cut_trainTaskId,
+                class_verifyId=self.class_cut_verifyId,
+                copy_id=class_cut_id
+            )
+
+            # 响应断言
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+        with allure.step("步骤4：监控分类切图拷贝进度"):
+            self._monitor_cut_progress(self.class_cut_task_name)
+
+    @allure.story("分类大图拷贝增广")
+    def test_class_original_copy(self, get_persistent_ids):  # 注入fixture
+        class_original_train_task_id = get_persistent_ids['class_original_train_task_id']  # 从配置获取ID
+        self.__class__.class_original_trainTaskId = get_persistent_ids['class_original_train_task_id']  # 关键：赋值给类变量
+
+        with allure.step("步骤1：训练记录查询获取分类大图训练集验证的verifyId"):
+            response = self.api_model.query_train_records(
+                trainTaskId=class_original_train_task_id
+            )
+
+            # 响应断言
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 提取训练集verify_id
+            class_original_verify_id = None
+            for task in response_data.get('data', {}).get('list', []):
+                # 遍历verifyRecord查找包含'训练集'的条目
+                for record in task.get('verifyRecord', []):
+                    if '训练集' in record.get('name', ''):
+                        class_original_verify_id = record.get('id')
+                        self.__class__.class_original_verifyId = class_original_verify_id  # 关键：赋值给类变量
+                        break
+                if class_original_verify_id:
+                    break
+
+            # 提取taskName值
+            train_list = response_data.get('data', {}).get('list', [])
+            if not train_list:
+                pytest.fail("未找到训练记录")
+
+            first_sample = train_list[0]
+            class_original_task_name = first_sample.get('taskName')
+            self.__class__.class_original_task_name = class_original_task_name  # 关键：赋值给类变量
+
+            # 确保找到有效ID
+            assertions.assert_is_not_none(
+                self.class_original_verifyId,
+                f"未找到分类大图训练集verifyRecordID，响应数据：{response_data}"
+            )
+
+            allure.attach(
+                f"分类大图训练集验证id: {self.class_original_verifyId}",
+                name="分类大图训练集-verifyId",
+                attachment_type=allure.attachment_type.TEXT
+            )
+
+        with allure.step("步骤2：分类大图后处理查看样本分析"):
+            response = self.api_process.classify_cutting(
+                class_verifyId=self.class_original_verifyId
+            )
+
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 提取id值并拼接成list
+            class_original_id_list = response_data.get('data', {}).get('list', [])
+            if len(class_original_id_list) < 3:
+                pytest.fail("响应数据中的list长度不足3")
+            class_original_id = [class_original_id_list[0]['id'], class_original_id_list[1]['id'],
+                                 class_original_id_list[2]['id']]
+
+        with allure.step("步骤3：分类大图拷贝增广"):
+            response = self.api_process.class_copy(
+                class_trainTaskId=self.class_original_trainTaskId,
+                class_verifyId=self.class_original_verifyId,
+                copy_id=class_original_id
+            )
+
+            # 响应断言
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+        with allure.step("步骤4：监控分类大图拷贝进度"):
+            self._monitor_cut_progress(self.class_original_task_name)

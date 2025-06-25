@@ -39,6 +39,15 @@ class ApiDeepTrainTasks:
         }
         return self.client.post(url, json=payload)
 
+    # 删除深度训练任务
+    def delete_train_tasks(self, trainTaskId):
+        url = f"{env}/miai/brainstorm/train/task/delete/{trainTaskId}"
+        payload = None
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
 
 # --------------------------------模型训练--------------------------------
 class ApiModelTrain:

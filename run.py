@@ -83,8 +83,17 @@ def run_selected_tests():
     MyLog.info("===== 开始执行测试任务 =====")
 
     # 定义要执行的测试文件列表
+    # test_files = [
+    #     "testcase/test_deep_model_training.py",
+    #     "testcase/test_class_cut_model_training.py",
+    #     "testcase/test_class_original_model_training.py",
+    #     "testcase/test_post_process.py",
+    #     "testcase/test_model_base.py",
+    #     "testcase/test_product_information.py",
+    #     "testcase/test_product_samples.py"
+    # ]
     test_files = [
-        "testcase/test_post_process.py"
+        "testcase/test_model_base.py"
     ]
 
     # 添加项目根目录到Python路径

@@ -24,7 +24,7 @@ global_client = ApiClient(base_headers=base_headers)
 
 
 @allure.feature("场景：深度模型训练全流程")
-class Test_deep_model_training:
+class TestDeepModelTraining:
     @classmethod
     def setup_class(cls):
         """初始化接口封装实例"""

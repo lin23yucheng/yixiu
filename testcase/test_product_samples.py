@@ -27,7 +27,7 @@ client = ApiClient(base_headers=base_headers)
 
 
 @allure.feature("场景：检测样例增删改查")
-class Test_check_samples:
+class TestCheckSamples:
     @classmethod
     def setup_class(cls):
         """类级别初始化：上传图片并获取 data_value（仅执行一次）"""
@@ -235,7 +235,7 @@ class Test_check_samples:
 # --------------------------------------------------------------------------------#
 
 @allure.feature("场景：学习样例增删改查")
-class Test_study_samples:
+class TestStudySamples:
     @classmethod
     def setup_class(cls):
         """类级别初始化：上传图片并获取 data_value（仅执行一次）"""

@@ -37,10 +37,30 @@ class ApiModelBase:
         response.raise_for_status()
         return response
 
-    # 模型撤回
-    def model_withdraw(self, modelManageId):
+    # 模型撤回1/删除2
+    def model_withdraw(self, modelManageId, flag):
         url = f"{env}/miai/brainstorm/newmodelmanage/withdrawAndDelete"
-        payload = {"flag": 1, "modelManageId": modelManageId}
+        payload = {"flag": flag, "modelManageId": modelManageId}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 模型验证
+    def model_verify(self, modelManageId):
+        url = f"{env}/miai/brainstorm/newmodelmanage/test/global/sample"
+        payload = {"modelManageIdList": [modelManageId], "remark": "", "endTime": "", "startTime": "",
+                   "photoId": ["1"], "sampleType": ["ok"], "productId": [self.product_info_id], "defectName": [],
+                   "classifyType": [], "keepLabels": []}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 模型提交
+    def model_submit(self, modelManageId):
+        url = f"{env}/miai/brainstorm/combine/model/submit/{modelManageId}"
+        payload = None
 
         response = self.client.post(url, json=payload)
         response.raise_for_status()

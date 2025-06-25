@@ -1,0 +1,296 @@
+{
+  "name": "PLACEHOLDER",
+  "scoreThreshold": {},
+  "modelInfos": {
+    "nodes": [
+      {
+        "position": {"x": 236.5, "y": 87.375},
+        "size": {"width": 120, "height": 32},
+        "view": "html-view",
+        "shape": "custom-node-html",
+        "ports": {
+          "groups": {
+            "top": {"position": "top", "attrs": {"circle": {"magnet": true, "stroke": "black", "r": 4}}},
+            "bottom": {"position": "bottom", "attrs": {"circle": {"magnet": true, "stroke": "black", "r": 4}}}
+          },
+          "items": [
+            {"id": "port_1", "group": "bottom"},
+            {"id": "port_2", "group": "top"}
+          ]
+        },
+        "id": "0",
+        "data": {
+          "parentId": "input_node",
+          "modelName": "图片输入",
+          "type": "fixed",
+          "nodeClass": "custom-node"
+        },
+        "zIndex": 2
+      },
+      {
+        "position": {"x": 236.5, "y": 611.625},
+        "size": {"width": 120, "height": 32},
+        "view": "html-view",
+        "shape": "custom-node-html",
+        "ports": {
+          "groups": {
+            "top": {"position": "top", "attrs": {"circle": {"magnet": true, "stroke": "black", "r": 4}}},
+            "bottom": {"position": "bottom", "attrs": {"circle": {"magnet": true, "stroke": "black", "r": 4}}}
+          },
+          "items": [
+            {"id": "port_1", "group": "bottom"},
+            {"id": "port_2", "group": "top"}
+          ]
+        },
+        "id": "1",
+        "data": {
+          "parentId": "output_node",
+          "modelName": "图片输出",
+          "type": "fixed",
+          "nodeClass": "custom-node"
+        },
+        "zIndex": 2
+      },
+      {
+        "position": {"x": 30, "y": 230},
+        "size": {"width": 120, "height": 32},
+        "view": "html-view",
+        "shape": "custom-node-html",
+        "ports": {
+          "groups": {
+            "top": {"position": "top", "attrs": {"circle": {"magnet": true, "stroke": "black", "r": 4}}},
+            "bottom": {"position": "bottom", "attrs": {"circle": {"magnet": true, "stroke": "black", "r": 4}}}
+          },
+          "items": [
+            {"id": "port_1", "group": "bottom"},
+            {"id": "port_2", "group": "top"}
+          ]
+        },
+        "id": "1937707129570721794",
+        "data": {
+          "modelManageId": "1937707129570721794",
+          "name": "不可乱动",
+          "modelCaseTemplateId": "1704414001586651213",
+          "caseName": "Det V1 目标检测",
+          "caseId": "one_stage_det",
+          "labelList": ["tuomo", "shang", "shanghen", "liebian", "yimo"],
+          "labelCnList": ["脱模", "伤", "伤痕", "裂边", "溢墨"],
+          "modelSize": 0,
+          "source": 2,
+          "trainTaskName": "接口自动化-20250624100127-目标检测-01",
+          "recordId": "2",
+          "status": 3,
+          "iouThreshold": 0.45,
+          "modelThreshold": 0.1,
+          "cut": true,
+          "main": true,
+          "modelPath": "/miai_mtl_repository/1873905652887785473/1937683183567765505/1937702559062818817/onnx",
+          "hasTsModel": false,
+          "createTime": "2025-06-25T02:59:31.191Z",
+          "products": [
+            {
+              "createUser": null,
+              "updateUser": null,
+              "createTime": null,
+              "updateTime": null,
+              "modelManageProductId": null,
+              "modelManageId": "1937707129570721794",
+              "productId": "0",
+              "photoId": "",
+              "productName": null
+            }
+          ],
+          "verifyRecord": [
+            {
+              "id": "1937707453698146306",
+              "modelManageId": "1937707129570721794",
+              "name": "部署测试-20250625110032",
+              "createTime": "2025-06-25T03:00:32.487Z",
+              "verifyType": 1,
+              "clsReport": null,
+              "remark": null
+            },
+            {
+              "id": "1937706584185372673",
+              "modelManageId": "1937707129570721794",
+              "name": "接口自动化-20250624100127-目标检测-01-训练集-20250625105705",
+              "createTime": "2025-06-25T02:57:05.175Z",
+              "verifyType": 0,
+              "clsReport": null,
+              "remark": null
+            },
+            {
+              "id": "1937706252592087042",
+              "modelManageId": "1937707129570721794",
+              "name": "接口自动化-20250624100127-目标检测-01-验证集-20250625105546",
+              "createTime": "2025-06-25T02:55:46.117Z",
+              "verifyType": 0,
+              "clsReport": null,
+              "remark": null
+            }
+          ],
+          "parentId": "main_node",
+          "modelName": "不可乱动",
+          "nodeClass": "custom-node"
+        },
+        "zIndex": 3,
+        "parent": "main_node"
+      },
+      {
+        "position": {"x": 260, "y": 220},
+        "size": {"width": 120, "height": 32},
+        "view": "html-view",
+        "shape": "custom-node-html",
+        "ports": {
+          "groups": {
+            "top": {"position": "top", "attrs": {"circle": {"magnet": true, "stroke": "black", "r": 4}}},
+            "bottom": {"position": "bottom", "attrs": {"circle": {"magnet": true, "stroke": "black", "r": 4}}}
+          },
+          "items": [
+            {"id": "port_1", "group": "bottom"},
+            {"id": "port_2", "group": "top"}
+          ]
+        },
+        "id": "1937700383468945410",
+        "data": {
+          "modelManageId": "1937700383468945410",
+          "name": "哈哈123",
+          "modelCaseTemplateId": "1704414001586651237",
+          "caseName": "DetS V2 实例分割",
+          "caseId": "official_yolov8_seg_model",
+          "labelList": ["tuomo", "shang", "shanghen", "liebian", "yimo"],
+          "labelCnList": ["脱模", "伤", "伤痕", "裂边", "溢墨"],
+          "modelSize": -1,
+          "source": 2,
+          "trainTaskName": "接口自动化-20250624100127-目标检测-01",
+          "recordId": "1",
+          "status": 3,
+          "iouThreshold": 0.45,
+          "modelThreshold": 0.01,
+          "cut": null,
+          "main": null,
+          "modelPath": "/miai_mtl_repository/1873905652887785473/1937683183567765505/1937688008200159234/onnx",
+          "hasTsModel": null,
+          "createTime": "2025-06-25T02:32:38.775Z",
+          "products": [
+            {
+              "createUser": null,
+              "updateUser": null,
+              "createTime": null,
+              "updateTime": null,
+              "modelManageProductId": null,
+              "modelManageId": "1937700383468945410",
+              "productId": "0",
+              "photoId": "",
+              "productName": null
+            }
+          ],
+          "verifyRecord": [
+            {
+              "id": "1937700722414845953",
+              "modelManageId": "1937700383468945410",
+              "name": "部署测试-20250625103347",
+              "createTime": "2025-06-25T02:33:47.622Z",
+              "verifyType": 1,
+              "clsReport": null,
+              "remark": null
+            },
+            {
+              "id": "1937690073383174145",
+              "modelManageId": "1937700383468945410",
+              "name": "接口自动化-20250624100127-目标检测-01-训练集-20250625095128",
+              "createTime": "2025-06-25T01:51:28.694Z",
+              "verifyType": 0,
+              "clsReport": null,
+              "remark": null
+            },
+            {
+              "id": "1937689716972191745",
+              "modelManageId": "1937700383468945410",
+              "name": "接口自动化-20250624100127-目标检测-01-验证集-20250625095003",
+              "createTime": "2025-06-25T01:50:03.718Z",
+              "verifyType": 0,
+              "clsReport": null,
+              "remark": null
+            }
+          ],
+          "parentId": "main_node",
+          "modelName": "哈哈123",
+          "nodeClass": "custom-node"
+        },
+        "zIndex": 4,
+        "parent": "main_node"
+      }
+    ],
+    "edges": [
+      {
+        "shape": "edge",
+        "attrs": {"line": {"stroke": "#1018204D", "strokeWidth": 1}},
+        "id": "2ca838c0-ded4-4f48-a752-2a3df25714aa",
+        "router": {
+          "name": "manhattan",
+          "args": {
+            "startDirections": ["top", "right", "bottom", "left"],
+            "endDirections": ["top", "right", "bottom", "left"],
+            "excludeShapes": ["lane", "custom-html"],
+            "padding": 10
+          }
+        },
+        "zIndex": 2,
+        "source": {"cell": "0", "port": "port_1"},
+        "target": {"cell": "1937707129570721794", "port": "port_2"}
+      },
+      {
+        "shape": "edge",
+        "attrs": {"line": {"stroke": "#1018204D", "strokeWidth": 1}},
+        "id": "ea302162-ac37-48fe-b4a3-0f52b9b4e595",
+        "router": {
+          "name": "manhattan",
+          "args": {
+            "startDirections": ["top", "right", "bottom", "left"],
+            "endDirections": ["top", "right", "bottom", "left"],
+            "excludeShapes": ["lane", "custom-html"],
+            "padding": 10
+          }
+        },
+        "zIndex": 2,
+        "source": {"cell": "1937707129570721794", "port": "port_1"},
+        "target": {"cell": "1", "port": "port_2"}
+      },
+      {
+        "shape": "edge",
+        "attrs": {"line": {"stroke": "#1018204D", "strokeWidth": 1}},
+        "id": "72b5a3e6-590b-462d-a424-939caa26dd3f",
+        "router": {
+          "name": "manhattan",
+          "args": {
+            "startDirections": ["top", "right", "bottom", "left"],
+            "endDirections": ["top", "right", "bottom", "left"],
+            "excludeShapes": ["lane", "custom-html"],
+            "padding": 10
+          }
+        },
+        "zIndex": 2,
+        "source": {"cell": "0", "port": "port_1"},
+        "target": {"cell": "1937700383468945410", "port": "port_2"}
+      },
+      {
+        "shape": "edge",
+        "attrs": {"line": {"stroke": "#1018204D", "strokeWidth": 1}},
+        "id": "3b918f55-ff05-40e2-9508-45e6c6d750e6",
+        "router": {
+          "name": "manhattan",
+          "args": {
+            "startDirections": ["top", "right", "bottom", "left"],
+            "endDirections": ["top", "right", "bottom", "left"],
+            "excludeShapes": ["lane", "custom-html"],
+            "padding": 10
+          }
+        },
+        "zIndex": 2,
+        "source": {"cell": "1937700383468945410", "port": "port_1"},
+        "target": {"cell": "1", "port": "port_2"}
+      }
+    ]
+  }
+}

@@ -1,4 +1,5 @@
-import json
+import os
+
 import requests
 import time
 from api import api_login, api_space
@@ -64,24 +65,55 @@ class ApiDataTrainTasks:
     # 上传数据算法
     def upload_data_algorithm(self, data_task_id):
         url = f"{env}/miai/brainstorm/datalg/dataalgorithmmodel/uploadDataAlgorithm"
-        model_file_path = "./testdata/数据模型.zip"
+        model_file_path = "testdata/数据模型.zip"
 
-        # 打开文件以二进制模式读取
+        # 验证文件
+        if not os.path.exists(model_file_path):
+            raise FileNotFoundError(f"模型文件不存在: {model_file_path}")
+        if not model_file_path.lower().endswith('.zip'):
+            raise ValueError("模型文件必须是zip格式")
+
+        # 使用requests的标准files参数上传
         with open(model_file_path, 'rb') as model_file:
-            files = {
-                'modelFile': ('modelFile', model_file, 'application/octet-stream')
-            }
+            # 准备表单数据
             data = {
                 'remark': f"接口自动化_{time_str}",
-                'dataAlgorithmTrainTaskId': data_task_id
+                'dataAlgorithmTrainTaskId': str(data_task_id)
             }
 
-            headers = self.client.base_headers.copy()
-            headers.pop('Content-Type', None)
+            # 文件字段必须命名为'modelFile'
+            files = {
+                'modelFile': ('数据模型.zip', model_file, 'application/zip')
+            }
 
-            response = requests.post(url, headers=headers, data=data, files=files)
-            response.raise_for_status()
-            return response
+            # 准备请求头（移除Content-Type）
+            headers = self.client.base_headers.copy()
+            if 'Content-Type' in headers:
+                del headers['Content-Type']
+
+            # 发送请求
+            response = requests.post(
+                url,
+                headers=headers,
+                data=data,  # 普通表单字段
+                files=files  # 文件字段
+            )
+
+            # 添加详细的错误处理
+            try:
+                response.raise_for_status()
+                return response
+            except requests.exceptions.HTTPError as e:
+                # 解析可能的错误信息
+                error_info = f"状态码: {response.status_code}\n"
+                try:
+                    error_info += f"响应内容: {response.json()}"
+                except:
+                    error_info += f"响应文本: {response.text}"
+
+                raise requests.exceptions.HTTPError(
+                    f"上传失败: {e}\n{error_info}"
+                ) from e
 
     # 查询上传记录
     def query_upload_record(self, data_task_id):

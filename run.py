@@ -10,6 +10,14 @@ from common.Log import MyLog, set_log_level  # 导入日志模块
 set_log_level('info')
 
 
+# 新增辅助函数：将秒数转换为分秒格式
+def format_time(seconds):
+    """将秒数转换为 'X分X秒' 格式"""
+    minutes = int(seconds // 60)
+    remaining_seconds = int(seconds % 60)
+    return f"{minutes}分{remaining_seconds}秒"
+
+
 def reset_logs():
     """清除之前的日志内容（通过关闭处理器并重新初始化）"""
     from common.Log import logger, MyLog
@@ -62,6 +70,7 @@ def execute_test(test_file, allure_results):
     pytest_args = [
         "-v",  # 详细输出
         "-s",  # 禁止捕获输出
+        "-x",  # 遇到第一个失败时立即退出
         target_path,
         f"--alluredir={allure_results}",  # Allure报告存储路径
     ]
@@ -83,18 +92,19 @@ def run_selected_tests():
     MyLog.info("===== 开始执行测试任务 =====")
 
     # 定义要执行的测试文件列表
-    # test_files = [
-    #     "testcase/test_deep_model_training.py",
-    #     "testcase/test_class_cut_model_training.py",
-    #     "testcase/test_class_original_model_training.py",
-    #     "testcase/test_post_process.py",
-    #     "testcase/test_model_base.py",
-    #     "testcase/test_product_information.py",
-    #     "testcase/test_product_samples.py"
-    # ]
     test_files = [
-        "testcase/test_model_base.py"
+        "testcase/test_deep_model_training.py",
+        "testcase/test_class_cut_model_training.py",
+        "testcase/test_class_original_model_training.py",
+        "testcase/test_post_process.py",
+        "testcase/test_model_base.py",
+        "testcase/test_data_training_task.py",
+        "testcase/test_simulation.py",
+        "testcase/test_product_information.py"
     ]
+    # test_files = [
+    #     "testcase/test_simulation.py"
+    # ]
 
     # 添加项目根目录到Python路径
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -114,9 +124,25 @@ def run_selected_tests():
     start_time = time.time()
     MyLog.info(f"开始执行所有测试文件 at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
 
+    # 初始化耗时统计变量
+    total_elapsed_time = 0.0  # 累加总耗时
+    file_times = {}  # 存储每个文件的耗时
+
     # 迭代执行测试文件
     for test_file in test_files:
+        # 记录单个文件开始时间
+        file_start_time = time.time()
+
         exit_code = execute_test(test_file, allure_results)
+
+        # 计算单个文件耗时
+        file_elapsed_time = time.time() - file_start_time
+        total_elapsed_time += file_elapsed_time
+        file_times[test_file] = file_elapsed_time
+
+        # 使用新的时间格式
+        formatted_time = format_time(file_elapsed_time)
+        MyLog.info(f"测试文件 {test_file} 执行完成，耗时: {formatted_time}")
 
         # 检查退出代码
         if exit_code not in [0, 1]:
@@ -125,8 +151,21 @@ def run_selected_tests():
 
     # 记录结束时间
     end_time = time.time()
+    overall_time = end_time - start_time  # 整体耗时
+
+    # 输出耗时统计（使用新格式）
+    MyLog.info("===== 测试文件耗时明细 =====")
+    for file, time_taken in file_times.items():
+        formatted_time = format_time(time_taken)
+        MyLog.info(f"{file}: {formatted_time}")
+
+    # 格式化并输出总耗时
+    formatted_total = format_time(total_elapsed_time)
+    formatted_overall = format_time(overall_time)
+
+    MyLog.info(f"测试文件累加总耗时: {formatted_total}")
+    MyLog.info(f"整体执行耗时: {formatted_overall}")
     MyLog.info(f"完成执行所有测试文件 at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
-    MyLog.info(f"总执行耗时: {end_time - start_time:.2f} 秒")
 
     # 生成报告
     os.system(f"allure generate {allure_results} -o {allure_report} --clean")
@@ -173,8 +212,10 @@ def run_parallel_tests():
 
     # 记录结束时间
     end_time = time.time()
+    # 使用新格式输出时间
+    formatted_time = format_time(end_time - start_time)
     MyLog.info(f"完成并行测试 at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
-    MyLog.info(f"总执行耗时: {end_time - start_time:.2f} 秒")
+    MyLog.info(f"总执行耗时: {formatted_time}")
 
     # 生成报告
     os.system(f"allure generate {allure_results} -o {allure_report} --clean")

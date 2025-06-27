@@ -29,7 +29,7 @@ class ApiComprehensiveSampleLibrary:
             "page": {"pageIndex": 1, "pageSize": 10}}
         return self.client.post(url, json=payload)
 
-    # 综合样本库-创建深度训练任务(目标检测)
+    # 综合样本库-创建深度训练任务
     def create_deep_training_tasks(self, defectName, photoId, cut, taskName, classifyType, caseId, caseName, type,
                                    iscut):
         url = f"{env}/miai/brainstorm/global/sample/createTrainTask"
@@ -70,6 +70,30 @@ class ApiComprehensiveSampleLibrary:
                    "filter": False, "defectCount": "[]"}
 
         return self.client.post(url, json=payload)
+
+    # 综合样本库-创建数据训练任务
+    def create_data_training_tasks(self, defectName, taskName):
+        url = f"{env}/miai/brainstorm/datalg/dataalgorithmtraintask/create"
+        payload = {"imgName": "", "endTime": None, "startTime": None, "visualGrade": [], "bashSampleType": [],
+                   "productId": [self.product_info_id], "defectName": defectName, "photoId": [],
+                   "classifyType": [], "imageDefinition": [], "sampleType": [], "dataAlgorithmSampleType": [],
+                   "deepModelSampleType": [], "classifyTypeOther": [None, "mozha", "未知", "yakedian"],
+                   "defectNameOther": ["mozha", "yakedian"], "selectIds": [], "notSelectIds": [],
+                   "taskName": taskName, "deepModel": "1878990922328797185", "remark": "接口自动化",
+                   "modelManageId": "1878990922328797185", "deepModelName": "仿真5个分割模型组合",
+                   "deepModelVersion": 23,
+                   "combineType": "DetS V2 实例分割+DetS V2 实例分割+DetS V2 实例分割+DetS V2 实例分割+DetS V2 实例分割",
+                   "isCombine": True,
+                   "tritonPath": "/miai_mtl_repository/1873905652887785473/triton/1878990922328797185",
+                   "deepModelSource": "4", "isAllinPhoto": False,
+                   "classNamesList": "[\"shang\", \"fabaimian\", \"neilie\", \"mozha\", \"fabai\", \"tuomo\", \"yimo\", \"liangxian\", \"moqian3\", \"moqian\", \"liebian\", \"dahen\", \"pobian\", \"seban\", \"shanghen\"]",
+                   "checkScope": "JHOCT001:1,2,3,4,5,8,10",
+                   "inferenceLabel": "伤,发白面,内裂,磨渣,发白,脱模,溢墨,亮线,墨欠3,墨欠,裂边,打痕,破边,色斑,伤痕",
+                   "displayName": "仿真5个分割模型组合 V23 组合"}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
 
 
 if __name__ == '__main__':

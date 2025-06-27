@@ -358,7 +358,10 @@ class TestModelBase:
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
-        with allure.step("步骤10：组合模型删除"):
+    @allure.story("测试数据删除")
+    def test_deepdata_delete(self):  # 注入fixture
+
+        with allure.step("步骤1：组合模型删除"):
             response = self.api_base.model_withdraw(self.__class__.combination_modelManageId, 2)
 
             # 响应断言
@@ -366,22 +369,22 @@ class TestModelBase:
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
-        with allure.step("步骤11：目标检测模型撤回"):
+        with allure.step("步骤2：目标检测模型撤回"):
             self._withdraw_model(self.modelManageId, "目标检测")
 
-        with allure.step("步骤12：分类大图模型撤回"):
+        with allure.step("步骤3：分类大图模型撤回"):
             class_original_manage_id = self._get_model_manage_id(
                 model_train_id=self.class_original_modelTrainId
             )
             self._withdraw_model(class_original_manage_id, "分类大图")
 
-        with allure.step("步骤13：分类切图模型撤回"):
+        with allure.step("步骤4：分类切图模型撤回"):
             class_cut_manage_id = self._get_model_manage_id(
                 model_train_id=self.class_cut_modelTrainId
             )
             self._withdraw_model(class_cut_manage_id, "分类切图")
 
-        with allure.step("步骤14：目标检测训练任务删除"):
+        with allure.step("步骤5：目标检测训练任务删除"):
             response = self.api_deep.delete_train_tasks(self.trainTaskId)
 
             # 响应断言
@@ -389,7 +392,7 @@ class TestModelBase:
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
-        with allure.step("步骤15：分类大图训练任务删除"):
+        with allure.step("步骤6：分类大图训练任务删除"):
             response = self.api_deep.delete_train_tasks(self.class_original_trainTaskId)
 
             # 响应断言
@@ -397,7 +400,7 @@ class TestModelBase:
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
-        with allure.step("步骤16：分类切图训练任务删除"):
+        with allure.step("步骤7：分类切图训练任务删除"):
             response = self.api_deep.delete_train_tasks(self.class_cut_trainTaskId)
 
             # 响应断言

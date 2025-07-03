@@ -12,7 +12,6 @@ from common import Assert
 from api import api_login, api_comprehensive_sample_library, api_data_training_tasks
 
 assertions = Assert.Assertions()
-env = api_login.url
 time_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
 
 # 初始化全局客户端

@@ -70,12 +70,12 @@ class ApiModelTrain:
         return response
 
     # 开始模型训练
-    def start_train(self, caseId, modelSize, computingPowerId, trainTaskId, Width, Height, modelCaseTemplateId):
+    def start_train(self, caseId, modelSize, computingPowerId, trainTaskId, Width, Height, modelCaseTemplateId,epoch):
         url = f"{env}/miai/brainstorm/newmodeltrain/startTrain"
         payload = {"resizeWidth": Width, "resizeHeight": Height, "caseId": caseId, "modelSize": modelSize,
                    "gpuCount": "1", "gpuSize": 999, "source": 0, "keepLabels": [],
                    "computingPowerId": computingPowerId, "trainParams": True, "schemePhase": 1,
-                   "paramSetting1": {"epoch": 30, "batchSize": 16, "lr": 0.0002}, "paramSetting2": None,
+                   "paramSetting1": {"epoch": epoch, "batchSize": 16, "lr": 0.0002}, "paramSetting2": None,
                    "trainTaskId": trainTaskId, "remark": f"接口自动化训练-{time_str}",
                    "modelCaseTemplateId": modelCaseTemplateId}
         response = self.client.post(url, json=payload)
@@ -86,7 +86,7 @@ class ApiModelTrain:
     def query_train_records(self, trainTaskId):
         url = f"{env}/miai/brainstorm/newmodeltrain/page"
         payload = {"data": {"trainTaskId": trainTaskId, "onlyMachineTable": False},
-                   "page": {"pageIndex": 1, "pageSize": 10}}
+                   "page": {"pageIndex": 1, "pageSize": 100}}
         response = self.client.post(url, json=payload)
         response.raise_for_status()
         return response

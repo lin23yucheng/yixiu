@@ -13,7 +13,6 @@ from common import Assert
 from api import api_login, api_comprehensive_sample_library, api_deep_training_tasks
 
 assertions = Assert.Assertions()
-env = api_login.url
 time_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
 
 # 初始化全局客户端
@@ -338,7 +337,7 @@ class TestClassOriginalModelTraining:
 
             with allure.step("子步骤2：组装参数并开始训练"):
                 train_response = self.api_model.start_train("official_yolov8_cls_model", -1, computing_power_id,
-                                                            self.trainTaskId, "768", "768", "1704414001586651246")
+                                                            self.trainTaskId, "768", "768", "1704414001586651246", 30)
                 assertions.assert_code(train_response.status_code, 200)
                 train_data = train_response.json()
                 assertions.assert_in_text(train_data['msg'], '操作成功')

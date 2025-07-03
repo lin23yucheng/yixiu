@@ -9,8 +9,6 @@ from common.Request_Response import ApiClient
 from api import api_login, api_deep_training_tasks
 
 assertions = Assert.Assertions()
-env = api_login.url
-time_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
 
 # 初始化全局客户端
 base_headers = {
@@ -52,6 +50,7 @@ def get_persistent_ids():
     if None in ids.values():
         pytest.skip("训练任务ID未就绪")
     return ids
+
 
 @allure.feature("场景：深度模型后处理全流程")
 class TestPostProcess:

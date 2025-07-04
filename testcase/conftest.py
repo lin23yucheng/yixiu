@@ -4,7 +4,6 @@ from common.Log import MyLog
 
 
 def format_time(seconds):
-    """将秒数转换为 'X分X秒' 格式"""
     minutes = int(seconds // 60)
     remaining_seconds = int(seconds % 60)
     return f"{minutes}分{remaining_seconds}秒"
@@ -12,12 +11,24 @@ def format_time(seconds):
 
 @pytest.fixture(scope="session", autouse=True)
 def start_running():
+    start_time = None  # 初始化变量
     try:
-        start_time = time.time()
-        MyLog.info("---马上开始执行自动化测试---")
+        start_time = time.time()  # 安全赋值
+        message = "---马上开始执行自动化测试---"
+        print(message)
+        MyLog.info(message)
         yield
     finally:
-        end_time = time.time()
-        duration = end_time - start_time
-        formatted_duration = format_time(duration)
-        MyLog.info(f"---自动化测试完成，总耗时: {formatted_duration}---")
+        # 只有在 start_time 已赋值时才计算耗时
+        if start_time is not None:
+            end_time = time.time()
+            duration = end_time - start_time
+            formatted_duration = format_time(duration)
+            message = f"---自动化测试完成，总耗时: {formatted_duration}---"
+            print(message)
+            MyLog.info(message)
+        else:
+            # 处理初始化失败的情况
+            error_msg = "---自动化测试启动失败，无法计算耗时---"
+            print(error_msg)
+            MyLog.error(error_msg)

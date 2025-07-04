@@ -1,5 +1,5 @@
 """
-空间的相关接口封装
+空间的相关接口
 """
 import requests
 from api import api_login

@@ -1,3 +1,6 @@
+"""
+深度训练任务相关接口
+"""
 import json
 import time
 from api import api_login, api_space
@@ -70,7 +73,7 @@ class ApiModelTrain:
         return response
 
     # 开始模型训练
-    def start_train(self, caseId, modelSize, computingPowerId, trainTaskId, Width, Height, modelCaseTemplateId,epoch):
+    def start_train(self, caseId, modelSize, computingPowerId, trainTaskId, Width, Height, modelCaseTemplateId, epoch):
         url = f"{env}/miai/brainstorm/newmodeltrain/startTrain"
         payload = {"resizeWidth": Width, "resizeHeight": Height, "caseId": caseId, "modelSize": modelSize,
                    "gpuCount": "1", "gpuSize": 999, "source": 0, "keepLabels": [],

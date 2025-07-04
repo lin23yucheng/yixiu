@@ -1,18 +1,11 @@
-import json
-import time
+"""
+模型库相关接口
+"""
+
 from api import api_login, api_space
 from common.Request_Response import ApiClient
 
 env = api_login.url
-time_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
-
-# 初始化全局客户端
-base_headers = {
-    "Authorization": api_login.ApiLogin().login(),
-    "Miai-Product-Code": api_login.code,
-    "Miaispacemanageid": api_login.manageid
-}
-global_client = ApiClient(base_headers=base_headers)
 
 
 class ApiModelBase:

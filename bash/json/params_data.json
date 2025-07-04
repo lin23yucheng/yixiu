@@ -1,0 +1,35 @@
+{
+  "access_token": "QEtAbkFmQKPl9Pnsk7RmOAVEtjOWbZI8+5V+DETTsBVuXSUpKibJWi1b0AF4lzZiVo8bErnejdTgut3ev/vdsSjMtS9gtxeisIsB2LeLHLdLozqEhrVKSStvUSQkEGftR/TlewtLcqR3XkL/axuQyMkk2sy9ZnbVc5hHxrRREeJtRuLSdpW5n7P7wIjaXpztxs7tTRCRI9RaiANGwdgEcg==",
+  "device_no": "JHOCT001",
+  "product_name": "JHOCT001",
+  "optical_side_id": 18,
+  "width": 2448,
+  "height": 2048,
+  "encoded_image_path": "bash2/images/",
+  "image_header": "-JHOCT001-01-02-03-04-",
+  "model_version": "1",
+  "request_type": "normal",
+  "DetectionResult": [
+  {
+    "class_name": "huashang",
+    "xmin": 727.0714,
+    "ymin": 103.0,
+    "bb_width": 338.0,
+    "bb_height": 336.0,
+    "score": 0.39,
+    "pixel_area": 6,
+    "length": 5,
+    "defect_feature": "{\"max_length\":0,\"min10_brightness\":0,\"max10_brightness\":0,\"bg_brightness\":69,\"smoothness\":0,\"angle\":0,\"curvature\":0,\"straight_line\":0,\"length_width_ratio\":0}"
+  },
+  {
+    "class_name": "aotuheng",
+    "xmin": 332.0,
+    "ymin": 709.0,
+    "bb_width": 158.0,
+    "bb_height": 150.0,
+    "score": 0.39,
+    "pixel_area": 6,
+    "length": 5,
+    "defect_feature": "{\"max_length\":0,\"min10_brightness\":0,\"max10_brightness\":0,\"bg_brightness\":69,\"smoothness\":0,\"angle\":0,\"curvature\":0,\"straight_line\":0,\"length_width_ratio\":0}"
+  }]
+}

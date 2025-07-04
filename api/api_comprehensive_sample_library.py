@@ -1,14 +1,11 @@
 """
-综合样本库相关接口封装
+综合样本库相关接口
 """
 
-import requests
-import time
 from api import api_login, api_space
 from common.Request_Response import ApiClient
 
 env = api_login.url
-time_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
 
 
 class ApiComprehensiveSampleLibrary:

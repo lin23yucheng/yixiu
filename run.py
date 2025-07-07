@@ -5,7 +5,7 @@ import pytest
 import shutil
 from threading import Thread
 from common.Log import MyLog, set_log_level
-from bash.push.client_bash import test_logic_auto, test_logic_manual
+from bash.push.client_bash import push_images_auto, test_logic_manual
 
 # 设置全局日志级别
 set_log_level('info')
@@ -234,7 +234,6 @@ if __name__ == "__main__":
     run_selected_tests()  # 顺序执行
     # run_parallel_tests()  # 并行执行
     # test_logic_manual()   # bash推图手动
-    # test_logic_auto()  # bash推图自动
 
     MyLog.info("===== 测试执行程序结束 =====")
     print("===== 测试执行程序结束 =====")

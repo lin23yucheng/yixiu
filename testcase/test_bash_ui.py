@@ -2,10 +2,11 @@ import time
 import threading
 import allure
 from selenium import webdriver
+from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
+from bash.push.client_bash import push_images_auto
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from bash.push.client_bash import test_logic_auto
 
 
 @allure.feature("场景：bash坐席分拣图片")
@@ -22,10 +23,17 @@ class TestBashUI:
         cls.push_thread = None
         cls.push_completed = threading.Event()
 
+    @staticmethod
+    def run_push_client():
+        """运行推图客户端"""
+        try:
+            push_images_auto()  # 调用非测试函数
+        except Exception as e:
+            allure.attach(f"推图失败: {str(e)}", name="错误", attachment_type=allure.attachment_type.TEXT)
+
     @allure.story("坐席分拣流程")
     def test_seat_operation(self):
-        # 步骤1：登录
-        with allure.step("林禹成账号登录bash系统"):
+        with allure.step("步骤1：林禹成账号登录bash系统"):
             self.driver.get("http://fat-bash-web.svfactory.com:6180/#/signIn")
             # 输入账号
             username_input = WebDriverWait(self.driver, 10).until(
@@ -43,8 +51,7 @@ class TestBashUI:
             )
             login_button.click()
 
-        # 步骤2：申请坐席
-        with allure.step("申请坐席"):
+        with allure.step("步骤2：申请坐席"):
             # 等待进入首页
             WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'dashboard')]"))
@@ -101,8 +108,7 @@ class TestBashUI:
                               attachment_type=allure.attachment_type.TEXT)
                 raise AssertionError(f"申请坐席后状态应为'我已坐席'，实际为: {status_text.text}")
 
-        # 步骤3：启动推图线程
-        with allure.step("启动推图客户端"):
+        with allure.step("步骤3：启动推图客户端"):
             # 创建并启动推图线程
             self.push_thread = threading.Thread(target=self.run_push_client)
             self.push_thread.daemon = True  # 设置为守护线程
@@ -110,86 +116,92 @@ class TestBashUI:
             allure.attach("推图客户端已启动", name="推图启动", attachment_type=allure.attachment_type.TEXT)
 
             # 添加等待，确保推图线程初始化完成
-            time.sleep(3)  # 等待3秒让推图线程初始化
+            time.sleep(2)  # 等待2秒让推图线程初始化
             allure.attach("推图线程初始化完成", name="推图状态", attachment_type=allure.attachment_type.TEXT)
 
-        # 步骤4：等待图片出现并分拣
-        with allure.step("分拣图片"):
-            # 添加调试信息：打印当前页面HTML
-            allure.attach(
-                self.driver.page_source,
-                name="当前页面HTML",
-                attachment_type=allure.attachment_type.HTML
-            )
-
-            # 添加截图到报告
-            allure.attach(
-                self.driver.get_screenshot_as_png(),
-                name="等待图片时的页面截图",
-                attachment_type=allure.attachment_type.PNG
-            )
-
-            # 尝试多种定位方式
-            try:
-                # 方式1：使用类名定位
-                image_div = WebDriverWait(self.driver, 60).until(
-                    EC.presence_of_element_located((By.XPATH, "//div[@class='image-container']"))
-                )
-            except:
+        with allure.step("步骤4：等待图片出现并分拣"):
+            # 循环直到产品名称为空
+            while True:
                 try:
-                    # 方式2：使用更通用的图片容器定位
-                    image_div = WebDriverWait(self.driver, 60).until(
-                        EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'image')]"))
-                    )
-                except:
-                    # 方式3：使用图片标签定位
-                    image_div = WebDriverWait(self.driver, 60).until(
-                        EC.presence_of_element_located((By.TAG_NAME, "img"))
+                    # 等待产品名称元素出现
+                    product_name = WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH, '//span[@class="product-name"]'))
                     )
 
-            allure.attach("检测到图片", name="图片出现", attachment_type=allure.attachment_type.TEXT)
+                    # 当产品名称为JHOCT001时执行点击操作
+                    if product_name.text == "JHOCT001":
+                        # 获取canvas元素 - 修正索引方式
+                        canvas_list = self.driver.find_elements(By.XPATH, '//canvas[@class="upper-canvas "]')
+                        if not canvas_list:
+                            raise Exception("未找到canvas元素")
 
-            # 添加图片出现时的截图
-            allure.attach(
-                self.driver.get_screenshot_as_png(),
-                name="图片出现时的页面截图",
-                attachment_type=allure.attachment_type.PNG
-            )
+                        # 点击前等待1秒并截图
+                        time.sleep(1)
+                        # 添加点击前截图到报告
+                        allure.attach(
+                            self.driver.get_screenshot_as_png(),
+                            name=f"点击前截图-{time.strftime('%H%M%S')}",
+                            attachment_type=allure.attachment_type.PNG
+                        )
 
-            # 第一次点击（分拣NG）
-            image_div.click()
-            allure.attach("第一次点击（分拣NG）", name="分拣操作", attachment_type=allure.attachment_type.TEXT)
-            time.sleep(5)  # 间隔5秒
+                        # 使用ActionChains在左上角(10,10)位置点击
+                        action = ActionChains(self.driver)
+                        action.move_to_element_with_offset(canvas_list[0], 10, 10).click().perform()
+                        allure.attach(f"在canvas元素上点击 (10,10)", name="点击操作",
+                                      attachment_type=allure.attachment_type.TEXT)
 
-            # 第二次点击
-            image_div.click()
-            allure.attach("第二次点击（分拣NG）", name="分拣操作", attachment_type=allure.attachment_type.TEXT)
+                        # 点击后等待1秒
+                        time.sleep(1)
+                        # 添加点击后截图到报告
+                        allure.attach(
+                            self.driver.get_screenshot_as_png(),
+                            name=f"点击后截图-{time.strftime('%H%M%S')}",
+                            attachment_type=allure.attachment_type.PNG
+                        )
 
-            # 确认分拣完成
-            confirm_button = WebDriverWait(self.driver, 5).until(
-                EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'完成分拣')]"))
-            )
-            confirm_button.click()
-            allure.attach("分拣完成", name="分拣结果", attachment_type=allure.attachment_type.TEXT)
+                        # 继续下一次循环
+                        continue
 
-        # 步骤5：等待推图完成
-        with allure.step("等待推图完成"):
-            # 等待推图线程结束或超时
-            self.push_thread.join(timeout=120)  # 最多等待2分钟
-            if self.push_thread.is_alive():
-                allure.attach("推图超时", name="警告", attachment_type=allure.attachment_type.TEXT)
-            else:
-                allure.attach("推图完成", name="推图状态", attachment_type=allure.attachment_type.TEXT)
+                    # 当产品名称为空时执行离席操作
+                    elif product_name.text.strip() == "":
+                        # 点击申请离席
+                        leave_button = WebDriverWait(self.driver, 10).until(
+                            EC.element_to_be_clickable((By.XPATH, '//span[contains(text(),"申请离席")]'))
+                        )
+                        leave_button.click()
+                        allure.attach("点击申请离席按钮", name="离席操作", attachment_type=allure.attachment_type.TEXT)
 
-    def run_push_client(self):
-        """运行推图客户端"""
-        try:
-            test_logic_auto()
-            self.push_completed.set()
-        except Exception as e:
-            allure.attach(f"推图失败: {str(e)}", name="错误", attachment_type=allure.attachment_type.TEXT)
+                        # 验证离席提示
+                        try:
+                            WebDriverWait(self.driver, 10).until(
+                                EC.presence_of_element_located(
+                                    (By.XPATH, '//p[@class="el-message__content" and contains(text(), "您已离席！")]'))
+                            )
+                            allure.attach("检测到消息: 您已离席！", name="离席状态",
+                                          attachment_type=allure.attachment_type.TEXT)
+                        except Exception as e:
+                            allure.attach(f"未检测到离席提示: {str(e)}", name="警告",
+                                          attachment_type=allure.attachment_type.TEXT)
+
+                        # 结束循环
+                        break
+
+                except Exception as e:
+                    allure.attach(f"操作异常: {str(e)}", name="错误", attachment_type=allure.attachment_type.TEXT)
+                    # 添加异常截图
+                    allure.attach(
+                        self.driver.get_screenshot_as_png(),
+                        name=f"异常截图-{time.strftime('%H%M%S')}",
+                        attachment_type=allure.attachment_type.PNG
+                    )
+                    # 添加页面HTML
+                    allure.attach(
+                        self.driver.page_source,
+                        name="异常时页面HTML",
+                        attachment_type=allure.attachment_type.HTML
+                    )
+                    raise
 
     @classmethod
     def teardown_class(cls):
-        # 关闭浏览器
         cls.driver.quit()

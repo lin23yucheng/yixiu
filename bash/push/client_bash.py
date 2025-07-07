@@ -1,16 +1,16 @@
-import grpc
-import threading
-import bash.push.bash_pb2 as grpc_api
-import bash.push.bash_pb2_grpc as grpc_control
-from google.protobuf.json_format import MessageToDict
-from concurrent.futures import ThreadPoolExecutor
-from bash.push.log import *
 import json
 import os
 import time
+import grpc
 import random
 import traceback
+import threading
+import bash.push.bash_pb2 as grpc_api
+import bash.push.bash_pb2_grpc as grpc_control
+from bash.push.log import *
 from functools import lru_cache
+from concurrent.futures import ThreadPoolExecutor
+from google.protobuf.json_format import MessageToDict
 
 
 # 常量定义
@@ -18,9 +18,9 @@ class Constants:
     IS_CROP = 2
     DETECTION_AREA_TYPE = 2
     SYSTEM_TYPE = 1
-    DEFAULT_LOOPS = 1
-    DEFAULT_THREADS = 2
     DEFAULT_ADDRESS_NO = 1
+    DEFAULT_THREADS = 1
+    DEFAULT_LOOPS = 3
 
 
 # 路径工具函数
@@ -126,13 +126,6 @@ class BashGrpcMock:
 
     def run(self):
         """执行主循环逻辑"""
-        # if self.loops > 0:
-        #     for _ in range(self.loops):
-        #         self._process_single_request()
-        # else:
-        #     while True:
-        #         self._process_single_request()
-
         loop_count = 0
         while not self.stop_event.is_set() and (self.loops <= 0 or loop_count < self.loops):
             self._process_single_request()
@@ -148,8 +141,13 @@ class BashGrpcMock:
         now_str = (time.strftime("%Y%m%d%H%M%S", time.localtime(now_time / 1000))
                    + f"{now_time % 1000:03.0f}")
 
+        # 生成随机的前三位数字 (1000-9999)
+        random_part1 = random.randint(1000, 1100)
+        random_part2 = random.randint(2000, 2100)
+        random_part3 = random.randint(1, 9)
+
         # 生成图片头
-        image_header = f"{1166}-{9317}-1{self.result['image_header']}{now_str}.jpg"
+        image_header = f"{random_part1}-{random_part2}-{random_part3}{self.result['image_header']}{now_str}.jpg"
 
         # 更新索引和计数器
         self.index = (self.index + 1) % len(self.fixed_values)
@@ -370,7 +368,7 @@ def test_logic_manual(config_data=None):
     run_test(config, address_no, i_threads, i_loops)
 
 
-def test_logic_auto(config_data=None):
+def push_images_auto(config_data=None):
     """自动执行模式测试"""
     print("测试开始 (自动模式)")
     config = ResourceLoader.get_config(config_data)
@@ -381,7 +379,6 @@ def test_logic_auto(config_data=None):
     i_loops = Constants.DEFAULT_LOOPS
 
     print(f"自动模式参数: GRPC请求编号={address_no}, 线程数={i_threads}, 循环数={i_loops}")
-    # run_test(config, address_no, i_threads, i_loops)
 
     # 创建推图实例
     grpc_mock = BashGrpcMock(config['channel'][address_no - 1], i_loops)
@@ -413,7 +410,3 @@ def run_test(config, address_no, i_threads, i_loops):
                 log(f"线程执行异常: {str(e)}", LogType.ERROR)
 
     log("测试完成", LogType.LOGIC)
-
-
-if __name__ == '__main__':
-    test_logic_auto()

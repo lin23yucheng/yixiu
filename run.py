@@ -4,7 +4,7 @@ import time
 import pytest
 import shutil
 from threading import Thread
-from common.Log import MyLog, set_log_level  # 导入日志模块
+from common.Log import MyLog, set_log_level
 from bash.push.client_bash import test_logic_auto, test_logic_manual
 
 # 设置全局日志级别
@@ -105,7 +105,8 @@ def run_selected_tests():
     #     "testcase/test_product_information.py"
     # ]
     test_files = [
-        "testcase/test_model_training_metrics.py"
+        "testcase/test_bash.py",
+        "testcase/test_bash_ui.py"
     ]
 
     # 添加项目根目录到Python路径
@@ -226,14 +227,14 @@ def run_parallel_tests():
 
 
 if __name__ == "__main__":
-    # print("===== 测试执行程序启动 =====")
-    # MyLog.info("===== 测试执行程序启动 =====")
+    print("===== 测试执行程序启动 =====")
+    MyLog.info("===== 测试执行程序启动 =====")
 
     # 选择执行模式
-    # run_selected_tests()  # 顺序执行
+    run_selected_tests()  # 顺序执行
     # run_parallel_tests()  # 并行执行
+    # test_logic_manual()   # bash推图手动
+    # test_logic_auto()  # bash推图自动
 
-    # MyLog.info("===== 测试执行程序结束 =====")
-    # print("===== 测试执行程序结束 =====")
-    # test_logic_manual()
-    test_logic_auto()
+    MyLog.info("===== 测试执行程序结束 =====")
+    print("===== 测试执行程序结束 =====")

@@ -1,17 +1,19 @@
-import json
+"""
+bash推图(手动/自动)
+"""
+from bash.push.log import *
+from functools import lru_cache
+from concurrent.futures import ThreadPoolExecutor
+from google.protobuf.json_format import MessageToDict
 import os
 import time
+import json
 import grpc
 import random
 import traceback
 import threading
 import bash.push.bash_pb2 as grpc_api
 import bash.push.bash_pb2_grpc as grpc_control
-from bash.push.log import *
-from functools import lru_cache
-from concurrent.futures import ThreadPoolExecutor
-from google.protobuf.json_format import MessageToDict
-
 
 # 常量定义
 class Constants:

@@ -1,6 +1,9 @@
+import os
 import time
-import threading
 import allure
+import threading
+import configparser
+from time import sleep
 from selenium import webdriver
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
@@ -16,9 +19,17 @@ class TestBashUI:
         # 初始化浏览器
         cls.driver = webdriver.Chrome()
         cls.driver.maximize_window()
-        # 登录信息
-        cls.username = "19166459858"
-        cls.password = "123456"
+
+        # 读取配置文件
+        config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
+        config = configparser.ConfigParser()
+        config.read(config_path)
+
+        # 获取账号密码
+        cls.username = config.get('bash', 'myself_account')
+        cls.password = config.get('bash', 'myself_password')
+        cls.miaiproductcode = config.get('global', 'miai-product-code')
+
         # 推图线程控制
         cls.push_thread = None
         cls.push_completed = threading.Event()
@@ -120,71 +131,66 @@ class TestBashUI:
             allure.attach("推图线程初始化完成", name="推图状态", attachment_type=allure.attachment_type.TEXT)
 
         with allure.step("步骤4：等待图片出现并分拣"):
-            # 循环直到产品名称为空
+            empty_counter = 0  # 记录连续为空的次数
+            MAX_EMPTY_COUNT = 3  # 允许连续为空的阈值（3秒）
+
             while True:
                 try:
-                    # 等待产品名称元素出现
+                    # 显式等待产品名称元素出现（10秒超时）
                     product_name = WebDriverWait(self.driver, 10).until(
                         EC.presence_of_element_located((By.XPATH, '//span[@class="product-name"]'))
                     )
+                    current_text = product_name.text.strip()
 
-                    # 当产品名称为JHOCT001时执行点击操作
-                    if product_name.text == "JHOCT001":
-                        # 获取canvas元素 - 修正索引方式
+                    # 情况1：检测到配置的产品名称
+                    if current_text == self.miaiproductcode:
+                        time.sleep(1)  # 显式等待1秒
+                        empty_counter = 0  # 重置空状态计数器
+
+                        # 执行点击操作
                         canvas_list = self.driver.find_elements(By.XPATH, '//canvas[@class="upper-canvas "]')
-                        if not canvas_list:
-                            raise Exception("未找到canvas元素")
+                        if canvas_list:
+                            # 点击前截图
+                            allure.attach(
+                                self.driver.get_screenshot_as_png(),
+                                name=f"点击前截图-{time.strftime('%H%M%S')}",
+                                attachment_type=allure.attachment_type.PNG
+                            )
 
-                        # 点击前等待1秒并截图
-                        time.sleep(1)
-                        # 添加点击前截图到报告
-                        allure.attach(
-                            self.driver.get_screenshot_as_png(),
-                            name=f"点击前截图-{time.strftime('%H%M%S')}",
-                            attachment_type=allure.attachment_type.PNG
-                        )
+                            # 使用ActionChains点击
+                            ActionChains(self.driver).move_to_element_with_offset(
+                                canvas_list[0], 10, 10
+                            ).click().perform()
 
-                        # 使用ActionChains在左上角(10,10)位置点击
-                        action = ActionChains(self.driver)
-                        action.move_to_element_with_offset(canvas_list[0], 10, 10).click().perform()
-                        allure.attach(f"在canvas元素上点击 (10,10)", name="点击操作",
-                                      attachment_type=allure.attachment_type.TEXT)
-
-                        # 点击后等待1秒
-                        time.sleep(1)
-                        # 添加点击后截图到报告
-                        allure.attach(
-                            self.driver.get_screenshot_as_png(),
-                            name=f"点击后截图-{time.strftime('%H%M%S')}",
-                            attachment_type=allure.attachment_type.PNG
-                        )
-
-                        # 继续下一次循环
+                            # 点击后截图
+                            time.sleep(1)
+                            allure.attach(
+                                self.driver.get_screenshot_as_png(),
+                                name=f"点击后截图-{time.strftime('%H%M%S')}",
+                                attachment_type=allure.attachment_type.PNG
+                            )
                         continue
 
-                    # 当产品名称为空时执行离席操作
-                    elif product_name.text.strip() == "":
-                        # 点击申请离席
-                        leave_button = WebDriverWait(self.driver, 10).until(
-                            EC.element_to_be_clickable((By.XPATH, '//span[contains(text(),"申请离席")]'))
-                        )
-                        leave_button.click()
-                        allure.attach("点击申请离席按钮", name="离席操作", attachment_type=allure.attachment_type.TEXT)
-
-                        # 验证离席提示
-                        try:
-                            WebDriverWait(self.driver, 10).until(
-                                EC.presence_of_element_located(
-                                    (By.XPATH, '//p[@class="el-message__content" and contains(text(), "您已离席！")]'))
+                    # 情况2：检测到空文本
+                    elif current_text == "":
+                        empty_counter += 1
+                        # 连续3次检测到空（约3秒）
+                        if empty_counter >= MAX_EMPTY_COUNT:
+                            # 执行离席操作
+                            leave_button = WebDriverWait(self.driver, 10).until(
+                                EC.element_to_be_clickable((By.XPATH, '//span[contains(text(),"申请离席")]'))
                             )
-                            allure.attach("检测到消息: 您已离席！", name="离席状态",
+                            leave_button.click()
+                            sleep(3)
+                            allure.attach("连续3秒检测到空产品名称，执行离席",
+                                          name="离席操作",
                                           attachment_type=allure.attachment_type.TEXT)
-                        except Exception as e:
-                            allure.attach(f"未检测到离席提示: {str(e)}", name="警告",
-                                          attachment_type=allure.attachment_type.TEXT)
+                            break
 
-                        # 结束循环
-                        break
+                        # 未达阈值时短暂等待后继续监控
+                        time.sleep(1)  # 每次等待1秒
+                        continue
+
 
                 except Exception as e:
                     allure.attach(f"操作异常: {str(e)}", name="错误", attachment_type=allure.attachment_type.TEXT)

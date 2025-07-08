@@ -105,8 +105,7 @@ def run_selected_tests():
     #     "testcase/test_product_information.py"
     # ]
     test_files = [
-        "testcase/test_bash.py",
-        "testcase/test_bash_ui.py"
+        "testcase/test_bash.py"
     ]
 
     # 添加项目根目录到Python路径

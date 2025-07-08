@@ -214,6 +214,7 @@ class TestModelBase:
                     else:  # 其他状态
                         pytest.fail(f"{step_name}遇到未知状态: {current_status}")
 
+    @pytest.mark.order(1)
     @allure.story("模型库测试流程")
     def test_deployment(self, get_persistent_ids):  # 注入fixture
         self.__class__.modelTrainId = get_persistent_ids['model_train_id']
@@ -358,6 +359,7 @@ class TestModelBase:
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
+    @pytest.mark.order(2)
     @allure.story("测试数据删除")
     def test_deepdata_delete(self):  # 注入fixture
 

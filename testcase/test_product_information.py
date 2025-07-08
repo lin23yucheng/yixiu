@@ -76,6 +76,7 @@ class TestProductInformation:
             MyLog.error(f"文件上传失败: {str(e)}")
             raise
 
+    @pytest.mark.order(1)
     @allure.story("新增产品资料")
     def test_information_add(self):
         url = env + "/miai/brainstorm/knowledgeproductdata/addData"
@@ -110,6 +111,7 @@ class TestProductInformation:
             MyLog.error(f"新增产品资料失败: {str(e)}")
             pytest.fail(f"新增产品资料失败: {str(e)}")
 
+    @pytest.mark.order(2)
     @allure.story("查询产品资料提取刚新增的ID值")
     def test_information_query(self):
         url = env + "/miai/brainstorm/knowledgeproductdata/queryPage"
@@ -157,6 +159,7 @@ class TestProductInformation:
             MyLog.error(f"查询产品资料失败: {str(e)}")
             pytest.fail(f"查询产品资料失败: {str(e)}")
 
+    @pytest.mark.order(3)
     @allure.story("修改刚新增的产品资料")
     def test_information_update(self):
         try:
@@ -194,6 +197,7 @@ class TestProductInformation:
             MyLog.error(f"修改产品资料失败: {str(e)}")
             pytest.fail(f"修改产品资料失败: {str(e)}")
 
+    @pytest.mark.order(4)
     @allure.story("删除刚新增的产品资料")
     def test_information_delete(self):
         try:

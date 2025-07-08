@@ -10,15 +10,15 @@ from selenium.webdriver.common.by import By
 from bash.push.client_bash import push_images_auto
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from utils.browser_pool import get_browser, release_browser
 
 
 @allure.feature("场景：bash坐席分拣图片")
 class TestBashUI:
     @classmethod
     def setup_class(cls):
-        # 初始化浏览器
-        cls.driver = webdriver.Chrome()
-        cls.driver.maximize_window()
+        # 从浏览器池获取实例
+        cls.driver = get_browser()
 
         # 读取配置文件
         config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
@@ -210,4 +210,24 @@ class TestBashUI:
 
     @classmethod
     def teardown_class(cls):
-        cls.driver.quit()
+        # 仅在浏览器实例存在时执行清理
+        if cls.driver and cls.driver.service.is_connectable():
+            try:
+                # 清除cookies和本地存储
+                cls.driver.delete_all_cookies()
+                cls.driver.execute_script("window.localStorage.clear();")
+                cls.driver.execute_script("window.sessionStorage.clear();")
+
+                # 导航到空白页释放资源
+                cls.driver.get("about:blank")
+            except Exception as e:
+                print(f"清理浏览器状态时警告: {e}")
+                allure.attach(f"清理警告: {str(e)}",
+                              name="浏览器清理警告",
+                              attachment_type=allure.attachment_type.TEXT)
+            finally:
+                # 确保最终释放浏览器引用
+                release_browser()
+        else:
+            print("浏览器实例已关闭，跳过清理")
+            release_browser()

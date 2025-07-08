@@ -235,6 +235,7 @@ class TestSimulation:
 
                 time.sleep(self.poll_interval)
 
+    @pytest.mark.order(1)
     @allure.story("测试图集")
     def test_test_atlas_workflow(self):
         total_start = time.time()
@@ -276,6 +277,7 @@ class TestSimulation:
             allure.dynamic.title(f"步骤2：监控创建测试图集状态 (耗时: {step_duration:.2f}秒)")
             print(f"✅ 测试图集处理完成 - 耗时: {step_duration:.2f}秒")
 
+    @pytest.mark.order(2)
     @allure.story("仿真测试")
     def test_simulation_test_workflow(self):
         total_start = time.time()
@@ -347,6 +349,7 @@ class TestSimulation:
             allure.dynamic.title(f"步骤4：查看缺陷图模型检出评估 (耗时: {step_duration:.2f}秒)")
             print(f"✅ 查看缺陷图模型检出评估完成 - 耗时: {step_duration:.2f}秒")
 
+    @pytest.mark.order(3)
     @allure.story("测试数据清除")
     def test_cleanup(self):
         # 删除仿真测试任务（如果存在）

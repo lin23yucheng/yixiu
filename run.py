@@ -105,7 +105,9 @@ def run_selected_tests():
     #     "testcase/test_product_information.py"
     # ]
     test_files = [
-        "testcase/test_bash.py"
+        "testcase/test_bash.py",
+        "testcase/test_bash_ui.py",
+        "testcase/test_label.py"
     ]
 
     # 添加项目根目录到Python路径
@@ -229,10 +231,18 @@ if __name__ == "__main__":
     print("===== 测试执行程序启动 =====")
     MyLog.info("===== 测试执行程序启动 =====")
 
-    # 选择执行模式
-    run_selected_tests()  # 顺序执行
-    # run_parallel_tests()  # 并行执行
-    # test_logic_manual()   # bash推图手动
+    try:
+        # 选择执行模式
+        run_selected_tests()  # 顺序执行
+        # run_parallel_tests()  # 并行执行
+        # test_logic_manual()   # bash推图手动
+    finally:
+        # 确保最终关闭所有浏览器实例
+        from utils.browser_pool import BrowserPool
+
+        if BrowserPool._driver is not None:
+            BrowserPool._driver.quit()
+            print("所有浏览器实例已安全关闭")
 
     MyLog.info("===== 测试执行程序结束 =====")
     print("===== 测试执行程序结束 =====")

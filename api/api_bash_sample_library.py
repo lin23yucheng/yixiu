@@ -16,16 +16,18 @@ class ApiBashSample:
         self.product_info_id = api_space.ApiSpace().product_query()
 
     # 查询bash样本库-原始样本/分拣后样本
-    def query_bash_sample(self):
+    def query_bash_sample(self, startDateTime, endDateTime):
         url = f"{env}/miai/brainstorm/sampleproductsyncmanage/sample/page"
         payload = {"data": {"dataType": 1, "sceneSampleType": "",
-                            "date": ["2025-05-08T16:00:00.000Z", "2025-05-15T16:00:00.000Z"], "statusList": [],
+                            "date": [f"{startDateTime}T16:00:00.000Z", f"{endDateTime}T15:59:59.000Z"],
+                            "statusList": [],
                             "sampleSource": 1, "bashSampleType": "", "dataAlgorithmSampleType": "", "taskId": "",
                             "channelId": "", "deviceId": "", "photoId": "", "opticsSchemeId": "", "workpieceId": "",
                             "cameraId": "", "status": 1, "labelNames": [], "isUse": None, "sortingSampleType": "",
                             "productInfoId": self.product_info_id, "deepModelSampleType": "", "cvSampleType": "",
                             "bashUser": "", "isRelateOpticalSurface": False,
-                            "startDateTime": "2025-05-08T16:00:00.000Z", "endDateTime": "2025-05-15T16:00:00.000Z"},
+                            "startDateTime": f"{startDateTime}T16:00:00.000Z",
+                            "endDateTime": f"{endDateTime}T15:59:59.000Z"},
                    "page": {"pageIndex": 1, "pageSize": 15}}
 
         response = self.client.post(url, json=payload)
@@ -60,20 +62,63 @@ class ApiBashSample:
         return response
 
     # bash样本库-创建标注任务
-    def create_label_task(self, sampledatasyncid):
+    def create_label_task(self, sampledatasyncid, startDateTime, endDateTime, taskName):
         url = f"{env}/miai/brainstorm/sampleproductsyncmanage/addSampleToTask"
-        payload = {"taskName": f"接口自动化标注-{time_str}", "dimensionTaskList": [
+        payload = {"taskName": taskName, "dimensionTaskList": [
             {"labelUsers": [{"labelUserId": "1740299785966981121", "labelUserName": "林禹成测试使用"}],
-             "taskName": f"接口自动化标注-{time_str}-1"}], "subTaskNum": 1, "subTaskSampleNum": 100,
+             "taskName": f"{taskName}-1"}], "subTaskNum": 1, "subTaskSampleNum": 100,
                    "sceneSampleType": "",
-                   "date": ["2025-05-08T16:00:00.000Z", "2025-05-15T16:00:00.000Z"], "statusList": [],
+                   "date": [f"{startDateTime}T16:00:00.000Z", f"{endDateTime}T15:59:59.000Z"], "statusList": [],
                    "sampleSource": 1, "bashSampleType": "", "dataAlgorithmSampleType": "", "taskId": "",
                    "channelId": "", "deviceId": "", "photoId": "", "opticsSchemeId": "", "workpieceId": "",
                    "cameraId": "", "status": 2, "labelNames": [], "isUse": False, "sortingSampleType": "ng",
                    "productInfoId": self.product_info_id, "dataType": 1, "deepModelSampleType": "", "cvSampleType": "",
-                   "bashUser": "", "startDateTime": "2025-05-08T16:00:00.000Z",
-                   "endDateTime": "2025-05-15T16:00:00.000Z", "excludeDataSyncIds": [],
-                   "dataSyncIds": [sampledatasyncid]}
+                   "bashUser": "", "startDateTime": f"{startDateTime}T16:00:00.000Z",
+                   "endDateTime": f"{endDateTime}T15:59:59.000Z", "excludeDataSyncIds": [],
+                   "dataSyncIds": sampledatasyncid}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 查询可追加的标注任务
+    def query_append_task_id(self):
+        url = f"{env}/miai/brainstorm/sampleproductsyncmanage/dimension/canAppend"
+        payload = {"sampleSource": 1}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # bash样本库-追加标注任务
+    def append_label_task(self, startDateTime, endDateTime, sampledatasyncid, dimensionTaskId):
+        url = f"{env}/miai/brainstorm/sampleproductsyncmanage/appendToTask"
+        payload = {"sceneSampleType": "", "date": [f"{startDateTime}T16:00:00.000Z", f"{endDateTime}T15:59:59.000Z"],
+                   "statusList": [], "sampleSource": 1, "bashSampleType": "", "dataAlgorithmSampleType": "",
+                   "taskId": "", "channelId": "", "deviceId": "", "photoId": "", "opticsSchemeId": "",
+                   "workpieceId": "", "cameraId": "", "status": 2, "labelNames": [], "isUse": False,
+                   "sortingSampleType": "ng", "productInfoId": self.product_info_id, "dataType": 1,
+                   "deepModelSampleType": "", "cvSampleType": "", "bashUser": "",
+                   "startDateTime": f"{startDateTime}T16:00:00.000Z", "endDateTime": f"{endDateTime}T15:59:59.000Z",
+                   "excludeDataSyncIds": [], "dataSyncIds": sampledatasyncid,
+                   "dimensionId": dimensionTaskId}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # bash样本库-ok图创建提交数据集
+    def ok_graph_create_dataset(self, name, startDateTime, endDateTime, dataSyncIds):
+        url = f"{env}/miai/brainstorm/sampleproductsyncmanage/addSampleToDataset"
+        payload = {"name": name, "testPercent": 0, "trainPercent": 100, "sceneSampleType": "",
+                   "date": [f"{startDateTime}T16:00:00.000Z", f"{endDateTime}T15:59:59.999Z"], "statusList": [],
+                   "sampleSource": 1, "bashSampleType": "", "dataAlgorithmSampleType": "", "taskId": "",
+                   "channelId": "", "deviceId": "", "photoId": "", "opticsSchemeId": "", "workpieceId": "",
+                   "cameraId": "", "status": 2, "labelNames": [], "isUse": False, "sortingSampleType": "ok",
+                   "productInfoId": self.product_info_id, "dataType": 1, "deepModelSampleType": "", "cvSampleType": "",
+                   "bashUser": "", "startDateTime": f"{startDateTime}T16:00:00.000Z",
+                   "endDateTime": f"{endDateTime}T15:59:59.999Z", "excludeDataSyncIds": [],
+                   "dataSyncIds": dataSyncIds}
 
         response = self.client.post(url, json=payload)
         response.raise_for_status()

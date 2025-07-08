@@ -222,6 +222,7 @@ class TestPostProcess:
                     # 间隔等待
                     time.sleep(self.poll_interval)
 
+    @pytest.mark.order(1)
     @allure.story("深度模型报表样本分析")
     def test_analysis(self, get_persistent_ids):  # 注入fixture
         train_task_id = get_persistent_ids['train_task_id']  # 从配置获取ID
@@ -313,6 +314,7 @@ class TestPostProcess:
             with allure.step("子步骤2：监控样本分析状态"):
                 self._monitor_analysis_progress("样本分析", self.api_process.sample_analysis_status)
 
+    @pytest.mark.order(2)
     @allure.story("过检样本标记&拷贝增广")
     def test_over_samples(self):
         with allure.step("步骤1: 标记过检样本"):
@@ -442,6 +444,7 @@ class TestPostProcess:
         with allure.step("步骤3: 监控过检拷贝进度"):
             self._monitor_cut_progress(self.task_name)
 
+    @pytest.mark.order(3)
     @allure.story("漏检样本标记&拷贝增广")
     def test_miss_samples(self):
 
@@ -570,6 +573,7 @@ class TestPostProcess:
         with allure.step("步骤3: 监控漏检拷贝进度"):
             self._monitor_cut_progress(self.task_name)
 
+    @pytest.mark.order(4)
     @allure.story("错检样本标记&拷贝增广")
     def test_error_samples(self):
         with allure.step("步骤1: 标记错检样本"):
@@ -697,6 +701,7 @@ class TestPostProcess:
         with allure.step("步骤3: 监控错检拷贝进度"):
             self._monitor_cut_progress(self.task_name)
 
+    @pytest.mark.order(5)
     @allure.story("分类切图拷贝增广")
     def test_class_cut_copy(self, get_persistent_ids):  # 注入fixture
         class_cut_train_task_id = get_persistent_ids['class_cut_train_task_id']  # 从配置获取ID
@@ -775,6 +780,7 @@ class TestPostProcess:
         with allure.step("步骤4：监控分类切图拷贝进度"):
             self._monitor_cut_progress(self.class_cut_task_name)
 
+    @pytest.mark.order(6)
     @allure.story("分类大图拷贝增广")
     def test_class_original_copy(self, get_persistent_ids):  # 注入fixture
         class_original_train_task_id = get_persistent_ids['class_original_train_task_id']  # 从配置获取ID

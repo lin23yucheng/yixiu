@@ -1,10 +1,7 @@
 import pytest
 import time
 
-from allure_commons.reporter import AllureReporter
-from common.Log import MyLog
-from allure_pytest.listener import AllureListener
-
+from common.Log import MyLog,AllureReporter
 def format_time(seconds):
     minutes = int(seconds // 60)
     remaining_seconds = int(seconds % 60)

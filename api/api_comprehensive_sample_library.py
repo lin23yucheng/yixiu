@@ -88,8 +88,8 @@ class ApiComprehensiveSampleLibrary:
                    "inferenceLabel": "伤,发白面,内裂,磨渣,发白,脱模,溢墨,亮线,墨欠3,墨欠,裂边,打痕,破边,色斑,伤痕",
                    "displayName": "仿真5个分割模型组合 V23 组合"}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
 

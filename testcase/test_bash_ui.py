@@ -182,7 +182,7 @@ class TestBashUI:
                             )
                             leave_button.click()
                             sleep(3)
-                            allure.attach("连续3秒检测到空产品名称，执行离席",
+                            allure.attach("连续7秒检测到空产品名称，执行离席",
                                           name="离席操作",
                                           attachment_type=allure.attachment_type.TEXT)
                             break

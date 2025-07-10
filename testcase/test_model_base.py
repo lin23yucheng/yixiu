@@ -121,17 +121,10 @@ class TestModelBase:
                                   in_progress_status, success_status,
                                   step_name, status_mapping=None):
         """
-        通用状态监控方法
-
-        参数说明：
-        - api_call: 执行状态查询的方法
-        - get_status_func: 从响应中提取状态值的函数
-        - in_progress_status: 进行中的状态值（需要继续轮询）
-        - success_status: 成功的状态值（结束轮询）
-        - step_name: 监控步骤的名称（用于报告）
-        - status_mapping: 状态值到描述的映射（可选）
+        模型库通用状态监控方法
         """
         start_time = time.time()
+        total_start = time.time()  # 总开始时间
         attempt = 0
 
         # 默认状态映射
@@ -146,6 +139,24 @@ class TestModelBase:
                 6: "组合失败",
                 7: "未提交"
             }
+
+        # 状态颜色映射
+        color_mapping = {
+            0: "\033[0m",  # 已提交 - 默认
+            1: "\033[93m",  # 测试中 - 黄色
+            2: "\033[91m",  # 测试失败 - 红色
+            3: "\033[92m",  # 测试完成 - 绿色
+            4: "\033[92m",  # 已发布 - 绿色
+            5: "\033[93m",  # 组合中 - 黄色
+            6: "\033[91m",  # 组合失败 - 红色
+            7: "\033[0m"  # 未提交 - 默认
+        }
+
+        # 状态跟踪变量
+        prev_status = None
+        status_start_time = None
+        status_durations = {}  # 存储各状态持续时间
+        last_status_info = ""  # 存储上一个状态的信息
 
         with allure.step(f"监控{step_name}状态"):
             while True:
@@ -174,24 +185,49 @@ class TestModelBase:
                         attachment_type=allure.attachment_type.JSON
                     )
 
+                    # 状态变更检测
+                    if current_status != prev_status:
+                        # 记录上一个状态的持续时间
+                        if prev_status is not None and status_start_time is not None:
+                            status_duration = time.time() - status_start_time
+                            status_key = status_mapping.get(prev_status, f"未知({prev_status})")
+                            status_durations[status_key] = status_duration
+
+                            # 打印状态变更信息（保留在控制台）
+                            status_duration_mins, status_duration_secs = divmod(int(status_duration), 60)
+                            print(
+                                f"\n{step_name}状态变更: {status_key} 耗时 {status_duration_mins}分{status_duration_secs}秒")
+
+                            allure.attach(
+                                f"状态 '{status_key}' 耗时: {status_duration:.1f}秒",
+                                name="状态变更记录"
+                            )
+
+                        # 重置新状态开始时间
+                        status_start_time = time.time()
+                        prev_status = current_status
+
                     # 时间统计
-                    current_duration = int(time.time() - start_time)
-                    mins, secs = divmod(current_duration, 60)
-                    time_message = f"{step_name}等待时间：{mins}分{secs}秒"
+                    total_duration = int(time.time() - total_start)
+                    total_mins, total_secs = divmod(total_duration, 60)
+                    current_status_duration = int(time.time() - status_start_time) if status_start_time else 0
 
-                    # 获取状态描述
+                    # 构建状态信息
                     status_desc = status_mapping.get(current_status, f"未知状态({current_status})")
-
-                    # 状态信息汇总
                     status_info = (
-                        f"\nstatus={current_status} ({status_desc})\n"
-                        f"{time_message}\n"
-                        f"-------------------------------\n"
+                        f"{step_name}状态: {status_desc} | "
+                        f"当前状态耗时: {current_status_duration}秒 | "
+                        f"总耗时: {total_mins}分{total_secs}秒"
                     )
-                    allure.attach(status_info, name=f"{step_name}状态详情")
 
-                    # 控制台实时打印
-                    print(f"{step_name}状态: {status_info}", end="")
+                    # 获取颜色代码
+                    color_code = color_mapping.get(current_status, "\033[0m")
+
+                    # 仅当状态信息变化时更新控制台（避免频繁刷新）
+                    if status_info != last_status_info:
+                        # 单行更新（使用回车符覆盖上一行）
+                        print(f"\r{color_code}{status_info}\033[0m", end="", flush=True)
+                        last_status_info = status_info
 
                     # 状态判断
                     if current_status == in_progress_status:  # 进行中状态
@@ -205,10 +241,31 @@ class TestModelBase:
                         continue
 
                     elif current_status == success_status:  # 成功状态
-                        allure.attach(f"{step_name}已完成", name="最终状态")
+                        # 记录最终状态持续时间
+                        if prev_status is not None and status_start_time is not None:
+                            final_duration = time.time() - status_start_time
+                            final_status = status_mapping.get(current_status, f"未知({current_status})")
+                            status_durations[final_status] = final_duration
+
+                        # 生成状态耗时报告（仅记录到Allure，不在控制台打印）
+                        report_lines = [f"{step_name}状态耗时统计:"]
+                        for status, duration in status_durations.items():
+                            duration_mins, duration_secs = divmod(int(duration), 60)
+                            report_lines.append(f"- {status}: {duration_mins}分{duration_secs}秒")
+                        report_lines.append(f"总耗时: {total_mins}分{total_secs}秒")
+                        report = "\n".join(report_lines)
+
+                        allure.attach(report, name=f"{step_name}耗时统计")
+
+                        # 打印最终状态信息（带颜色）
+                        status_desc = status_mapping.get(current_status, f"未知状态({current_status})")
+                        final_info = f"{step_name}状态: {status_desc} | 总耗时: {total_mins}分{total_secs}秒"
+                        color_code = color_mapping.get(current_status, "\033[0m")
+                        print(f"\r{color_code}{final_info}\033[0m")
+
                         return True
 
-                    elif current_status == 2 or current_status == 6:  # 失败状态
+                    elif current_status in [2, 6]:  # 失败状态
                         pytest.fail(f"{step_name}失败，请检查日志（状态{current_status}）")
 
                     else:  # 其他状态

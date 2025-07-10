@@ -26,7 +26,7 @@ class ApiBashSample:
                 headers=bash_login_header,
                 timeout=20
             )
-            response.raise_for_status()
+             
 
             try:
                 token_data = response.json()
@@ -49,8 +49,8 @@ class ApiBashSample:
                             "productSwitch": "1", "productDetectionType": "", "productHandleType": ""},
                    "page": {"pageIndex": 1, "pageSize": 10}}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 查询人员userId
@@ -59,8 +59,8 @@ class ApiBashSample:
         payload = {"data": {"userId": "", "productId": "", "projectId": "", "source": 1},
                    "page": {"pageIndex": 1, "pageSize": 1000}}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 人员产品查询
@@ -68,8 +68,8 @@ class ApiBashSample:
         url = f"http://fat-bash-gw.svfactory.com:6180/manage/user/userProductList"
         payload = {"data": {"userId": userid}, "page": {"pageIndex": 1, "pageSize": 100}}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 查看人员计划
@@ -77,8 +77,8 @@ class ApiBashSample:
         url = f"http://fat-bash-gw.svfactory.com:6180/manage/productionPlan/userShiftList"
         payload = {"data": {"endTime": "", "startTime": ""}, "page": {"pageIndex": 1, "pageSize": 100}}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 生成人员计划 shiftId是班次ID（固定写死白班）
@@ -87,8 +87,8 @@ class ApiBashSample:
         payload = {"endTime": endTime, "startTime": startTime, "planNum": "100",
                    "productIds": [], "shiftId": "1854365956311035906"}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 查看人员排班
@@ -96,8 +96,8 @@ class ApiBashSample:
         url = f"http://fat-bash-gw.svfactory.com:6180/manage/productionPlan/userList"
         payload = {"endTime": endTime, "startTime": startTime}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 修改人员排班
@@ -106,8 +106,8 @@ class ApiBashSample:
         payload = {"endTime": endTime, "startTime": startTime,
                    "userId": userid_list, "shiftId": "1854365956311035906"}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 发布排班
@@ -115,6 +115,6 @@ class ApiBashSample:
         url = f"http://fat-bash-gw.svfactory.com:6180/manage/productionPlan/userShiftRelease"
         payload = {"endTime": endTime, "startTime": startTime}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response

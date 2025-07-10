@@ -79,24 +79,31 @@ class TestPostProcess:
         """通用的状态监控方法"""
         start_time = time.time()
         attempt = 0
+        last_status_info = ""  # 用于避免重复打印相同信息
+
+        # 状态颜色映射
+        color_mapping = {
+            1: "\033[93m",  # 分析中 - 黄色
+            2: "\033[92m",  # 分析完成 - 绿色
+            "default": "\033[91m"  # 其他状态 - 红色
+        }
 
         with allure.step(f"监控{analysis_type}状态"):
             while True:
                 attempt += 1
-                with allure.step(f"第{attempt}次提交状态检查"):
+                with allure.step(f"第{attempt}次状态检查"):
                     # 发送查询请求
                     response = api_call(self.verifyId)
                     assertions.assert_code(response.status_code, 200)
 
                     # 解析响应数据
                     response_data = response.json()
-                    # 检查data字段是否存在且为字典类型
                     data = response_data.get('data')
                     if not isinstance(data, dict):
                         allure.attach(f"响应中data字段格式错误: {response_data}", name="错误详情")
                         pytest.fail("接口返回data字段格式不符合预期")
 
-                    # 从嵌套结构中获取subStatus
+                    # 获取subStatus
                     subStatus = data.get('subStatus')
 
                     # 记录原始响应到Allure
@@ -109,119 +116,35 @@ class TestPostProcess:
                     # 时间统计
                     current_duration = int(time.time() - start_time)
                     mins, secs = divmod(current_duration, 60)
-                    time_message = f"{analysis_type}等待时间：{mins}分{secs}秒"
 
-                    # 状态信息汇总
-                    status_info = (
-                        f"\nsubStatus={subStatus} "
-                        f"(1=分析中,2=分析完成)\n"
-                        f"{time_message}\n"
-                        f"-------------------------------\n"
-                    )
-                    allure.attach(status_info, name=f"{analysis_type}状态详情")
+                    # 构建状态信息
+                    status_text = "分析中" if subStatus == 1 else "分析完成" if subStatus == 2 else f"未知({subStatus})"
+                    status_info = f"{analysis_type}状态: {status_text} | 耗时: {mins}分{secs}秒"
 
-                    # 控制台实时打印
-                    print(f"{analysis_type}状态: {status_info}", end="")
+                    # 仅当状态信息变化时更新控制台（避免频繁刷新）
+                    if status_info != last_status_info:
+                        # 选择颜色
+                        color_code = color_mapping.get(subStatus, color_mapping["default"])
+
+                        # 单行更新（使用回车符覆盖上一行）
+                        print(f"\r{color_code}{status_info}\033[0m", end="", flush=True)
+                        last_status_info = status_info
 
                     # 状态判断
                     if subStatus == 2:
-                        allure.attach(f"{analysis_type}已完成", name="最终状态")
-                        time.sleep(3)
+                        # 最终完成时换行
+                        print(f"\n", flush=True)
                         return True
-                    elif subStatus == 1:
-                        pass  # 继续循环
-                    else:
+                    elif subStatus != 1:  # 非分析中状态
                         pytest.fail(f"未知状态码: {subStatus}")
 
                     # 超时检查（30分钟）
                     elapsed = time.time() - start_time
                     if elapsed > self.max_wait_seconds:
-                        pytest.fail(f"{analysis_type}卡住，请检查日志（等待超过{self.max_wait_seconds}秒）")
+                        pytest.fail(f"{analysis_type}超时: 等待{self.max_wait_seconds}秒未完成")
 
                     # 间隔等待
                     time.sleep(self.poll_interval)
-
-    # def _monitor_cut_progress(self, task_name):
-    #     """数据处理状态监控"""
-    #     start_time = time.time()
-    #     self.start_timestamp = start_time  # 记录开始时间
-    #     attempt = 0
-    #
-    #     with allure.step("监控训练任务进度"):
-    #         while True:
-    #             attempt += 1
-    #             with allure.step(f"第{attempt}次状态检查"):
-    #                 # 发送查询请求
-    #                 response = self.api_deep.query_train_tasks(task_name)
-    #                 assertions.assert_code(response.status_code, 200)
-    #
-    #                 # 解析响应数据
-    #                 response_data = response.json()
-    #                 tasks = response_data['data']['list']
-    #
-    #                 # 记录原始响应
-    #                 allure.attach(
-    #                     str(response_data),
-    #                     name="原始响应数据",
-    #                     attachment_type=allure.attachment_type.JSON
-    #                 )
-    #
-    #                 # 验证任务存在
-    #                 if not tasks:
-    #                     pytest.fail(f"未找到任务: {task_name}")
-    #
-    #                 # 获取任务状态
-    #                 current_task = next(
-    #                     (t for t in tasks if t['taskName'] == task_name),
-    #                     None
-    #                 )
-    #                 if not current_task:
-    #                     pytest.fail(f"任务列表匹配失败: {task_name}")
-    #
-    #                 status = current_task['dataStatus']
-    #                 # self.trainTaskId = current_task['trainTaskId']
-    #                 # self.__class__.trainTaskId = current_task['trainTaskId']  # 关键：赋值给类变量
-    #
-    #                 allure.attach(
-    #                     f"当前状态: {status} (0=处理中, 1=完成, 2=异常)",
-    #                     name="状态解析"
-    #                 )
-    #                 # allure.attach(
-    #                 #     f"trainTaskId: {self.trainTaskId}",
-    #                 #     name="任务ID",
-    #                 #     attachment_type=allure.attachment_type.TEXT
-    #                 # )
-    #
-    #                 # 新增时间统计部分
-    #                 current_duration = int(time.time() - start_time)
-    #                 mins, secs = divmod(current_duration, 60)
-    #                 time_message = f"处理已等待时间：{mins}分{secs}秒"
-    #
-    #                 # 记录到Allure
-    #                 allure.attach(
-    #                     time_message,
-    #                     name="耗时统计",
-    #                     attachment_type=allure.attachment_type.TEXT
-    #                 )
-    #
-    #                 # 控制台实时打印
-    #                 print(f"\r数据处理时间: {mins}m {secs}s", end="")
-    #
-    #                 # 状态判断
-    #                 if status == 1:
-    #                     allure.attach("训练任务已完成", name="状态更新")
-    #                     print("\n数据处理已完成")
-    #                     return True
-    #                 elif status == 2:
-    #                     pytest.fail(f"训练异常: {current_task.get('errorMsg', '处理异常')}")
-    #
-    #                 # 超时检查
-    #                 elapsed = time.time() - start_time
-    #                 if elapsed > self.max_wait_seconds:
-    #                     pytest.fail(f"训练超时: 等待{self.max_wait_seconds}秒未完成")
-    #
-    #                 # 间隔等待
-    #                 time.sleep(self.poll_interval)
 
     @pytest.mark.order(1)
     @allure.story("深度模型报表样本分析")
@@ -390,7 +313,7 @@ class TestPostProcess:
                 )
 
                 # 控制台打印
-                print(f"缺陷ID: {defect_id}")
+                # print(f"缺陷ID: {defect_id}")
 
             with allure.step("子步骤3：标记空过杀"):
                 postprocess_label = "kongguosha"
@@ -415,7 +338,7 @@ class TestPostProcess:
                 )
 
                 # 控制台打印
-                print(f"标记空过杀响应: {response_data}")
+                # print(f"标记空过杀响应: {response_data}")
 
         with allure.step("步骤2: 过检样本拷贝增广"):
             num = random.randint(1, 5)  # 随机选择1到5之间的数字
@@ -440,10 +363,10 @@ class TestPostProcess:
             )
 
             # 控制台打印
-            print(f"过检样本拷贝增广响应: {response_data}")
+            # print(f"过检样本拷贝增广响应: {response_data}")
 
         with allure.step("步骤3: 监控过检拷贝进度"):
-            _, success = self.monitor.monitor_cut_progress(self.task_name,"过检样本拷贝增广数据处理")
+            _, success = self.monitor.monitor_cut_progress(self.task_name, "过检样本-拷贝增广处理")
 
     @pytest.mark.order(3)
     @allure.story("漏检样本标记&拷贝增广")
@@ -519,7 +442,7 @@ class TestPostProcess:
                 )
 
                 # 控制台打印
-                print(f"缺陷ID: {defect_id}")
+                # print(f"缺陷ID: {defect_id}")
 
             with allure.step("子步骤3：标记漏检增强"):
                 postprocess_label = "loujianzengqiang"
@@ -544,7 +467,7 @@ class TestPostProcess:
                 )
 
                 # 控制台打印
-                print(f"标记漏检增强响应: {response_data}")
+                # print(f"标记漏检增强响应: {response_data}")
 
         with allure.step("步骤2: 漏检样本拷贝增广"):
             num = random.randint(1, 5)  # 随机选择1到5之间的数字
@@ -569,10 +492,10 @@ class TestPostProcess:
             )
 
             # 控制台打印
-            print(f"漏检样本拷贝增广响应: {response_data}")
+            # print(f"漏检样本拷贝增广响应: {response_data}")
 
         with allure.step("步骤3: 监控漏检拷贝进度"):
-            _, success = self.monitor.monitor_cut_progress(self.task_name,"漏检样本拷贝增广数据处理")
+            _, success = self.monitor.monitor_cut_progress(self.task_name, "漏检样本-拷贝增广处理")
 
     @pytest.mark.order(4)
     @allure.story("错检样本标记&拷贝增广")
@@ -647,7 +570,7 @@ class TestPostProcess:
                 )
 
                 # 控制台打印
-                print(f"缺陷ID: {defect_id}")
+                # print(f"缺陷ID: {defect_id}")
 
             with allure.step("子步骤3：标记错检增强"):
                 postprocess_label = "cuojianzengqiang"
@@ -672,7 +595,7 @@ class TestPostProcess:
                 )
 
                 # 控制台打印
-                print(f"标记错检增强响应: {response_data}")
+                # print(f"标记错检增强响应: {response_data}")
 
         with allure.step("步骤2: 错检样本拷贝增广"):
             num = random.randint(1, 5)
@@ -697,10 +620,10 @@ class TestPostProcess:
             )
 
             # 控制台打印
-            print(f"错检样本拷贝增广响应: {response_data}")
+            # print(f"错检样本拷贝增广响应: {response_data}")
 
         with allure.step("步骤3: 监控错检拷贝进度"):
-            _, success = self.monitor.monitor_cut_progress(self.task_name,"错检样本拷贝增广数据处理")
+            _, success = self.monitor.monitor_cut_progress(self.task_name, "错检样本-拷贝增广处理")
 
     @pytest.mark.order(5)
     @allure.story("分类切图拷贝增广")
@@ -779,7 +702,7 @@ class TestPostProcess:
             assertions.assert_in_text(response_data['msg'], '成功')
 
         with allure.step("步骤4：监控分类切图拷贝进度"):
-            _, success = self.monitor.monitor_cut_progress(self.class_cut_task_name,"分类切图拷贝增广数据处理")
+            _, success = self.monitor.monitor_cut_progress(self.class_cut_task_name, "分类切图-拷贝增广处理")
 
     @pytest.mark.order(6)
     @allure.story("分类大图拷贝增广")
@@ -859,4 +782,4 @@ class TestPostProcess:
             assertions.assert_in_text(response_data['msg'], '成功')
 
         with allure.step("步骤4：监控分类大图拷贝进度"):
-            _, success = self.monitor.monitor_cut_progress(self.class_cut_task_name,"分类大图拷贝增广数据处理")
+            _, success = self.monitor.monitor_cut_progress(self.class_cut_task_name, "分类大图-拷贝增广处理")

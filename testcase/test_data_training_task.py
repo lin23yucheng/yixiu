@@ -89,7 +89,7 @@ class TestDataTrainingTask:
                                 name="数据训练任务ID",
                                 attachment_type=allure.attachment_type.TEXT
                             )
-                            print(f"获取到任务ID: {task_id}")
+                            # print(f"获取到任务ID: {task_id}")
 
                     status = current_task.get('status')
                     if status is None:
@@ -224,7 +224,6 @@ class TestDataTrainingTask:
 
             # 使用 allure.dynamic.title 更新步骤名称
             allure.dynamic.title(f"步骤1：创建数据训练任务 (耗时: {step_duration:.2f}秒)")
-            print(f"✅ 步骤1完成 - 耗时: {step_duration:.2f}秒")
 
         # 步骤2：监控数据训练任务采集状态
         with allure.step("步骤2：监控数据训练任务采集状态") as step2:
@@ -237,7 +236,6 @@ class TestDataTrainingTask:
 
             # 使用 allure.dynamic.title 更新步骤名称
             allure.dynamic.title(f"步骤2：监控数据训练任务采集状态 (耗时: {step_duration:.2f}秒)")
-            print(f"✅ 步骤2完成 - 耗时: {step_duration:.2f}秒")
 
         # 步骤3：生成下载数据包
         with allure.step("步骤3：生成下载数据包") as step3:
@@ -255,7 +253,6 @@ class TestDataTrainingTask:
 
             # 使用 allure.dynamic.title 更新步骤名称
             allure.dynamic.title(f"步骤3：生成下载数据包 (耗时: {step_duration:.2f}秒)")
-            print(f"✅ 步骤3完成 - 耗时: {step_duration:.2f}秒")
 
         # 步骤4：上传数据算法包
         with allure.step("步骤4：上传数据算法包") as step4:
@@ -273,7 +270,6 @@ class TestDataTrainingTask:
 
             # 使用 allure.dynamic.title 更新步骤名称
             allure.dynamic.title(f"步骤4：上传数据算法包 (耗时: {step_duration:.2f}秒)")
-            print(f"✅ 步骤4完成 - 耗时: {step_duration:.2f}秒")
 
         # 步骤5：删除数据训练任务
         with allure.step("步骤5：删除数据训练任务") as step5:
@@ -328,7 +324,6 @@ class TestDataTrainingTask:
 
             # 使用 allure.dynamic.title 更新步骤名称
             allure.dynamic.title(f"步骤5：删除数据训练任务 (耗时: {step_duration:.2f}秒)")
-            print(f"✅ 步骤5完成 - 耗时: {step_duration:.2f}秒")
 
         # 测试结束处理
         total_duration = time.time() - total_start
@@ -336,20 +331,20 @@ class TestDataTrainingTask:
 
         # 打印测试完成信息
         print("\n" + "=" * 60)
-        print(f"✅ 测试完成! 总耗时: {mins}分{secs}秒")
+        print(f"✅ 数据算法流程测试完成! 总耗时: {mins}分{secs}秒")
         print("=" * 60)
 
         # 添加详细报告到Allure
-        report_content = "测试步骤耗时统计:\n"
+        report_content = "数据算法流程测试步骤耗时统计:\n"
         for step_name, duration in step_durations.items():
             report_content += f"- {step_name}: {duration:.2f}秒\n"
         report_content += f"\n总耗时: {mins}分{secs}秒"
 
         allure.attach(
             report_content,
-            name="测试耗时报告",
+            name="数据算法流程测试耗时报告",
             attachment_type=allure.attachment_type.TEXT
         )
 
         # 添加总耗时到测试报告
-        allure.dynamic.description(f"测试总耗时: {mins}分{secs}秒")
+        allure.dynamic.description(f"数据算法流程测试总耗时: {mins}分{secs}秒")

@@ -38,7 +38,7 @@ class TestSimulation:
         """计算并输出总耗时"""
         total_duration = time.time() - cls.start_time
         mins, secs = divmod(total_duration, 60)
-        duration_info = f"测试总耗时: {int(mins)}分{int(secs)}秒"
+        duration_info = f"仿真测试流程总耗时: {int(mins)}分{int(secs)}秒"
 
         # 控制台输出
         print(f"\n\033[92m{duration_info}\033[0m")
@@ -47,7 +47,7 @@ class TestSimulation:
         allure.dynamic.title(duration_info)
         allure.attach(
             duration_info,
-            name="测试总耗时",
+            name="仿真测试流程总耗时",
             attachment_type=allure.attachment_type.TEXT
         )
 
@@ -108,7 +108,6 @@ class TestSimulation:
                                 name="测试图集ID",
                                 attachment_type=allure.attachment_type.TEXT
                             )
-                            print(f"✅ 获取到测试图集ID: {atlas_id}")
 
                     status = target_atlas.get('status')
                     if status is None:
@@ -118,7 +117,7 @@ class TestSimulation:
                     current_duration = int(time.time() - start_time)
                     mins, secs = divmod(current_duration, 60)
                     status_info = (
-                        f"测试图集状态: {status} ({status_mapping.get(status, '未知状态')}) | "
+                        f"创建测试图集状态: {status} ({status_mapping.get(status, '未知状态')}) | "
                         f"总耗时: {mins}分{secs}秒"
                     )
 
@@ -263,7 +262,6 @@ class TestSimulation:
 
             # 使用 allure.dynamic.title 更新步骤名称
             allure.dynamic.title(f"步骤1：创建测试图集 (耗时: {step_duration:.2f}秒)")
-            print(f"✅ 创建测试图集完成 - 耗时: {step_duration:.2f}秒")
 
         with allure.step("步骤2：监控创建测试图集状态") as step2:
             step_start = time.time()
@@ -275,7 +273,7 @@ class TestSimulation:
 
             # 使用 allure.dynamic.title 更新步骤名称
             allure.dynamic.title(f"步骤2：监控创建测试图集状态 (耗时: {step_duration:.2f}秒)")
-            print(f"✅ 测试图集处理完成 - 耗时: {step_duration:.2f}秒")
+            # print(f"✅ 测试图集处理完成 - 耗时: {step_duration:.2f}秒")
 
     @pytest.mark.order(2)
     @allure.story("仿真测试")
@@ -301,7 +299,6 @@ class TestSimulation:
                     name="测试任务ID",
                     attachment_type=allure.attachment_type.TEXT
                 )
-                print(f"✅ 获取到仿真测试任务ID: {test_task_id}")
             else:
                 pytest.fail("创建测试任务失败：未返回任务ID")
 
@@ -309,7 +306,6 @@ class TestSimulation:
             step_duration = time.time() - step_start
             step_durations["步骤1"] = step_duration
             allure.dynamic.title(f"步骤1：创建仿真测试任务 (耗时: {step_duration:.2f}秒)")
-            print(f"✅ 创建仿真测试任务完成 - 耗时: {step_duration:.2f}秒")
 
         with allure.step("步骤2：监控仿真测试状态") as step2:
             step_start = time.time()
@@ -319,7 +315,7 @@ class TestSimulation:
             step_duration = time.time() - step_start
             step_durations["步骤2"] = step_duration
             allure.dynamic.title(f"步骤2：监控仿真测试状态 (耗时: {step_duration:.2f}秒)")
-            print(f"✅ 仿真测试完成 - 耗时: {step_duration:.2f}秒")
+            # print(f"✅ 仿真测试完成 - 耗时: {step_duration:.2f}秒")
 
         with allure.step("步骤3：查看数据算法评估报告（模型综合评估）") as step3:
             step_start = time.time()

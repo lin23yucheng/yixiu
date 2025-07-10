@@ -146,11 +146,9 @@ class MyLog:
 
 
 class AllureReporter:
-    """Allure 报告工具类"""
-
-    @staticmethod
-    def close():
-        """关闭Allure上下文（空实现或实际清理逻辑）"""
+    @classmethod
+    def close(cls):
+        """关闭Allure上下文"""
         pass
 
     @staticmethod

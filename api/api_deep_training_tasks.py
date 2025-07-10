@@ -47,8 +47,8 @@ class ApiDeepTrainTasks:
         url = f"{env}/miai/brainstorm/train/task/delete/{trainTaskId}"
         payload = None
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
 
@@ -61,15 +61,15 @@ class ApiModelTrain:
     # 模型方案查询
     def query_model(self):
         url = f"{env}/miai/brainstorm/newmodelcasetemplate/list/1"
-        response = self.client.post(url, json=None)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=None)
+         
         return response
 
     # 训练机器查询
     def query_machine(self):
         url = f"{env}/miai/brainstorm/computingpower/enabledcomputinglist"
-        response = self.client.post(url, json=None)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=None)
+         
         return response
 
     # 开始模型训练
@@ -81,8 +81,8 @@ class ApiModelTrain:
                    "paramSetting1": {"epoch": epoch, "batchSize": 16, "lr": 0.0002}, "paramSetting2": None,
                    "trainTaskId": trainTaskId, "remark": f"接口自动化训练-{time_str}",
                    "modelCaseTemplateId": modelCaseTemplateId}
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 训练记录查询
@@ -90,8 +90,8 @@ class ApiModelTrain:
         url = f"{env}/miai/brainstorm/newmodeltrain/page"
         payload = {"data": {"trainTaskId": trainTaskId, "onlyMachineTable": False},
                    "page": {"pageIndex": 1, "pageSize": 100}}
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 模型提交
@@ -99,8 +99,8 @@ class ApiModelTrain:
         url = f"{env}/miai/brainstorm/newmodeltrain/submit"
         payload = {"modelName": modelName, "sides": [{"photoId": "", "productCode": "", "productId": 0}],
                    "modelThreshold": 0.1, "iouThreshold": 0.45, "modelTrainId": modelTrainId}
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
 
@@ -120,32 +120,32 @@ class ApiPostProcess:
                                   {"showName": "伤阈值", "label": "shang", "score": "0.08"}],
                    "filterNonDetection": False}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 报表分析-状态查询
     def report_analysis_status(self, verifyId):
         url = f"{env}/miai/brainstorm/model/verify/processStatus/{verifyId}"
 
-        response = self.client.post(url, json=None)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=None)
+         
         return response
 
     # 样本分析
     def sample_analysis(self, verifyId):
         url = f"{env}/miai/brainstorm/model/verify/report/sampleAnalysis/{verifyId}"
 
-        response = self.client.post(url, json=None)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=None)
+         
         return response
 
     # 样本分析-状态查询
     def sample_analysis_status(self, verifyId):
         url = f"{env}/miai/brainstorm/model/verify/processStatus/{verifyId}"
 
-        response = self.client.post(url, json=None)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=None)
+         
         return response
 
     # 查询过检样本
@@ -156,8 +156,8 @@ class ApiPostProcess:
                             "sampleStatus": [None], "preLabel": [None], "modelVerifyId": verifyId,
                             "sortDirection": 0, "imgName": "", "score": 1, "scoreType": 1},
                    "page": {"pageIndex": 1, "pageSize": 16}}
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 查询漏检样本
@@ -166,8 +166,8 @@ class ApiPostProcess:
         payload = {"data": {"modelVerifyId": verifyId, "sortDirection": 0, "imgName": ""},
                    "page": {"pageIndex": 1, "pageSize": 16}}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 查询错检样本
@@ -176,8 +176,8 @@ class ApiPostProcess:
         payload = {"data": {"modelVerifyId": verifyId, "sortDirection": 0, "imgName": "", "score": 1,
                             "scoreType": 1}, "page": {"pageIndex": 1, "pageSize": 16}}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 查询图片中GT/PRE数据
@@ -185,8 +185,8 @@ class ApiPostProcess:
         url = f"{env}/miai/brainstorm/es/sample/analysis/getGtPre"
         payload = {"id": image_id, "modelVerifyId": verifyId}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 标记/取消标记
@@ -196,8 +196,8 @@ class ApiPostProcess:
                    "modelVerifyId": verifyId, "id": image_id,
                    "imgName": img_name}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 拷贝到训练集(copy_type: 0-过检, 1-漏检, 2-错检)
@@ -209,8 +209,8 @@ class ApiPostProcess:
                    "imageDefinition": [None], "sampleType": [None], "sampleStatus": [None], "gtLabel": [None],
                    "postProcessLabel": [None]}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 分类切图查看样本分析
@@ -221,8 +221,8 @@ class ApiPostProcess:
                             "gtLabel": [None], "modelVerifyId": class_verifyId, "sortDirection": 0,
                             "imgName": "", "score": 1, "scoreType": 1}, "page": {"pageIndex": 1, "pageSize": 16}}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 分类切图拷贝增广
@@ -234,8 +234,8 @@ class ApiPostProcess:
                    "classifyType": [None], "imageDefinition": [None], "sampleType": [None], "preLabel": [None],
                    "gtLabel": [None]}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
 

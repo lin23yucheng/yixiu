@@ -114,7 +114,7 @@ def run_selected_tests():
 
     # 定义要执行的测试文件列表
     test_files = [
-        "testcase/test_class_original_model_training.py"
+        "testcase/test_model_base.py"
     ]
 
     # 添加项目根目录到Python路径
@@ -174,10 +174,10 @@ def run_selected_tests():
         # 格式化并输出总耗时
         formatted_total = format_time(total_elapsed_time)
         MyLog.info(f"测试文件累加总耗时: {formatted_total}")
-        MyLog.info(f"整体执行耗时: {formatted_overall}")
+        MyLog.info(f"自动化测试整体执行耗时: {formatted_overall}")
 
         # 在控制台显示整体耗时
-        print(f"整体执行耗时: {formatted_overall}")
+        print(f"自动化测试整体执行耗时: {formatted_overall}")
 
         # 生成报告
         os.system(f"allure generate {allure_results} -o {allure_report} --clean")
@@ -202,6 +202,7 @@ def run_selected_tests():
 
         MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
         MyLog.info("===== 测试任务完成 =====")
+
 
 def process_task(file, deps, require_success, event_dict, result_dict, allure_results):
     """执行测试并处理依赖关系（进程版本）"""
@@ -231,6 +232,7 @@ def process_task(file, deps, require_success, event_dict, result_dict, allure_re
     exit_code = execute_test(file, allure_results)
     result_dict[file] = exit_code
     event_dict[file].set()
+
 
 def run_parallel_tests():
     """使用进程实现依赖关系的并行测试执行"""
@@ -369,14 +371,15 @@ def run_parallel_tests():
     MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
     MyLog.info("===== 并行测试完成 =====")
 
+
 if __name__ == "__main__":
     print("===== 测试执行程序启动 =====")
     MyLog.info("===== 测试执行程序启动 =====")
 
     try:
         # 选择执行模式
-        # run_selected_tests()  # 顺序执行
-        run_parallel_tests()  # 并行执行
+        run_selected_tests()  # 顺序执行
+        # run_parallel_tests()  # 并行执行
         # test_logic_manual()   # bash推图手动
     finally:
         current_process = psutil.Process()

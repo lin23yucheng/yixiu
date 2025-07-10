@@ -18,16 +18,14 @@ class ApiModelBase:
         url = f"{env}/miai/brainstorm/newmodelmanage/modelManagePage"
         payload = {"data": {"showSelf": True}, "page": {"pageIndex": 1, "pageSize": 10}}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
         return response
 
     # 部署测试
     def deploy_test(self, modelManageId):
         url = f"{env}/miai/brainstorm/newmodelmanage/test/{modelManageId}"
 
-        response = self.client.post(url, json=None)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=None)
         return response
 
     # 模型撤回1/删除2
@@ -35,8 +33,7 @@ class ApiModelBase:
         url = f"{env}/miai/brainstorm/newmodelmanage/withdrawAndDelete"
         payload = {"flag": flag, "modelManageId": modelManageId}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
         return response
 
     # 模型验证
@@ -46,8 +43,7 @@ class ApiModelBase:
                    "photoId": ["1"], "sampleType": ["ok"], "productId": [self.product_info_id], "defectName": [],
                    "classifyType": [], "keepLabels": []}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
         return response
 
     # 模型提交
@@ -55,6 +51,5 @@ class ApiModelBase:
         url = f"{env}/miai/brainstorm/combine/model/submit/{modelManageId}"
         payload = None
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
         return response

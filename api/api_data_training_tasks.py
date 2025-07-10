@@ -21,8 +21,8 @@ class ApiDataTrainTasks:
         url = f"{env}/miai/brainstorm/datalg/dataalgorithmtraintask/page"
         payload = {"data": {"onlySelf": True}, "page": {"pageIndex": 1, "pageSize": 10}}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 拷贝数据训练任务
@@ -36,24 +36,24 @@ class ApiDataTrainTasks:
                    "displayName": f"{deepModelName} V{deepModelVersion} ",
                    "dataAlgorithmTrainTaskId": TrainTaskId}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 删除数据训练任务
     def delete_data_tasks(self, data_task_id):
         url = f"{env}/miai/brainstorm/datalg/dataalgorithmtraintask/delete/{data_task_id}"
 
-        response = self.client.post(url, json=None)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=None)
+         
         return response
 
     # 生成下载数据包
     def create_data_zip(self, data_task_id):
         url = f"{env}/miai/brainstorm/datalg/dataAlgorithmCollect/createCollectTask/{data_task_id}"
 
-        response = self.client.post(url, json=None)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=None)
+         
         return response
 
     # 上传数据算法
@@ -95,7 +95,7 @@ class ApiDataTrainTasks:
 
             # 添加详细的错误处理
             try:
-                response.raise_for_status()
+                 
                 return response
             except requests.exceptions.HTTPError as e:
                 # 解析可能的错误信息
@@ -114,8 +114,8 @@ class ApiDataTrainTasks:
         url = f"{env}/miai/brainstorm/datalg/dataalgorithmmodel/page"
         payload = {"data": {"dataAlgorithmTrainTaskId": data_task_id}, "page": {"pageIndex": 1, "pageSize": 10}}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 查询下载记录
@@ -123,6 +123,6 @@ class ApiDataTrainTasks:
         url = f"{env}/miai/brainstorm/datalg/dataAlgorithmCollect/page"
         payload = {"data": {"dataAlgorithmTrainTaskId": data_task_id}, "page": {"pageIndex": 1, "pageSize": 10}}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response

@@ -30,8 +30,8 @@ class ApiBashSample:
                             "endDateTime": f"{endDateTime}T15:59:59.000Z"},
                    "page": {"pageIndex": 1, "pageSize": 15}}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # bash样本库-分拣样本
@@ -57,8 +57,8 @@ class ApiBashSample:
             "sortingSampleTypeDetail": sortingSampleTypeDetail
         }
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # bash样本库-创建标注任务
@@ -77,8 +77,8 @@ class ApiBashSample:
                    "endDateTime": f"{endDateTime}T15:59:59.000Z", "excludeDataSyncIds": [],
                    "dataSyncIds": sampledatasyncid}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # 查询可追加的标注任务
@@ -86,8 +86,8 @@ class ApiBashSample:
         url = f"{env}/miai/brainstorm/sampleproductsyncmanage/dimension/canAppend"
         payload = {"sampleSource": 1}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # bash样本库-追加标注任务
@@ -103,8 +103,8 @@ class ApiBashSample:
                    "excludeDataSyncIds": [], "dataSyncIds": sampledatasyncid,
                    "dimensionId": dimensionTaskId}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response
 
     # bash样本库-ok图创建提交数据集
@@ -120,6 +120,6 @@ class ApiBashSample:
                    "endDateTime": f"{endDateTime}T15:59:59.999Z", "excludeDataSyncIds": [],
                    "dataSyncIds": dataSyncIds}
 
-        response = self.client.post(url, json=payload)
-        response.raise_for_status()
+        response = self.client.post_with_retry(url, json=payload)
+         
         return response

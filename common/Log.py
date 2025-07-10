@@ -145,6 +145,20 @@ class MyLog:
         logger.critical(f"未处理异常:\n{stack_trace}")
 
 
+class AllureReporter:
+    """Allure 报告工具类"""
+
+    @staticmethod
+    def close():
+        """关闭Allure上下文（空实现或实际清理逻辑）"""
+        pass
+
+    @staticmethod
+    def update_environment_info():
+        """更新环境信息（空实现）"""
+        pass
+
+
 # 在模块加载时初始化处理器
 MyLog.init_handlers()
 

@@ -1,13 +1,23 @@
 import pytest
 import time
-from common.Log import MyLog
 
+from allure_commons.reporter import AllureReporter
+from common.Log import MyLog
+from allure_pytest.listener import AllureListener
 
 def format_time(seconds):
     minutes = int(seconds // 60)
     remaining_seconds = int(seconds % 60)
     return f"{minutes}分{remaining_seconds}秒"
 
+@pytest.hookimpl(trylast=True)
+def pytest_sessionfinish(session):
+    """确保 Allure 上下文正确关闭"""
+    try:
+        AllureReporter.close()
+        MyLog.info("Allure 上下文已安全关闭")
+    except Exception as e:
+        MyLog.error(f"关闭Allure上下文失败: {e}")
 
 @pytest.fixture(scope="session", autouse=True)
 def start_running():

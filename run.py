@@ -4,8 +4,12 @@ import time
 import json
 import pytest
 import shutil
+import psutil
+from threading import Event
 from threading import Thread
+from utils.browser_pool import BrowserPool
 from common.Log import MyLog, set_log_level
+from multiprocessing import Process, Manager
 from bash.push.client_bash import push_images_auto, test_logic_manual
 
 # 设置全局日志级别
@@ -59,7 +63,7 @@ def reset_logs():
 
 
 def execute_test(test_file, allure_results):
-    """执行单个测试文件"""
+    """执行单个测试文件（添加资源隔离）"""
     MyLog.info(f"开始执行测试文件: {test_file}")
 
     # 构建目标路径
@@ -68,17 +72,32 @@ def execute_test(test_file, allure_results):
         MyLog.error(f"错误：测试文件 {target_path} 不存在！")
         return 1
 
+    # 创建独立的工作目录（避免文件冲突）
+    test_name = os.path.splitext(os.path.basename(test_file))[0]
+    test_workspace = os.path.join(os.path.dirname(allure_results), "workspaces", test_name)
+    os.makedirs(test_workspace, exist_ok=True)
+
+    # 设置环境变量供测试用例使用
+    os.environ["TEST_WORKSPACE"] = test_workspace
+    os.environ["CURRENT_TEST_FILE"] = test_file
+
     # 执行参数
     pytest_args = [
-        "-v",  # 详细输出
-        "-s",  # 禁止捕获输出
-        "-x",  # 遇到第一个失败时立即退出
+        "-v", "-s", "-x",
         target_path,
-        f"--alluredir={allure_results}",  # Allure报告存储路径
+        f"--alluredir={allure_results}",
+        # 添加随机化执行顺序，避免测试间隐含依赖
+        "--random-order",
+        # 为每个测试文件创建独立日志
+        f"--log-file={os.path.join(test_workspace, 'pytest.log')}"
     ]
 
     # 执行测试
     exit_code = pytest.main(pytest_args)
+
+    # 清理环境变量
+    os.environ.pop("TEST_WORKSPACE", None)
+    os.environ.pop("CURRENT_TEST_FILE", None)
 
     if exit_code in [0, 1]:
         MyLog.info(f"测试文件 {test_file} 执行完成")
@@ -184,20 +203,73 @@ def run_selected_tests():
         MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
         MyLog.info("===== 测试任务完成 =====")
 
+def process_task(file, deps, require_success, event_dict, result_dict, allure_results):
+    """执行测试并处理依赖关系（进程版本）"""
+    # 如果有依赖，等待所有依赖完成且检查状态
+    if deps:
+        MyLog.info(f"任务 {file} 依赖: {deps}")
+        for dep in deps:
+            event_dict[dep].wait()  # 等待依赖事件完成
+            dep_result = result_dict.get(dep)
+            MyLog.info(f"依赖 {dep} 状态: {dep_result}")
+
+            if require_success:
+                if dep_result not in [0, 1]:
+                    MyLog.info(f"跳过 {file}，因为依赖文件 {dep} 执行失败")
+                    result_dict[file] = -1
+                    event_dict[file].set()  # 设置自己的事件为完成
+                    return
+            else:
+                if dep_result == -1 or dep_result > 1:
+                    MyLog.info(f"跳过 {file}，因为依赖文件 {dep} 未完成")
+                    result_dict[file] = -1
+                    event_dict[file].set()
+                    return
+
+    # 执行测试
+    MyLog.info(f"开始执行测试文件: {file}")
+    exit_code = execute_test(file, allure_results)
+    result_dict[file] = exit_code
+    event_dict[file].set()
 
 def run_parallel_tests():
-    """使用pytest-xdist并行执行测试"""
+    """使用进程实现依赖关系的并行测试执行"""
     reset_logs()  # 清除之前的日志
-    MyLog.info("===== 开始并行执行测试 =====")
+    MyLog.info("===== 开始并行执行测试（带依赖关系） =====")
 
-    # 定义要执行的测试文件
-    test_files = [
-        "testcase/test_deep_model_training.py",
-        "testcase/test_class_cut_model_training.py",
-        "testcase/test_class_original_model_training.py",
-        "testcase/test_model_training_metrics.py",
-        "testcase/test_data_training_task.py",
-        "testcase/test_simulation.py"
+    # 定义任务依赖关系
+    tasks = [
+        # 第一组：无依赖任务（并行执行）
+        {"file": "testcase/test_bash.py", "deps": None},
+        {"file": "testcase/test_deep_model_training.py", "deps": None},
+        {"file": "testcase/test_class_cut_model_training.py", "deps": None},
+        {"file": "testcase/test_class_original_model_training.py", "deps": None},
+        {"file": "testcase/test_data_training_task.py", "deps": None},
+        {"file": "testcase/test_simulation.py", "deps": None},
+        {"file": "testcase/test_product_information.py", "deps": None},
+
+        # 第二组：有依赖任务
+        {"file": "testcase/test_bash_ui.py", "deps": ["testcase/test_bash.py"], "require_success": True},
+        {"file": "testcase/test_label.py", "deps": ["testcase/test_bash_ui.py"], "require_success": True},
+        {
+            "file": "testcase/test_post_process.py",
+            "deps": [
+                "testcase/test_deep_model_training.py",
+                "testcase/test_class_cut_model_training.py",
+                "testcase/test_class_original_model_training.py"
+            ],
+            "require_success": True  # 要求所有依赖成功
+        },
+        {
+            "file": "testcase/test_model_training_metrics.py",
+            "deps": [
+                "testcase/test_deep_model_training.py",
+                "testcase/test_class_cut_model_training.py",
+                "testcase/test_class_original_model_training.py"
+            ],
+            "require_success": False  # 只要求完成，不要求成功
+        },
+        {"file": "testcase/test_model_base.py", "deps": ["testcase/test_post_process.py"], "require_success": True}
     ]
 
     # 添加项目根目录到Python路径
@@ -216,18 +288,51 @@ def run_parallel_tests():
 
     # 记录开始时间
     start_time = time.time()
-    MyLog.info(f"开始并行测试 at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
+    start_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))
+    MyLog.info(f"开始并行测试 at {start_time_str}")
 
-    # 使用pytest-xdist并行执行
-    pytest_args = [
-                      "-v",
-                      "--capture=tee-sys",
-                      "-n", "6",
-                      "--dist=loadfile",
-                      f"--alluredir={allure_results}"
-                  ] + test_files
+    # ==== 使用多进程替代多线程 ====
+    with Manager() as manager:
+        # 创建共享的事件字典和结果字典
+        event_dict = manager.dict()
+        result_dict = manager.dict()
 
-    exit_code = pytest.main(pytest_args)
+        # 收集所有需要管理的文件（包括任务文件和依赖文件）
+        all_files = set()
+        for task in tasks:
+            all_files.add(task["file"])
+            if task.get("deps"):
+                for dep in task["deps"]:
+                    all_files.add(dep)
+
+        # 初始化事件和结果字典
+        for test_file in all_files:
+            event_dict[test_file] = manager.Event()
+            result_dict[test_file] = None  # 初始化为未执行状态
+            MyLog.info(f"初始化事件和结果字典 for: {test_file}")
+
+        # 创建并启动进程
+        processes = []
+        for task in tasks:
+            p = Process(
+                target=process_task,  # 使用外部函数
+                args=(
+                    task["file"],
+                    task.get("deps", []),  # 如果没有依赖，默认为空列表
+                    task.get("require_success", False),  # 默认不要求依赖成功
+                    event_dict,
+                    result_dict,
+                    allure_results
+                )
+            )
+            p.start()
+            processes.append(p)
+            MyLog.info(f"启动进程: {p.pid} 执行 {task['file']}")
+
+        # 等待所有进程完成
+        for p in processes:
+            p.join()
+            MyLog.info(f"进程完成: {p.pid}")
 
     # 记录结束时间
     end_time = time.time()
@@ -264,9 +369,6 @@ def run_parallel_tests():
     MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
     MyLog.info("===== 并行测试完成 =====")
 
-
-
-
 if __name__ == "__main__":
     print("===== 测试执行程序启动 =====")
     MyLog.info("===== 测试执行程序启动 =====")
@@ -277,12 +379,14 @@ if __name__ == "__main__":
         run_parallel_tests()  # 并行执行
         # test_logic_manual()   # bash推图手动
     finally:
-        # 确保最终关闭所有浏览器实例
-        from utils.browser_pool import BrowserPool
+        current_process = psutil.Process()
+        children = current_process.children(recursive=True)
+        for child in children:
+            child.terminate()
 
-        if BrowserPool._driver is not None:
-            BrowserPool._driver.quit()
-            print("所有浏览器实例已安全关闭")
+        # 原有浏览器清理
+        if hasattr(BrowserPool, '_drivers'):
+            BrowserPool.quit_all()
 
     MyLog.info("===== 测试执行程序结束 =====")
     print("===== 测试执行程序结束 =====")

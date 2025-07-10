@@ -132,7 +132,7 @@ class TestBashUI:
 
         with allure.step("步骤4：等待图片出现并分拣"):
             empty_counter = 0  # 记录连续为空的次数
-            MAX_EMPTY_COUNT = 3  # 允许连续为空的阈值（3秒）
+            MAX_EMPTY_COUNT = 7  # 允许连续为空的阈值（7秒）
 
             while True:
                 try:
@@ -174,7 +174,7 @@ class TestBashUI:
                     # 情况2：检测到空文本
                     elif current_text == "":
                         empty_counter += 1
-                        # 连续3次检测到空（约3秒）
+                        # 连续7次检测到空（约7秒）
                         if empty_counter >= MAX_EMPTY_COUNT:
                             # 执行离席操作
                             leave_button = WebDriverWait(self.driver, 10).until(

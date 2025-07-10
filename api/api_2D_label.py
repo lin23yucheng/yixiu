@@ -102,3 +102,77 @@ class Api2DLabel:
         response = self.client.post(url, json=payload)
         response.raise_for_status()
         return response
+
+    # 获取争议缺陷id
+    def query_dispute_defect_id(self, dataId):
+        url = f"{env}/miai/brainstorm/standard/manage/detail"
+        payload = {"dataId": dataId, "label": "", "disputeResult": ""}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 争议判定
+    def dispute_judge(self, dataId, DateTime, dispute_id):
+        url = f"{env}/miai/brainstorm/standard/manage/process"
+        payload = {"canEdit": False, "dataId": dataId, "label": "", "shapes": [
+            {"customDefectField": {}, "isDispute": "Dispute", "label": "tuomo", "disputeResult": "误判",
+             "disputeProcessTime": f"{DateTime}T02:01:38.683Z", "score": None, "length": None, "width": 1, "radius": "",
+             "flags": {}, "tag": None, "points": [[160, 64], [110, 116], [118, 222], [268, 242], [308, 138], [244, 60]],
+             "position": None, "grade": "GQX", "checkType": "", "confusionType": "", "definition": "QX",
+             "visualGrade": "S2", "Shape": "", "Area": "", "Brightness": "", "IsUneven": "", "ContrastRatio": "",
+             "Smoothness": "", "DefectLength": "", "DefectWidth": "", "point_arr": None, "id": dispute_id,
+             "data_clean_result": None, "class_type": None, "data_result": None, "data_type": None, "pixel_area": None,
+             "if_model": None, "model_info": None,
+             "labeller_info": {"name": "linyucheng", "date": f"{DateTime} 10:00:58"}, "shape_type": "polygon",
+             "labelType": None, "group_id": None, "merge_type": None, "gt_label": None, "pre_label": None, "type": None,
+             "post_process_label": None, "use_show_result_type": None, "exception_cut": None, "color": "#FF0000",
+             "labelIndex": 0}]}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 争议处理
+    def dispute_handle(self, dataId, DateTime):
+        url = f"{env}/miai/brainstorm/standard/manage/process"
+        payload = {"dataId": dataId, "shapes": [
+            {"disputeProcessTime": f"{DateTime}T02:12:52.009Z", "disputeResult": "变更标准", "radius": "",
+             "attributeP": "", "attributeM": "", "Smoothness": "", "ContrastRatio": "", "IsUneven": "",
+             "DefectWidth": "", "DefectLength": "", "Brightness": "", "Area": "", "Shape": "", "confusionType": "",
+             "checkType": "", "grade": "GQX", "isDispute": "Undispute", "visualGrade": "S2", "definition": "QX",
+             "customDefectField": {}, "label": "tuomo", "shape_type": "polygon", "width": 1,
+             "points": [[160, 64], [110, 116], [118, 222], [268, 242], [308, 138], [244, 60]]}],
+                   "classifyType": "tuomo", "canEdit": True, "label": ""}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 查询2D数据集
+    def query_2d_dataset(self):
+        url = f"{env}/miai/brainstorm/datasetinfo/train/page"
+        payload = {"data": {"datasetType": 0, "endTime": "", "sampleSource": None, "sampleType": "", "status": None,
+                            "startTime": "", "commitUser": ""}, "page": {"pageIndex": 1, "pageSize": 10}}
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 数据集撤回
+    def dataset_withdraw(self, datasetId):
+        url = f"{env}/miai/brainstorm/datasetinfo/revocation/{datasetId}"
+        payload = None
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response
+
+    # 发起重标
+    def dataset_relabel(self, datasetId):
+        url = f"{env}/miai/brainstorm/datasetinfo/relabel/{datasetId}"
+        payload = None
+
+        response = self.client.post(url, json=payload)
+        response.raise_for_status()
+        return response

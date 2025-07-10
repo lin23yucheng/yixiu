@@ -9,6 +9,7 @@ from configparser import ConfigParser
 from common.Request_Response import ApiClient
 from common import Assert
 from api import api_login, api_comprehensive_sample_library, api_deep_training_tasks
+from common.monitor_utils import MonitorUtils
 
 assertions = Assert.Assertions()
 time_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
@@ -36,222 +37,223 @@ class TestDeepModelTraining:
         cls.start_timestamp = None  # 新增时间记录点
         cls.trainTaskId = None
         cls.modelTrainId = None
+        cls.monitor = MonitorUtils(api_deep=cls.api_deep, api_model=cls.api_model)
 
-    def _monitor_cut_progress(self):
-        """数据处理状态监控"""
-        start_time = time.time()
-        self.start_timestamp = start_time  # 记录开始时间
-        attempt = 0
-
-        with allure.step("监控训练任务进度"):
-            while True:
-                attempt += 1
-                with allure.step(f"第{attempt}次状态检查"):
-                    # 发送查询请求
-                    response = self.api_deep.query_train_tasks(self.task_name)
-                    assertions.assert_code(response.status_code, 200)
-
-                    # 解析响应数据
-                    response_data = response.json()
-                    tasks = response_data['data']['list']
-
-                    # 记录原始响应
-                    allure.attach(
-                        str(response_data),
-                        name="原始响应数据",
-                        attachment_type=allure.attachment_type.JSON
-                    )
-
-                    # 验证任务存在
-                    if not tasks:
-                        pytest.fail(f"未找到任务: {self.task_name}")
-
-                    # 获取任务状态
-                    current_task = next(
-                        (t for t in tasks if t['taskName'] == self.task_name),
-                        None
-                    )
-                    if not current_task:
-                        pytest.fail(f"任务列表匹配失败: {self.task_name}")
-
-                    status = current_task['dataStatus']
-                    self.trainTaskId = current_task['trainTaskId']
-                    self.__class__.trainTaskId = current_task['trainTaskId']  # 关键：赋值给类变量
-
-                    allure.attach(
-                        f"当前状态: {status} (0=处理中, 1=完成, 2=异常)",
-                        name="状态解析"
-                    )
-                    allure.attach(
-                        f"trainTaskId: {self.trainTaskId}",
-                        name="任务ID",
-                        attachment_type=allure.attachment_type.TEXT
-                    )
-
-                    # 新增时间统计部分
-                    current_duration = int(time.time() - start_time)
-                    mins, secs = divmod(current_duration, 60)
-                    time_message = f"处理已等待时间：{mins}分{secs}秒"
-
-                    # 记录到Allure
-                    allure.attach(
-                        time_message,
-                        name="耗时统计",
-                        attachment_type=allure.attachment_type.TEXT
-                    )
-
-                    # 控制台实时打印
-                    print(f"\r数据处理时间: {mins}m {secs}s", end="")
-
-                    # 状态判断
-                    if status == 1:
-                        allure.attach("训练任务已完成", name="状态更新")
-                        print("\n数据处理已完成")
-                        return True
-                    elif status == 2:
-                        pytest.fail(f"训练异常: {current_task.get('errorMsg', '处理异常')}")
-
-                    # 超时检查
-                    elapsed = time.time() - start_time
-                    if elapsed > self.max_wait_seconds:
-                        pytest.fail(f"训练超时: 等待{self.max_wait_seconds}秒未完成")
-
-                    # 间隔等待
-                    time.sleep(self.poll_interval)
-
-    def _monitor_train_progress(self):
-        """模型训练状态监控"""
-        start_time = time.time()
-        attempt = 0
-
-        with allure.step("监控模型训练与验证状态"):
-            while True:
-                attempt += 1
-                with allure.step(f"第{attempt}次训练状态检查"):
-                    # 发送查询请求
-                    response = self.api_model.query_train_records(self.trainTaskId)
-                    assertions.assert_code(response.status_code, 200)
-
-                    # 解析响应数据
-                    response_data = response.json()
-                    records = response_data['data']['list']
-
-                    # 记录原始响应到Allure
-                    allure.attach(
-                        str(response_data),
-                        name="训练记录响应数据",
-                        attachment_type=allure.attachment_type.JSON
-                    )
-
-                    # 验证记录存在性
-                    if not records:
-                        pytest.fail(f"未找到trainTaskId={self.trainTaskId}的训练记录")
-
-                    current_record = records[0]  # 取第一条记录
-                    train_status = current_record['trainStatus']
-                    verify_status = current_record.get('verifyStatus', None)
-                    self.modelTrainId = current_record['modelTrainId']
-                    self.__class__.modelTrainId = current_record['modelTrainId']  # 关键：赋值给类变量
-
-                    # 时间统计
-                    current_duration = int(time.time() - start_time)
-                    mins, secs = divmod(current_duration, 60)
-                    time_message = f"训练等待时间：{mins}分{secs}秒"
-
-                    # 状态信息汇总
-                    status_info = (
-                        f"\ntrainStatus={train_status} "
-                        f"(0=训练中,1=训练失败,2=训练完成,3=打包中,4=排队中,5=转onnx中,6=转triton中)\n"
-                        f"verifyStatus={verify_status} "
-                        f"(0=未验证,1=验证中,2=验证失败,3=验证成功)\n"
-                        f"{time_message}\n"
-                        f"-------------------------------\n"
-                    )
-                    allure.attach(status_info, name="状态详情")
-
-                    # 控制台实时打印
-                    print(f"训练/验证状态: {status_info}", end="")
-
-                    # 状态机判断
-                    if train_status == 1:
-                        pytest.fail("训练失败，请检查日志")
-                    elif train_status == 2:
-                        if verify_status == 2:
-                            pytest.fail("验证失败，请检查日志")
-                        elif verify_status == 3:
-                            allure.attach("训练&验证已完成", name="最终状态")
-                            return True  # 符合继续执行的条件
-
-                    # 超时检查（30分钟）
-                    elapsed = time.time() - start_time
-                    if elapsed > self.max_wait_seconds:
-                        pytest.fail(f"训练卡住，请检查日志（等待超过{self.max_wait_seconds}秒）")
-
-                    # 间隔等待
-                    time.sleep(self.poll_interval)
-
-    def _monitor_commit_progress(self):
-        """模型提交状态监控"""
-        start_time = time.time()
-        attempt = 0
-
-        with allure.step("监控模型提交状态"):
-            while True:
-                attempt += 1
-                with allure.step(f"第{attempt}次提交状态检查"):
-                    # 发送查询请求（复用训练记录接口）
-                    response = self.api_model.query_train_records(self.trainTaskId)
-                    assertions.assert_code(response.status_code, 200)
-
-                    # 解析响应数据
-                    response_data = response.json()
-                    records = response_data['data']['list']
-
-                    # 记录原始响应到Allure
-                    allure.attach(
-                        str(response_data),
-                        name="提交状态响应数据",
-                        attachment_type=allure.attachment_type.JSON
-                    )
-
-                    # 验证记录存在性
-                    if not records:
-                        pytest.fail(f"未找到trainTaskId={self.trainTaskId}的提交记录")
-
-                    current_record = records[0]  # 取第一条记录
-                    commit_status = current_record.get('commitStatus')
-
-                    # 时间统计
-                    current_duration = int(time.time() - start_time)
-                    mins, secs = divmod(current_duration, 60)
-                    time_message = f"提交等待时间：{mins}分{secs}秒"
-
-                    # 状态信息汇总
-                    status_info = (
-                        f"\ncommitStatus={commit_status} "
-                        f"(0=未提交,1=已提交,2=提交中,3=提交失败)\n"
-                        f"{time_message}\n"
-                        f"-------------------------------\n"
-                    )
-                    allure.attach(status_info, name="提交状态详情")
-
-                    # 控制台实时打印
-                    print(f"提交状态: {status_info}", end="")
-
-                    # 状态机判断
-                    if commit_status == 3:
-                        pytest.fail("提交失败，请检查日志")
-                    elif commit_status == 1:
-                        allure.attach("模型提交已完成", name="最终状态")
-                        return True
-
-                    # 超时检查（30分钟）
-                    elapsed = time.time() - start_time
-                    if elapsed > self.max_wait_seconds:
-                        pytest.fail(f"提交卡住，请检查日志（等待超过{self.max_wait_seconds}秒）")
-
-                    # 间隔等待
-                    time.sleep(self.poll_interval)
+    # def _monitor_cut_progress(self):
+    #     """数据处理状态监控"""
+    #     start_time = time.time()
+    #     self.start_timestamp = start_time  # 记录开始时间
+    #     attempt = 0
+    #
+    #     with allure.step("监控训练任务进度"):
+    #         while True:
+    #             attempt += 1
+    #             with allure.step(f"第{attempt}次状态检查"):
+    #                 # 发送查询请求
+    #                 response = self.api_deep.query_train_tasks(self.task_name)
+    #                 assertions.assert_code(response.status_code, 200)
+    #
+    #                 # 解析响应数据
+    #                 response_data = response.json()
+    #                 tasks = response_data['data']['list']
+    #
+    #                 # 记录原始响应
+    #                 allure.attach(
+    #                     str(response_data),
+    #                     name="原始响应数据",
+    #                     attachment_type=allure.attachment_type.JSON
+    #                 )
+    #
+    #                 # 验证任务存在
+    #                 if not tasks:
+    #                     pytest.fail(f"未找到任务: {self.task_name}")
+    #
+    #                 # 获取任务状态
+    #                 current_task = next(
+    #                     (t for t in tasks if t['taskName'] == self.task_name),
+    #                     None
+    #                 )
+    #                 if not current_task:
+    #                     pytest.fail(f"任务列表匹配失败: {self.task_name}")
+    #
+    #                 status = current_task['dataStatus']
+    #                 self.trainTaskId = current_task['trainTaskId']
+    #                 self.__class__.trainTaskId = current_task['trainTaskId']  # 关键：赋值给类变量
+    #
+    #                 allure.attach(
+    #                     f"当前状态: {status} (0=处理中, 1=完成, 2=异常)",
+    #                     name="状态解析"
+    #                 )
+    #                 allure.attach(
+    #                     f"trainTaskId: {self.trainTaskId}",
+    #                     name="任务ID",
+    #                     attachment_type=allure.attachment_type.TEXT
+    #                 )
+    #
+    #                 # 新增时间统计部分
+    #                 current_duration = int(time.time() - start_time)
+    #                 mins, secs = divmod(current_duration, 60)
+    #                 time_message = f"处理已等待时间：{mins}分{secs}秒"
+    #
+    #                 # 记录到Allure
+    #                 allure.attach(
+    #                     time_message,
+    #                     name="耗时统计",
+    #                     attachment_type=allure.attachment_type.TEXT
+    #                 )
+    #
+    #                 # 控制台实时打印
+    #                 print(f"\r数据处理时间: {mins}m {secs}s", end="")
+    #
+    #                 # 状态判断
+    #                 if status == 1:
+    #                     allure.attach("训练任务已完成", name="状态更新")
+    #                     print("\n数据处理已完成")
+    #                     return True
+    #                 elif status == 2:
+    #                     pytest.fail(f"训练异常: {current_task.get('errorMsg', '处理异常')}")
+    #
+    #                 # 超时检查
+    #                 elapsed = time.time() - start_time
+    #                 if elapsed > self.max_wait_seconds:
+    #                     pytest.fail(f"训练超时: 等待{self.max_wait_seconds}秒未完成")
+    #
+    #                 # 间隔等待
+    #                 time.sleep(self.poll_interval)
+    #
+    # def _monitor_train_progress(self):
+    #     """模型训练状态监控"""
+    #     start_time = time.time()
+    #     attempt = 0
+    #
+    #     with allure.step("监控模型训练与验证状态"):
+    #         while True:
+    #             attempt += 1
+    #             with allure.step(f"第{attempt}次训练状态检查"):
+    #                 # 发送查询请求
+    #                 response = self.api_model.query_train_records(self.trainTaskId)
+    #                 assertions.assert_code(response.status_code, 200)
+    #
+    #                 # 解析响应数据
+    #                 response_data = response.json()
+    #                 records = response_data['data']['list']
+    #
+    #                 # 记录原始响应到Allure
+    #                 allure.attach(
+    #                     str(response_data),
+    #                     name="训练记录响应数据",
+    #                     attachment_type=allure.attachment_type.JSON
+    #                 )
+    #
+    #                 # 验证记录存在性
+    #                 if not records:
+    #                     pytest.fail(f"未找到trainTaskId={self.trainTaskId}的训练记录")
+    #
+    #                 current_record = records[0]  # 取第一条记录
+    #                 train_status = current_record['trainStatus']
+    #                 verify_status = current_record.get('verifyStatus', None)
+    #                 self.modelTrainId = current_record['modelTrainId']
+    #                 self.__class__.modelTrainId = current_record['modelTrainId']  # 关键：赋值给类变量
+    #
+    #                 # 时间统计
+    #                 current_duration = int(time.time() - start_time)
+    #                 mins, secs = divmod(current_duration, 60)
+    #                 time_message = f"训练等待时间：{mins}分{secs}秒"
+    #
+    #                 # 状态信息汇总
+    #                 status_info = (
+    #                     f"\ntrainStatus={train_status} "
+    #                     f"(0=训练中,1=训练失败,2=训练完成,3=打包中,4=排队中,5=转onnx中,6=转triton中)\n"
+    #                     f"verifyStatus={verify_status} "
+    #                     f"(0=未验证,1=验证中,2=验证失败,3=验证成功)\n"
+    #                     f"{time_message}\n"
+    #                     f"-------------------------------\n"
+    #                 )
+    #                 allure.attach(status_info, name="状态详情")
+    #
+    #                 # 控制台实时打印
+    #                 print(f"训练/验证状态: {status_info}", end="")
+    #
+    #                 # 状态机判断
+    #                 if train_status == 1:
+    #                     pytest.fail("训练失败，请检查日志")
+    #                 elif train_status == 2:
+    #                     if verify_status == 2:
+    #                         pytest.fail("验证失败，请检查日志")
+    #                     elif verify_status == 3:
+    #                         allure.attach("训练&验证已完成", name="最终状态")
+    #                         return True  # 符合继续执行的条件
+    #
+    #                 # 超时检查（30分钟）
+    #                 elapsed = time.time() - start_time
+    #                 if elapsed > self.max_wait_seconds:
+    #                     pytest.fail(f"训练卡住，请检查日志（等待超过{self.max_wait_seconds}秒）")
+    #
+    #                 # 间隔等待
+    #                 time.sleep(self.poll_interval)
+    #
+    # def _monitor_commit_progress(self):
+    #     """模型提交状态监控"""
+    #     start_time = time.time()
+    #     attempt = 0
+    #
+    #     with allure.step("监控模型提交状态"):
+    #         while True:
+    #             attempt += 1
+    #             with allure.step(f"第{attempt}次提交状态检查"):
+    #                 # 发送查询请求（复用训练记录接口）
+    #                 response = self.api_model.query_train_records(self.trainTaskId)
+    #                 assertions.assert_code(response.status_code, 200)
+    #
+    #                 # 解析响应数据
+    #                 response_data = response.json()
+    #                 records = response_data['data']['list']
+    #
+    #                 # 记录原始响应到Allure
+    #                 allure.attach(
+    #                     str(response_data),
+    #                     name="提交状态响应数据",
+    #                     attachment_type=allure.attachment_type.JSON
+    #                 )
+    #
+    #                 # 验证记录存在性
+    #                 if not records:
+    #                     pytest.fail(f"未找到trainTaskId={self.trainTaskId}的提交记录")
+    #
+    #                 current_record = records[0]  # 取第一条记录
+    #                 commit_status = current_record.get('commitStatus')
+    #
+    #                 # 时间统计
+    #                 current_duration = int(time.time() - start_time)
+    #                 mins, secs = divmod(current_duration, 60)
+    #                 time_message = f"提交等待时间：{mins}分{secs}秒"
+    #
+    #                 # 状态信息汇总
+    #                 status_info = (
+    #                     f"\ncommitStatus={commit_status} "
+    #                     f"(0=未提交,1=已提交,2=提交中,3=提交失败)\n"
+    #                     f"{time_message}\n"
+    #                     f"-------------------------------\n"
+    #                 )
+    #                 allure.attach(status_info, name="提交状态详情")
+    #
+    #                 # 控制台实时打印
+    #                 print(f"提交状态: {status_info}", end="")
+    #
+    #                 # 状态机判断
+    #                 if commit_status == 3:
+    #                     pytest.fail("提交失败，请检查日志")
+    #                 elif commit_status == 1:
+    #                     allure.attach("模型提交已完成", name="最终状态")
+    #                     return True
+    #
+    #                 # 超时检查（30分钟）
+    #                 elapsed = time.time() - start_time
+    #                 if elapsed > self.max_wait_seconds:
+    #                     pytest.fail(f"提交卡住，请检查日志（等待超过{self.max_wait_seconds}秒）")
+    #
+    #                 # 间隔等待
+    #                 time.sleep(self.poll_interval)
 
     def teardown_class(cls):
         """将生成的ID写入配置文件"""
@@ -278,7 +280,7 @@ class TestDeepModelTraining:
         print(f"已写入配置文件：{config_path}")
 
     @allure.story("目标检测/分割模型训练&提交")
-    def test_train_task_workflow(self):
+    def test_deep_task_workflow(self):
         total_start = time.time()  # 记录总开始时间
 
         with allure.step("步骤1：创建深度训练任务"):
@@ -309,7 +311,11 @@ class TestDeepModelTraining:
             self.creation_time = time.time()  # 记录任务创建完成时间
 
         with allure.step("步骤2：监控创建数据处理进度"):
-            self._monitor_cut_progress()
+            self.trainTaskId, success = self.monitor.monitor_cut_progress(
+                self.task_name,
+                "目标检测/分割切图处理"
+            )
+            self.__class__.trainTaskId = self.trainTaskId
 
         with allure.step("步骤3：追加ok图"):
             if not self.trainTaskId:
@@ -328,7 +334,11 @@ class TestDeepModelTraining:
             assertions.assert_in_text(response_data['msg'], '成功')
 
         with allure.step("步骤4：监控追加数据处理进度"):
-            self._monitor_cut_progress()
+            self.trainTaskId, success = self.monitor.monitor_cut_progress(
+                self.task_name,
+                "目标检测/分割追加OK图处理"
+            )
+            self.__class__.trainTaskId = self.trainTaskId
 
         with allure.step("步骤5：开始模型训练"):
             # -------------------- 查询模型方案 --------------------
@@ -394,7 +404,8 @@ class TestDeepModelTraining:
                 assertions.assert_in_text(train_data['msg'], '操作成功')
 
         with allure.step("步骤6：监控训练进度"):
-            self._monitor_train_progress()
+            self.modelTrainId, success = self.monitor.monitor_train_progress(self.trainTaskId,"YoloV8目标检测训练")
+            self.__class__.modelTrainId = self.modelTrainId
             time.sleep(3)
 
         with allure.step("步骤7：提交模型"):
@@ -416,10 +427,9 @@ class TestDeepModelTraining:
 
             # 监控提交状态
             with allure.step("子步骤2：监控模型提交状态"):
-                self._monitor_commit_progress()
+                success = self.monitor.monitor_commit_progress(self.trainTaskId,"YoloV8目标检测模型提交")
 
             # 最终成功提示
-
         allure.dynamic.description(
             "深度模型训练（目标检测）测试完成！\n"
             f"总耗时: {time.strftime('%H:%M:%S', time.gmtime(time.time() - total_start))}"

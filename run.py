@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import json
 import pytest
 import shutil
 from threading import Thread
@@ -93,21 +94,8 @@ def run_selected_tests():
     MyLog.info("===== 开始执行测试任务 =====")
 
     # 定义要执行的测试文件列表
-    # test_files = [
-    #     "testcase/test_deep_model_training.py",
-    #     "testcase/test_class_cut_model_training.py",
-    #     "testcase/test_class_original_model_training.py",
-    #     "testcase/test_post_process.py",
-    #     "testcase/test_model_base.py",
-    #     "testcase/test_data_training_task.py",
-    #     "testcase/test_simulation.py",
-    #     "testcase/test_model_training_metrics.py",
-    #     "testcase/test_product_information.py"
-    # ]
     test_files = [
-        "testcase/test_bash.py",
-        "testcase/test_bash_ui.py",
-        "testcase/test_label.py"
+        "testcase/test_class_original_model_training.py"
     ]
 
     # 添加项目根目录到Python路径
@@ -153,37 +141,64 @@ def run_selected_tests():
             MyLog.critical(f"执行测试文件 {test_file} 发生严重错误，程序终止")
             sys.exit(exit_code)
 
-    # 记录结束时间
-    end_time = time.time()
-    overall_time = end_time - start_time  # 整体耗时
+        # 记录结束时间
+        end_time = time.time()
+        overall_time = end_time - start_time  # 整体耗时
+        formatted_overall = format_time(overall_time)
 
-    # 输出耗时统计（使用新格式）
-    MyLog.info("===== 测试文件耗时明细 =====")
-    for file, time_taken in file_times.items():
-        formatted_time = format_time(time_taken)
-        MyLog.info(f"{file}: {formatted_time}")
+        # 输出耗时统计（使用新格式）
+        MyLog.info("===== 测试文件耗时明细 =====")
+        for file, time_taken in file_times.items():
+            formatted_time = format_time(time_taken)
+            MyLog.info(f"{file}: {formatted_time}")
 
-    # 格式化并输出总耗时
-    formatted_total = format_time(total_elapsed_time)
-    formatted_overall = format_time(overall_time)
+        # 格式化并输出总耗时
+        formatted_total = format_time(total_elapsed_time)
+        MyLog.info(f"测试文件累加总耗时: {formatted_total}")
+        MyLog.info(f"整体执行耗时: {formatted_overall}")
 
-    MyLog.info(f"测试文件累加总耗时: {formatted_total}")
-    MyLog.info(f"整体执行耗时: {formatted_overall}")
-    MyLog.info(f"完成执行所有测试文件 at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
+        # 在控制台显示整体耗时
+        print(f"整体执行耗时: {formatted_overall}")
 
-    # 生成报告
-    os.system(f"allure generate {allure_results} -o {allure_report} --clean")
-    MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
-    MyLog.info("===== 测试任务完成 =====")
+        # 生成报告
+        os.system(f"allure generate {allure_results} -o {allure_report} --clean")
+
+        # 在Allure报告中添加执行时间信息
+        report_env_file = os.path.join(allure_report, 'widgets', 'environment.json')
+        if os.path.exists(report_env_file):
+            try:
+                with open(report_env_file, 'r', encoding='utf-8') as f:
+                    env_data = json.load(f)
+
+                # 添加执行时间信息
+                env_data.append({
+                    "name": "执行时间",
+                    "values": [f"整体耗时: {formatted_overall}"]
+                })
+
+                with open(report_env_file, 'w', encoding='utf-8') as f:
+                    json.dump(env_data, f, ensure_ascii=False, indent=2)
+            except Exception as e:
+                MyLog.error(f"更新Allure环境信息失败: {e}")
+
+        MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
+        MyLog.info("===== 测试任务完成 =====")
 
 
 def run_parallel_tests():
-    """并行执行测试文件"""
+    """使用pytest-xdist并行执行测试"""
     reset_logs()  # 清除之前的日志
     MyLog.info("===== 开始并行执行测试 =====")
 
-    # 定义测试文件
-    parallel_test_files = ["testcase/test_post_process.py"]
+    # 定义要执行的测试文件
+    test_files = [
+        "testcase/test_deep_model_training.py",
+        "testcase/test_class_cut_model_training.py",
+        "testcase/test_class_original_model_training.py",
+        "testcase/test_model_training_metrics.py",
+        "testcase/test_data_training_task.py",
+        "testcase/test_simulation.py"
+    ]
 
     # 添加项目根目录到Python路径
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -203,28 +218,53 @@ def run_parallel_tests():
     start_time = time.time()
     MyLog.info(f"开始并行测试 at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
 
-    # 并行执行测试文件
-    threads = []
-    for test_file in parallel_test_files:
-        thread = Thread(target=execute_test, args=(test_file, allure_results))
-        threads.append(thread)
-        thread.start()
+    # 使用pytest-xdist并行执行
+    pytest_args = [
+                      "-v",
+                      "--capture=tee-sys",
+                      "-n", "6",
+                      "--dist=loadfile",
+                      f"--alluredir={allure_results}"
+                  ] + test_files
 
-    # 等待所有线程完成
-    for thread in threads:
-        thread.join()
+    exit_code = pytest.main(pytest_args)
 
     # 记录结束时间
     end_time = time.time()
-    # 使用新格式输出时间
-    formatted_time = format_time(end_time - start_time)
+    overall_time = end_time - start_time
+    formatted_time = format_time(overall_time)
+
     MyLog.info(f"完成并行测试 at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
     MyLog.info(f"总执行耗时: {formatted_time}")
 
+    # 在控制台显示整体耗时
+    print(f"总执行耗时: {formatted_time}")
+
     # 生成报告
     os.system(f"allure generate {allure_results} -o {allure_report} --clean")
+
+    # 在Allure报告中添加执行时间信息
+    report_env_file = os.path.join(allure_report, 'widgets', 'environment.json')
+    if os.path.exists(report_env_file):
+        try:
+            with open(report_env_file, 'r', encoding='utf-8') as f:
+                env_data = json.load(f)
+
+            # 添加执行时间信息
+            env_data.append({
+                "name": "执行时间",
+                "values": [f"总耗时: {formatted_time}"]
+            })
+
+            with open(report_env_file, 'w', encoding='utf-8') as f:
+                json.dump(env_data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            MyLog.error(f"更新Allure环境信息失败: {e}")
+
     MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
     MyLog.info("===== 并行测试完成 =====")
+
+
 
 
 if __name__ == "__main__":
@@ -233,8 +273,8 @@ if __name__ == "__main__":
 
     try:
         # 选择执行模式
-        run_selected_tests()  # 顺序执行
-        # run_parallel_tests()  # 并行执行
+        # run_selected_tests()  # 顺序执行
+        run_parallel_tests()  # 并行执行
         # test_logic_manual()   # bash推图手动
     finally:
         # 确保最终关闭所有浏览器实例

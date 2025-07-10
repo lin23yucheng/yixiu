@@ -237,7 +237,7 @@ class TestSimulation:
 
     @pytest.mark.order(1)
     @allure.story("测试图集")
-    def test_test_atlas_workflow(self):
+    def test_atlas_workflow(self):
         total_start = time.time()
         step_durations = {}  # 存储每个步骤的耗时
 
@@ -279,7 +279,7 @@ class TestSimulation:
 
     @pytest.mark.order(2)
     @allure.story("仿真测试")
-    def test_simulation_test_workflow(self):
+    def test_simulation_workflow(self):
         total_start = time.time()
         step_durations = {}
 

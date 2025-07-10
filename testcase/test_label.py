@@ -247,11 +247,167 @@ class TestLabel:
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
+        with allure.step("步骤7：查询2D数据集管理") as step7:
+            response = self.api_2d_label.query_2d_dataset()
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 提取数据集列表
+            dataset_list = response_data.get('data', {}).get('list', [])
+            ok_dataset_name = f"接口自动化ok图-{time_str}-train"
+            target_dataset = None
+
+            # 查找匹配的数据集
+            for dataset in dataset_list:
+                if dataset.get('name') == ok_dataset_name:
+                    target_dataset = dataset
+                    break
+
+            # 处理结果
+            if target_dataset:
+                # 获取状态和ID
+                dataset_status = target_dataset.get('status')
+                dataset_id = target_dataset.get('datasetId')
+
+                # 记录数据集信息到报告
+                dataset_info = (
+                    f"数据集名称: {ok_dataset_name}\n"
+                    f"状态: {dataset_status}\n"
+                    f"预期状态: 1 (已提交)"
+                )
+                allure.attach(dataset_info,
+                              name="数据集状态检查",
+                              attachment_type=allure.attachment_type.TEXT)
+
+                # 验证状态
+                if dataset_status == 1:
+                    allure.attach(f"状态验证成功: 数据集状态为'已提交'",
+                                  name="状态验证结果",
+                                  attachment_type=allure.attachment_type.TEXT)
+
+                    # 保存datasetId用于后续步骤
+                    TestLabel.ok_dataset_id = dataset_id
+
+                    # 记录datasetId
+                    id_info = f"成功获取datasetId: {dataset_id}"
+                    allure.attach(id_info,
+                                  name="datasetId提取",
+                                  attachment_type=allure.attachment_type.TEXT)
+                else:
+                    # 状态异常处理
+                    status_map = {
+                        2: "已撤回",
+                        6: "已发起重标"
+                    }
+                    status_name = status_map.get(dataset_status, f"未知状态({dataset_status})")
+
+                    error_msg = f"错误: ok数据集状态异常！当前状态: {status_name}，预期状态: 1 (已提交)"
+                    allure.attach(error_msg,
+                                  name="状态验证失败",
+                                  attachment_type=allure.attachment_type.TEXT)
+                    pytest.fail(error_msg)
+            else:
+                error_msg = f"错误: 未找到名称为 '{ok_dataset_name}' 的数据集"
+                allure.attach(error_msg,
+                              name="数据集查找失败",
+                              attachment_type=allure.attachment_type.TEXT)
+                pytest.fail(error_msg)
+
+        with allure.step("步骤8：撤回ok样本") as step8:
+            # 检查是否成功获取了datasetId
+            if hasattr(TestLabel, 'ok_dataset_id') and TestLabel.ok_dataset_id:
+                # 记录撤回参数
+                withdraw_params = (
+                    f"数据集ID: {TestLabel.ok_dataset_id}\n"
+                    f"数据集名称: 接口自动化ok图-{time_str}"
+                )
+                allure.attach(withdraw_params,
+                              name="撤回参数",
+                              attachment_type=allure.attachment_type.TEXT)
+
+                response = self.api_2d_label.dataset_withdraw(TestLabel.ok_dataset_id)
+                assertions.assert_code(response.status_code, 200)
+                response_data = response.json()
+                assertions.assert_in_text(response_data['msg'], '成功')
+
+                # 记录撤回结果
+                allure.attach(f"撤回结果: {response_data['msg']}",
+                              name="样本撤回完成",
+                              attachment_type=allure.attachment_type.TEXT)
+
+                # 添加状态验证步骤
+                with allure.step("子步骤1：验证数据集状态已更新为'已撤回'") as step8_1:
+                    # 重新查询数据集状态
+                    response = self.api_2d_label.query_2d_dataset()
+                    assertions.assert_code(response.status_code, 200)
+                    response_data = response.json()
+                    assertions.assert_in_text(response_data['msg'], '成功')
+
+                    # 查找目标数据集
+                    dataset_list = response_data.get('data', {}).get('list', [])
+                    target_dataset = None
+                    for dataset in dataset_list:
+                        if dataset.get('datasetId') == TestLabel.ok_dataset_id:
+                            target_dataset = dataset
+                            break
+
+                    if target_dataset:
+                        # 获取更新后的状态
+                        updated_status = target_dataset.get('status')
+
+                        # 记录状态信息
+                        status_info = (
+                            f"数据集ID: {TestLabel.ok_dataset_id}\n"
+                            f"数据集名称: 接口自动化ok图-{time_str}\n"
+                            f"当前状态: {updated_status}\n"
+                            f"预期状态: 2 (已撤回)"
+                        )
+                        allure.attach(status_info,
+                                      name="数据集状态验证",
+                                      attachment_type=allure.attachment_type.TEXT)
+
+                        # 验证状态
+                        if updated_status == 2:
+                            allure.attach("状态验证成功: 数据集已成功撤回",
+                                          name="状态验证结果",
+                                          attachment_type=allure.attachment_type.TEXT)
+                        else:
+                            # 状态异常处理
+                            status_map = {
+                                1: "已提交",
+                                2: "已撤回",
+                                6: "已发起重标"
+                            }
+                            status_name = status_map.get(updated_status, f"未知状态({updated_status})")
+
+                            error_msg = f"错误: 数据集状态异常！当前状态: {status_name}，预期状态: 2 (已撤回)"
+                            allure.attach(error_msg,
+                                          name="状态验证失败",
+                                          attachment_type=allure.attachment_type.TEXT)
+                            pytest.fail(error_msg)
+                    else:
+                        error_msg = f"错误: 未找到数据集ID为 '{TestLabel.ok_dataset_id}' 的数据集"
+                        allure.attach(error_msg,
+                                      name="数据集查找失败",
+                                      attachment_type=allure.attachment_type.TEXT)
+                        pytest.fail(error_msg)
+            else:
+                error_msg = "错误: 缺少有效的datasetId，无法执行撤回操作"
+                allure.attach(error_msg,
+                              name="撤回失败",
+                              attachment_type=allure.attachment_type.TEXT)
+                pytest.fail(error_msg)
+
     @pytest.mark.order(2)
     @allure.story("2D标注")
     def test_2d_label(self):
         # 使用类变量
         dimensionTaskId = TestLabel.dimensionTaskId
+
+        # 计算日期参数
+        current_date = datetime.now()
+        DateTime = current_date.strftime("%Y-%m-%d")
 
         with allure.step("步骤1：查询2D标注任务是否存在") as step1:
             response = self.api_2d_label.query_2d_task(self.task_name)
@@ -353,7 +509,7 @@ class TestLabel:
             response = self.api_2d_label.label_2d_polygon(self.datasetDataId_2, "tuomo", "polygon",
                                                           [[160, 64], [110, 116], [118, 222], [268, 242], [308, 138],
                                                            [244, 60]],
-                                                          "")
+                                                          "Dispute")
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
@@ -449,10 +605,409 @@ class TestLabel:
 
             self.verify_task_status(4, "复核通过")
 
-        with allure.step("步骤12：创建&提交数据集") as step12:
+        with allure.step("步骤12：判断是否标注有争议") as step12:
+            response = self.api_2d_label.query_2d_task(self.task_name)
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 查找指定任务名的任务
+            task_list = response_data.get('data', {}).get('list', [])
+            target_task = None
+
+            for task in task_list:
+                if task.get('taskName') == self.task_name:
+                    target_task = task
+                    break
+
+            if target_task:
+                # 检查争议数量
+                disputeNum = target_task.get('disputeNum', -1)  # 默认-1表示未获取到
+
+                # 记录任务信息到报告
+                task_info = (
+                    f"任务名称: {self.task_name}\n"
+                    f"争议数量(disputeNum): {disputeNum}"
+                )
+                allure.attach(task_info,
+                              name="争议数量检查",
+                              attachment_type=allure.attachment_type.TEXT)
+
+                # 判断争议数量
+                if disputeNum > 0:
+                    dispute_id = None  # 初始化争议ID变量
+
+                    with allure.step("子步骤1: 获取争议缺陷id") as substep1:
+                        response = self.api_2d_label.query_dispute_defect_id(self.datasetDataId_2)
+                        assertions.assert_code(response.status_code, 200)
+                        response_data = response.json()
+                        assertions.assert_in_text(response_data['msg'], '成功')
+
+                        # 提取第一条数据的id
+                        defect_list = response_data.get('data', [])
+                        if defect_list:
+                            dispute_id = defect_list[0].get('id')
+
+                            # 记录获取的争议ID到报告
+                            id_info = (
+                                f"样本ID: {self.datasetDataId_2}\n"
+                                f"获取到的争议缺陷ID: {dispute_id}"
+                            )
+                            allure.attach(id_info,
+                                          name="争议缺陷ID获取结果",
+                                          attachment_type=allure.attachment_type.TEXT)
+                        else:
+                            error_msg = "错误: 未获取到争议缺陷ID列表"
+                            allure.attach(error_msg,
+                                          name="争议缺陷ID获取失败",
+                                          attachment_type=allure.attachment_type.TEXT)
+                            pytest.fail(error_msg)
+
+                    with allure.step("子步骤2: 争议判定") as substep2:
+                        if dispute_id:
+                            # 记录争议判定参数
+                            judge_params = (
+                                f"样本ID: {self.datasetDataId_2}\n"
+                                f"日期: {DateTime}\n"
+                                f"争议缺陷ID: {dispute_id}"
+                            )
+                            allure.attach(judge_params,
+                                          name="争议判定参数",
+                                          attachment_type=allure.attachment_type.TEXT)
+
+                            response = self.api_2d_label.dispute_judge(
+                                self.datasetDataId_2, DateTime, dispute_id)
+                            assertions.assert_code(response.status_code, 200)
+                            response_data = response.json()
+                            assertions.assert_in_text(response_data['msg'], '成功')
+
+                            # 记录判定结果
+                            allure.attach(f"争议判定结果: {response_data['msg']}",
+                                          name="争议判定完成",
+                                          attachment_type=allure.attachment_type.TEXT)
+                        else:
+                            error_msg = "错误: 缺少有效的争议缺陷ID，无法执行争议判定"
+                            allure.attach(error_msg,
+                                          name="争议判定失败",
+                                          attachment_type=allure.attachment_type.TEXT)
+                            pytest.fail(error_msg)
+
+                    with allure.step("子步骤3: 修改有争议为无争议") as substep3:
+                        # 记录处理参数
+                        handle_params = (
+                            f"样本ID: {self.datasetDataId_2}\n"
+                            f"日期: {DateTime}"
+                        )
+                        allure.attach(handle_params,
+                                      name="争议处理参数",
+                                      attachment_type=allure.attachment_type.TEXT)
+
+                        response = self.api_2d_label.dispute_handle(self.datasetDataId_2, DateTime)
+                        assertions.assert_code(response.status_code, 200)
+                        response_data = response.json()
+                        assertions.assert_in_text(response_data['msg'], '成功')
+
+                        # 记录处理结果
+                        allure.attach(f"争议处理结果: {response_data['msg']}",
+                                      name="争议处理完成",
+                                      attachment_type=allure.attachment_type.TEXT)
+
+                    with allure.step("子步骤4: 判断争议是否已处理") as substep4:
+                        response = self.api_2d_label.query_2d_task(self.task_name)
+                        assertions.assert_code(response.status_code, 200)
+                        response_data = response.json()
+                        assertions.assert_in_text(response_data['msg'], '成功')
+
+                        # 获取更新后的争议数量
+                        updated_task_list = response_data.get('data', {}).get('list', [])
+                        updated_disputeNum = 0
+                        for task in updated_task_list:
+                            if task.get('taskName') == self.task_name:
+                                updated_disputeNum = task.get('disputeNum', -1)
+                                break
+
+                        # 记录争议数量检查结果
+                        dispute_check = (
+                            f"任务名称: {self.task_name}\n"
+                            f"处理后争议数量: {updated_disputeNum}\n"
+                            f"预期值: 0"
+                        )
+                        allure.attach(dispute_check,
+                                      name="争议处理验证",
+                                      attachment_type=allure.attachment_type.TEXT)
+
+                        if updated_disputeNum == 0:
+                            allure.attach("争议处理成功: 争议数量已清零",
+                                          name="争议处理验证通过",
+                                          attachment_type=allure.attachment_type.TEXT)
+                        else:
+                            error_msg = f"错误: 争议处理失败，争议数量({updated_disputeNum})大于0！"
+                            allure.attach(error_msg,
+                                          name="争议处理验证失败",
+                                          attachment_type=allure.attachment_type.TEXT)
+                            pytest.fail(error_msg)
+                else:
+                    allure.attach("没有争议数据，继续执行后续步骤",
+                                  name="无争议确认",
+                                  attachment_type=allure.attachment_type.TEXT)
+            else:
+                error_msg = f"错误: 未找到任务名称为 '{self.task_name}' 的任务"
+                allure.attach(error_msg,
+                              name="任务查找失败",
+                              attachment_type=allure.attachment_type.TEXT)
+                pytest.fail(error_msg)
+
+        with allure.step("步骤13：创建&提交数据集") as step13:
             response = self.api_2d_label.create_dataset(self.task_name, dimensionTaskId)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
             self.verify_task_status(5, "已提交")
+
+        with allure.step("步骤14：查询2D数据集管理") as step14:
+            # 构建数据集名称
+            dataset_name = f"{self.task_name}-train"
+
+            response = self.api_2d_label.query_2d_dataset()
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 提取数据集列表
+            dataset_list = response_data.get('data', {}).get('list', [])
+            target_dataset = None
+
+            # 查找匹配的数据集
+            for dataset in dataset_list:
+                if dataset.get('name') == dataset_name:
+                    target_dataset = dataset
+                    break
+
+            # 处理结果
+            if target_dataset:
+                # 获取状态和ID
+                dataset_status = target_dataset.get('status')
+                dataset_id = target_dataset.get('datasetId')
+
+                # 记录数据集信息到报告
+                dataset_info = (
+                    f"数据集名称: {dataset_name}\n"
+                    f"状态: {dataset_status}\n"
+                    f"预期状态: 1 (已提交)"
+                )
+                allure.attach(dataset_info,
+                              name="数据集状态检查",
+                              attachment_type=allure.attachment_type.TEXT)
+
+                # 验证状态
+                if dataset_status == 1:
+                    allure.attach(f"状态验证成功: 数据集状态为'已提交'",
+                                  name="状态验证结果",
+                                  attachment_type=allure.attachment_type.TEXT)
+
+                    # 保存datasetId用于后续步骤
+                    TestLabel.train_dataset_id = dataset_id
+
+                    # 记录datasetId
+                    id_info = f"成功获取datasetId: {dataset_id}"
+                    allure.attach(id_info,
+                                  name="datasetId提取",
+                                  attachment_type=allure.attachment_type.TEXT)
+                else:
+                    # 状态异常处理
+                    status_map = {
+                        2: "已撤回",
+                        6: "已发起重标"
+                    }
+                    status_name = status_map.get(dataset_status, f"未知状态({dataset_status})")
+
+                    error_msg = f"错误: 数据集状态异常！当前状态: {status_name}，预期状态: 1 (已提交)"
+                    allure.attach(error_msg,
+                                  name="状态验证失败",
+                                  attachment_type=allure.attachment_type.TEXT)
+                    pytest.fail(error_msg)
+            else:
+                error_msg = f"错误: 未找到名称为 '{dataset_name}' 的数据集"
+                allure.attach(error_msg,
+                              name="数据集查找失败",
+                              attachment_type=allure.attachment_type.TEXT)
+                pytest.fail(error_msg)
+
+        with allure.step("步骤15：撤回标注样本") as step15:
+            # 检查是否成功获取了datasetId
+            if hasattr(TestLabel, 'train_dataset_id') and TestLabel.train_dataset_id:
+                # 记录撤回参数
+                withdraw_params = (
+                    f"数据集ID: {TestLabel.train_dataset_id}\n"
+                    f"数据集名称: {self.task_name}-train"
+                )
+                allure.attach(withdraw_params,
+                              name="撤回参数",
+                              attachment_type=allure.attachment_type.TEXT)
+
+                response = self.api_2d_label.dataset_withdraw(TestLabel.train_dataset_id)
+                assertions.assert_code(response.status_code, 200)
+                response_data = response.json()
+                assertions.assert_in_text(response_data['msg'], '成功')
+
+                # 记录撤回结果
+                allure.attach(f"撤回结果: {response_data['msg']}",
+                              name="样本撤回完成",
+                              attachment_type=allure.attachment_type.TEXT)
+
+                # 添加状态验证步骤
+                with allure.step("子步骤1：验证数据集状态已更新为'已撤回'") as step15_1:
+                    # 重新查询数据集状态
+                    response = self.api_2d_label.query_2d_dataset()
+                    assertions.assert_code(response.status_code, 200)
+                    response_data = response.json()
+                    assertions.assert_in_text(response_data['msg'], '成功')
+
+                    # 查找目标数据集
+                    dataset_list = response_data.get('data', {}).get('list', [])
+                    target_dataset = None
+                    for dataset in dataset_list:
+                        if dataset.get('datasetId') == TestLabel.train_dataset_id:
+                            target_dataset = dataset
+                            break
+
+                    if target_dataset:
+                        # 获取更新后的状态
+                        updated_status = target_dataset.get('status')
+
+                        # 记录状态信息
+                        status_info = (
+                            f"数据集ID: {TestLabel.train_dataset_id}\n"
+                            f"数据集名称: {self.task_name}-train\n"
+                            f"当前状态: {updated_status}\n"
+                            f"预期状态: 2 (已撤回)"
+                        )
+                        allure.attach(status_info,
+                                      name="数据集状态验证",
+                                      attachment_type=allure.attachment_type.TEXT)
+
+                        # 验证状态
+                        if updated_status == 2:
+                            allure.attach("状态验证成功: 数据集已成功撤回",
+                                          name="状态验证结果",
+                                          attachment_type=allure.attachment_type.TEXT)
+                        else:
+                            # 状态异常处理
+                            status_map = {
+                                1: "已提交",
+                                2: "已撤回",
+                                6: "已发起重标"
+                            }
+                            status_name = status_map.get(updated_status, f"未知状态({updated_status})")
+
+                            error_msg = f"错误: 数据集状态异常！当前状态: {status_name}，预期状态: 2 (已撤回)"
+                            allure.attach(error_msg,
+                                          name="状态验证失败",
+                                          attachment_type=allure.attachment_type.TEXT)
+                            pytest.fail(error_msg)
+                    else:
+                        error_msg = f"错误: 未找到数据集ID为 '{TestLabel.train_dataset_id}' 的数据集"
+                        allure.attach(error_msg,
+                                      name="数据集查找失败",
+                                      attachment_type=allure.attachment_type.TEXT)
+                        pytest.fail(error_msg)
+            else:
+                error_msg = "错误: 缺少有效的datasetId，无法执行撤回操作"
+                allure.attach(error_msg,
+                              name="撤回失败",
+                              attachment_type=allure.attachment_type.TEXT)
+                pytest.fail(error_msg)
+
+        with allure.step("步骤16：发起重标") as step16:
+            # 检查是否成功获取了datasetId
+            if hasattr(TestLabel, 'train_dataset_id') and TestLabel.train_dataset_id:
+                # 记录重标参数
+                relabel_params = (
+                    f"数据集ID: {TestLabel.train_dataset_id}\n"
+                    f"数据集名称: {self.task_name}-train"
+                )
+                allure.attach(relabel_params,
+                              name="重标参数",
+                              attachment_type=allure.attachment_type.TEXT)
+
+                response = self.api_2d_label.dataset_relabel(TestLabel.train_dataset_id)
+                assertions.assert_code(response.status_code, 200)
+                response_data = response.json()
+                assertions.assert_in_text(response_data['msg'], '成功')
+
+                # 记录重标结果
+                allure.attach(f"重标结果: {response_data['msg']}",
+                              name="重标完成",
+                              attachment_type=allure.attachment_type.TEXT)
+
+                # 添加状态验证步骤
+                with allure.step("子步骤1：验证数据集状态已更新为'已发起重标'") as step16_1:
+                    # 重新查询数据集状态
+                    response = self.api_2d_label.query_2d_dataset()
+                    assertions.assert_code(response.status_code, 200)
+                    response_data = response.json()
+                    assertions.assert_in_text(response_data['msg'], '成功')
+
+                    # 查找目标数据集
+                    dataset_list = response_data.get('data', {}).get('list', [])
+                    target_dataset = None
+                    for dataset in dataset_list:
+                        if dataset.get('datasetId') == TestLabel.train_dataset_id:
+                            target_dataset = dataset
+                            break
+
+                    if target_dataset:
+                        # 获取更新后的状态
+                        updated_status = target_dataset.get('status')
+
+                        # 记录状态信息
+                        status_info = (
+                            f"数据集ID: {TestLabel.train_dataset_id}\n"
+                            f"数据集名称: {self.task_name}-train\n"
+                            f"当前状态: {updated_status}\n"
+                            f"预期状态: 6 (已发起重标)"
+                        )
+                        allure.attach(status_info,
+                                      name="数据集状态验证",
+                                      attachment_type=allure.attachment_type.TEXT)
+
+                        # 验证状态
+                        if updated_status == 6:
+                            allure.attach("状态验证成功: 数据集已成功发起重标",
+                                          name="状态验证结果",
+                                          attachment_type=allure.attachment_type.TEXT)
+                        else:
+                            # 状态异常处理
+                            status_map = {
+                                1: "已提交",
+                                2: "已撤回",
+                                6: "已发起重标"
+                            }
+                            status_name = status_map.get(updated_status, f"未知状态({updated_status})")
+
+                            error_msg = f"错误: 数据集状态异常！当前状态: {status_name}，预期状态: 6 (已发起重标)"
+                            allure.attach(error_msg,
+                                          name="状态验证失败",
+                                          attachment_type=allure.attachment_type.TEXT)
+                            pytest.fail(error_msg)
+                    else:
+                        error_msg = f"错误: 未找到数据集ID为 '{TestLabel.train_dataset_id}' 的数据集"
+                        allure.attach(error_msg,
+                                      name="数据集查找失败",
+                                      attachment_type=allure.attachment_type.TEXT)
+                        pytest.fail(error_msg)
+            else:
+                error_msg = "错误: 缺少有效的datasetId，无法执行重标操作"
+                allure.attach(error_msg,
+                              name="重标失败",
+                              attachment_type=allure.attachment_type.TEXT)
+                pytest.fail(error_msg)
+
+        with allure.step("步骤17：检查标注任务状态") as step17:
+            response = self.api_2d_label.query_2d_task(self.task_name)
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            self.verify_task_status(7, "待重标")

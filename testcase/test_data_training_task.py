@@ -197,7 +197,7 @@ class TestDataTrainingTask:
                 conn.close()
 
     @allure.story("数据训练任务")
-    def test_train_task_workflow(self):
+    def test_data_task_workflow(self):
         total_start = time.time()
         step_durations = {}  # 存储每个步骤的耗时
 

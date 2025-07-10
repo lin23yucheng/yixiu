@@ -20,9 +20,9 @@ class Constants:
     IS_CROP = 2
     DETECTION_AREA_TYPE = 2
     SYSTEM_TYPE = 1
-    DEFAULT_ADDRESS_NO = 1
-    DEFAULT_THREADS = 1
-    DEFAULT_LOOPS = 3
+    DEFAULT_ADDRESS_NO = 1  #GRPC请求编号
+    DEFAULT_THREADS = 1  #线程数
+    DEFAULT_LOOPS = 3  #循环数
 
 
 # 路径工具函数

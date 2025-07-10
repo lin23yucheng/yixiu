@@ -19,7 +19,6 @@ class ApiSimulation:
         payload = {"data": {"onlySelf": True, "productInfoId": ""}, "page": {"pageIndex": 1, "pageSize": 10}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 创建测试图集
@@ -31,7 +30,6 @@ class ApiSimulation:
                    "photoIdList": [1]}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 查询仿真测试任务
@@ -41,7 +39,6 @@ class ApiSimulation:
                    "page": {"pageIndex": 1, "pageSize": 10}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 创建仿真测试任务
@@ -71,15 +68,14 @@ class ApiSimulation:
                    }
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 查看数据算法评估报告（模型综合评估）
     def query_test_report(self, test_task_id):
         url = f"{env}/miai/brainstorm/datalg/dataalgorithmtestreport/dataModel/compReport/{test_task_id}"
         payload = None
+
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 查看数据算法评估报告（缺陷图模型检出评估（缺陷级））
@@ -90,21 +86,20 @@ class ApiSimulation:
                    "page": {"pageSize": 10, "pageIndex": 1, "total": 0}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 删除仿真测试任务
     def delete_test_task(self, test_task_id):
         url = f"{env}/miai/brainstorm/datalg/dataalgorithmtest/delete/{test_task_id}"
         payload = None
+
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 删除测试图集
     def delete_test_atlas(self, test_atlas_id):
         url = f"{env}/miai/brainstorm/datalg/dataalgorithmtestdataset/delete/{test_atlas_id}"
         payload = None
+
         response = self.client.post_with_retry(url, json=payload)
-         
         return response

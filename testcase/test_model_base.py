@@ -140,18 +140,6 @@ class TestModelBase:
                 7: "未提交"
             }
 
-        # 状态颜色映射
-        color_mapping = {
-            0: "\033[0m",  # 已提交 - 默认
-            1: "\033[93m",  # 测试中 - 黄色
-            2: "\033[91m",  # 测试失败 - 红色
-            3: "\033[92m",  # 测试完成 - 绿色
-            4: "\033[92m",  # 已发布 - 绿色
-            5: "\033[93m",  # 组合中 - 黄色
-            6: "\033[91m",  # 组合失败 - 红色
-            7: "\033[0m"  # 未提交 - 默认
-        }
-
         # 状态跟踪变量
         prev_status = None
         status_start_time = None
@@ -220,8 +208,15 @@ class TestModelBase:
                         f"总耗时: {total_mins}分{total_secs}秒"
                     )
 
-                    # 获取颜色代码
-                    color_code = color_mapping.get(current_status, "\033[0m")
+                    # 获取颜色代码 - 基于状态描述
+                    if "完成" in status_desc or "成功" in status_desc or "已发布" in status_desc:
+                        color_code = "\033[92m"  # 绿色
+                    elif "中" in status_desc or "进行" in status_desc:
+                        color_code = "\033[93m"  # 黄色
+                    elif "失败" in status_desc or "错误" in status_desc:
+                        color_code = "\033[91m"  # 红色
+                    else:
+                        color_code = "\033[0m"  # 默认
 
                     # 仅当状态信息变化时更新控制台（避免频繁刷新）
                     if status_info != last_status_info:
@@ -260,7 +255,13 @@ class TestModelBase:
                         # 打印最终状态信息（带颜色）
                         status_desc = status_mapping.get(current_status, f"未知状态({current_status})")
                         final_info = f"{step_name}状态: {status_desc} | 总耗时: {total_mins}分{total_secs}秒"
-                        color_code = color_mapping.get(current_status, "\033[0m")
+
+                        # 再次确定颜色（确保成功状态显示绿色）
+                        if "完成" in status_desc or "成功" in status_desc or "已发布" in status_desc:
+                            color_code = "\033[92m"  # 绿色
+                        else:
+                            color_code = "\033[0m"  # 默认
+
                         print(f"\r{color_code}{final_info}\033[0m")
 
                         return True

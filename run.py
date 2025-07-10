@@ -114,7 +114,7 @@ def run_selected_tests():
 
     # 定义要执行的测试文件列表
     test_files = [
-        "testcase/test_model_base.py"
+        "testcase/test_bash.py"
     ]
 
     # 添加项目根目录到Python路径
@@ -174,10 +174,10 @@ def run_selected_tests():
         # 格式化并输出总耗时
         formatted_total = format_time(total_elapsed_time)
         MyLog.info(f"测试文件累加总耗时: {formatted_total}")
-        MyLog.info(f"自动化测试整体执行耗时: {formatted_overall}")
+        MyLog.info(f"一休云接口自动化测试-整体耗时: {formatted_overall}")
 
         # 在控制台显示整体耗时
-        print(f"自动化测试整体执行耗时: {formatted_overall}")
+        print(f"\033[32m一休云接口自动化测试-整体耗时: {formatted_overall}\033[0m")
 
         # 生成报告
         os.system(f"allure generate {allure_results} -o {allure_report} --clean")
@@ -342,10 +342,10 @@ def run_parallel_tests():
     formatted_time = format_time(overall_time)
 
     MyLog.info(f"完成并行测试 at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
-    MyLog.info(f"总执行耗时: {formatted_time}")
+    MyLog.info(f"一休云接口自动化测试-整体耗时: {formatted_time}")
 
     # 在控制台显示整体耗时
-    print(f"总执行耗时: {formatted_time}")
+    print(f"\033[32m一休云接口自动化测试-整体耗时: {formatted_time}\033[0m")
 
     # 生成报告
     os.system(f"allure generate {allure_results} -o {allure_report} --clean")
@@ -381,6 +381,7 @@ if __name__ == "__main__":
         run_selected_tests()  # 顺序执行
         # run_parallel_tests()  # 并行执行
         # test_logic_manual()   # bash推图手动
+
     finally:
         current_process = psutil.Process()
         children = current_process.children(recursive=True)

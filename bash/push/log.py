@@ -51,44 +51,13 @@ def get_now(time_format="%Y-%m-%d %H:%M:%S"):
 
 
 class LogType:
-    """终端带颜色的输出
-    @todo: 将组合写成类，便于快速组合
-
-    @param:[log类型，优先级，颜色代码，可以用类，也可以自己写，规则见注释]
-    @note:
-    格式：\033[显示方式;文字色;背景色m
-    说明:
-
-    文字色            背景色            颜色
-    ---------------------------------------
-      30                40              黑色
-      31                41              红色
-      32                42              绿色
-      33                43              黃色
-      34                44              蓝色
-      35                45              紫红色
-      36                46              青蓝色
-      37                47              白色
-
-    显示方式           意义
-    -------------------------
-       0           终端默认设置
-       1             高亮显示
-       4            使用下划线
-       5              闪烁
-       7             反白显示
-       8              不可见
-
-    例子：
-    \033[1;31;40m    <!--1-高亮显示 31-文字色红色  40-背景色黑色-->
-    \033[0m          <!--采用终端默认设置，即取消颜色设置-->]]]
-    """
-    DEBUG = ["debug", LogLevel.DEBUG, "\033[37m"]  # 调试
-    NORMAL = ["info", LogLevel.LOW, "\033[37m"]  # 默认
-    HIGHLIGHT = ["info", LogLevel.MIDDLE, "\033[1;37m"]  # 高亮
-    LOGIC = ["info", LogLevel.HIGH, "\033[32m"]  # 逻辑用，绿色
-    WARNING = ["warning", LogLevel.HIGHER, "\033[33m"]  # 警告
-    ERROR = ["error", LogLevel.TOP, "\033[31m"]  # 错误
+    """日志类型枚举"""
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
+    LOGIC = "LOGIC"  # 业务逻辑日志
 
 
 def logFileHandler(obj, filename, is_split):
@@ -119,25 +88,21 @@ def printl(obj, color_code):
     getattr(logger, color_code[0])(string)
 
 
-def log(obj, prefix=LogType.DEBUG, log_name=None, is_split=True):
+def log(message: str, log_type: str = LogType.INFO, is_split: bool = True):
     """
-    日志输出主方法
-    :param is_split: 是否日志分离
-    :param log_name: 日志名称
-    :param obj: 输出内容
-    :param prefix: 类型颜色区分
-    :return:
-    """
-    if log_name:
-        log_name = "{0}_{1}".format(get_now().split(" ")[0], "_log")
-    # 格式拼装
-    obj = "{0} - {1} - {2}".format(get_now(), prefix[0].upper(), obj)
-    # 输出到控制台
-    if not prefix[1] < logPrintLv:
-        printl(obj, prefix)
+    记录日志
 
-    if not prefix[1] < logFileLv:
-        logFileHandler(obj, log_name, is_split)
+    :param message: 日志消息
+    :param log_type: 日志类型 (LogType)
+    :param is_split: 是否分割长消息
+    """
+    if is_split and len(message) > 100:
+        # 分割长消息
+        parts = [message[i:i + 100] for i in range(0, len(message), 100)]
+        for i, part in enumerate(parts):
+            print(f"[{log_type}] Part {i + 1}/{len(parts)}: {part}")
+    else:
+        print(f"[{log_type}] {message}")
 
 
 class Log(object):

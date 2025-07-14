@@ -114,7 +114,7 @@ def run_selected_tests():
 
     # 定义要执行的测试文件列表
     test_files = [
-        "testcase/test_bash.py"
+        "testcase/test_standard_push_map.py"
     ]
 
     # 添加项目根目录到Python路径
@@ -373,6 +373,9 @@ def run_parallel_tests():
 
 
 if __name__ == "__main__":
+    # 添加环境变量优化
+    os.environ['NO_PROXY'] = 'localhost,127.0.0.1'
+
     print("===== 测试执行程序启动 =====")
     MyLog.info("===== 测试执行程序启动 =====")
 

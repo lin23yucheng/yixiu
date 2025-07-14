@@ -2,9 +2,10 @@
 bash系统相关接口
 """
 import requests
-
 from api import api_space
 from common.Request_Response import ApiClient
+
+bash_fat = "http://fat-bash-gw.svfactory.com:6180"
 
 
 class ApiBashSample:
@@ -15,7 +16,7 @@ class ApiBashSample:
     # bash系统登录
     @staticmethod
     def bash_login(account, password):
-        bash_url = f"http://fat-bash-gw.svfactory.com:6180/auth/login"
+        bash_url = f"{bash_fat}/auth/login"
         bash_login_data = {"account": account, "password": password}
         bash_login_header = {"content-type": "application/json"}
 
@@ -26,7 +27,6 @@ class ApiBashSample:
                 headers=bash_login_header,
                 timeout=20
             )
-             
 
             try:
                 token_data = response.json()
@@ -42,79 +42,96 @@ class ApiBashSample:
 
         return accessToken
 
+    # 查询项目管理
+    def query_project_manage(self, space_name):
+        url = f"{bash_fat}/manage/project/projectList"
+        payload = {"data": {"name": space_name}, "page": {"pageIndex": 1, "pageSize": 10}}
+
+        response = self.client.post_with_retry(url, json=payload)
+        return response
+
     # 查询产品管理
     def query_product_manage(self, miaispacemanageid, miaiproductcode):
-        url = f"http://fat-bash-gw.svfactory.com:6180/manage/product/page"
+        url = f"{bash_fat}/manage/product/page"
         payload = {"data": {"projectId": miaispacemanageid, "productCode": miaiproductcode, "settingStatus": "1",
                             "productSwitch": "1", "productDetectionType": "", "productHandleType": ""},
                    "page": {"pageIndex": 1, "pageSize": 10}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 查询人员userId
     def query_personnel_id(self):
-        url = f"http://fat-bash-gw.svfactory.com:6180/manage/user/userList"
+        url = f"{bash_fat}/manage/user/userList"
         payload = {"data": {"userId": "", "productId": "", "projectId": "", "source": 1},
                    "page": {"pageIndex": 1, "pageSize": 1000}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 人员产品查询
-    def query_product_manage_person(self,userid):
-        url = f"http://fat-bash-gw.svfactory.com:6180/manage/user/userProductList"
+    def query_product_manage_person(self, userid):
+        url = f"{bash_fat}/manage/user/userProductList"
         payload = {"data": {"userId": userid}, "page": {"pageIndex": 1, "pageSize": 100}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
+        return response
+
+    # 人员和产品关联
+    def add_personnel_product(self, bash_product_id, priority, userid):
+        url = f"{bash_fat}/manage/user/addProductForSeatUser"
+        payload = {"list": [
+            {"productId": bash_product_id, "priority": priority, "userProductId": "", "isFractionation": False,
+             "handleType": ""}], "userId": userid}
+
+        response = self.client.post_with_retry(url, json=payload)
+        return response
+
+    # 查询班次管理
+    def query_shift_management(self):
+        url = f"{bash_fat}/manage/shift/list"
+
+        response = self.client.post_with_retry(url, json=None)
         return response
 
     # 查看人员计划
     def query_personnel_plan(self):
-        url = f"http://fat-bash-gw.svfactory.com:6180/manage/productionPlan/userShiftList"
+        url = f"{bash_fat}/manage/productionPlan/userShiftList"
         payload = {"data": {"endTime": "", "startTime": ""}, "page": {"pageIndex": 1, "pageSize": 100}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
-    # 生成人员计划 shiftId是班次ID（固定写死白班）
-    def create_personnel_plan(self, endTime, startTime):
-        url = f"http://fat-bash-gw.svfactory.com:6180/manage/productionPlan/userShiftAdd"
+    # 生成人员计划
+    def create_personnel_plan(self, endTime, startTime, shiftid):
+        url = f"{bash_fat}/manage/productionPlan/userShiftAdd"
         payload = {"endTime": endTime, "startTime": startTime, "planNum": "100",
-                   "productIds": [], "shiftId": "1854365956311035906"}
+                   "productIds": [], "shiftId": shiftid}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 查看人员排班
     def query_personnel_schedule(self, endTime, startTime):
-        url = f"http://fat-bash-gw.svfactory.com:6180/manage/productionPlan/userList"
+        url = f"{bash_fat}/manage/productionPlan/userList"
         payload = {"endTime": endTime, "startTime": startTime}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 修改人员排班
-    def update_personnel_schedule(self, endTime, startTime,userid_list):
-        url = f"http://fat-bash-gw.svfactory.com:6180/manage/productionPlan/userShiftUpdate"
+    def update_personnel_schedule(self, endTime, startTime, userid_list, shiftid):
+        url = f"{bash_fat}/manage/productionPlan/userShiftUpdate"
         payload = {"endTime": endTime, "startTime": startTime,
-                   "userId": userid_list, "shiftId": "1854365956311035906"}
+                   "userId": userid_list, "shiftId": shiftid}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 发布排班
     def release_personnel_schedule(self, endTime, startTime):
-        url = f"http://fat-bash-gw.svfactory.com:6180/manage/productionPlan/userShiftRelease"
+        url = f"{bash_fat}/manage/productionPlan/userShiftRelease"
         payload = {"endTime": endTime, "startTime": startTime}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response

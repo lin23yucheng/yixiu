@@ -17,13 +17,14 @@ from utils.browser_pool import get_browser, release_browser
 class TestBashUI:
     @classmethod
     def setup_class(cls):
-        # 从浏览器池获取实例
-        cls.driver = get_browser()
 
         # 读取配置文件
         config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
         config = configparser.ConfigParser()
         config.read(config_path)
+
+        # 从浏览器池获取实例
+        cls.driver = get_browser()
 
         # 获取账号密码
         cls.username = config.get('bash', 'myself_account')

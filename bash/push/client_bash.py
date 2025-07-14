@@ -1,6 +1,8 @@
 """
 bash推图(手动/自动)
 """
+import configparser
+
 from bash.push.log import *
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor
@@ -14,15 +16,16 @@ import traceback
 import threading
 import bash.push.bash_pb2 as grpc_api
 import bash.push.bash_pb2_grpc as grpc_control
+from bash.push.log import LogType, log
 
 # 常量定义
 class Constants:
     IS_CROP = 2
     DETECTION_AREA_TYPE = 2
     SYSTEM_TYPE = 1
-    DEFAULT_ADDRESS_NO = 1  #GRPC请求编号
-    DEFAULT_THREADS = 1  #线程数
-    DEFAULT_LOOPS = 3  #循环数
+    DEFAULT_ADDRESS_NO = 1  # GRPC请求编号
+    DEFAULT_THREADS = 1  # 线程数
+    DEFAULT_LOOPS = 3  # 循环数
 
 
 # 路径工具函数
@@ -74,6 +77,114 @@ class ResourceLoader:
                     cls._config = json.load(f)
         return cls._config
 
+    @classmethod
+    def get_dynamic_params(cls):
+        """动态获取参数：从accessToken.txt读取token，从配置文件读取miai-product-code"""
+        # 获取项目根目录
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+        # 1. 读取accessToken.txt
+        token_path = os.path.join(project_root, 'testdata', 'accessToken.txt')
+        access_token = ""
+        if os.path.exists(token_path):
+            with open(token_path, 'r') as f:
+                access_token = f.read().strip()
+            log(f"成功读取Token文件: {token_path}", LogType.INFO)
+        else:
+            log(f"Token文件不存在: {token_path}", LogType.WARNING)
+
+        # 2. 读取配置文件获取miai-product-code
+        config_path = os.path.join(project_root, 'config', 'env_config.ini')
+        miai_product_code = ""
+        if os.path.exists(config_path):
+            config = configparser.ConfigParser()
+            config.read(config_path)
+            if 'global' in config:
+                try:
+                    miai_product_code = config.get('global', 'miai-product-code')
+                    log(f"成功读取miai-product-code: {miai_product_code}", LogType.INFO)
+                except configparser.NoOptionError:
+                    log(f"配置文件中缺少miai-product-code字段", LogType.WARNING)
+            else:
+                log(f"配置文件中缺少global节", LogType.WARNING)
+        else:
+            log(f"配置文件不存在: {config_path}", LogType.WARNING)
+
+        # 3. 获取原始参数并更新
+        params = cls.get_params()
+        params["access_token"] = access_token
+        params["device_no"] = miai_product_code
+        params["product_name"] = miai_product_code
+
+        # 记录更新后的参数
+        log(f"动态参数更新: access_token={access_token[:10]}..., device_no={miai_product_code}, product_name={miai_product_code}",
+            LogType.INFO)
+
+        return params
+
+    @classmethod
+    def update_params_json(cls):
+        """更新params_data.json文件：从accessToken.txt读取token，从配置文件读取miai-product-code"""
+        # 获取项目根目录
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+        # 1. 读取accessToken.txt
+        token_path = os.path.join(project_root, 'testdata', 'accessToken.txt')
+        access_token = ""
+        if os.path.exists(token_path):
+            with open(token_path, 'r') as f:
+                access_token = f.read().strip()
+            log(f"成功读取Token文件: {token_path}", LogType.INFO)
+        else:
+            log(f"Token文件不存在: {token_path}", LogType.WARNING)
+
+        # 2. 读取配置文件获取miai-product-code
+        config_path = os.path.join(project_root, 'config', 'env_config.ini')
+        miai_product_code = ""
+        if os.path.exists(config_path):
+            config = configparser.ConfigParser()
+            config.read(config_path)
+            if 'global' in config:
+                try:
+                    miai_product_code = config.get('global', 'miai-product-code')
+                    log(f"成功读取miai-product-code: {miai_product_code}", LogType.INFO)
+                except configparser.NoOptionError:
+                    log(f"配置文件中缺少miai-product-code字段", LogType.WARNING)
+            else:
+                log(f"配置文件中缺少global节", LogType.WARNING)
+        else:
+            log(f"配置文件不存在: {config_path}", LogType.WARNING)
+
+        # 3. 获取原始参数路径
+        params_path = get_relative_path('json', 'params_data.json')
+
+        # 4. 读取现有JSON内容
+        try:
+            with open(params_path, 'r', encoding='utf-8') as f:
+                params = json.load(f)
+        except Exception as e:
+            log(f"读取参数文件失败: {e}", LogType.ERROR)
+            return False
+
+        # 5. 更新关键字段
+        params["access_token"] = access_token
+        params["device_no"] = miai_product_code
+        params["product_name"] = miai_product_code
+
+        # 修改 image_header 生成逻辑
+        new_header = f"-{miai_product_code}-01-02-03-04-"
+        params["image_header"] = new_header
+
+        # 6. 写回文件
+        try:
+            with open(params_path, 'w', encoding='utf-8') as f:
+                json.dump(params, f, indent=4, ensure_ascii=False)
+            log(f"成功更新参数文件: {params_path}", LogType.INFO)
+            return True
+        except Exception as e:
+            log(f"更新参数文件失败: {e}", LogType.ERROR)
+            return False
+
 
 # 图片加载缓存
 @lru_cache(maxsize=1)
@@ -113,7 +224,7 @@ class BashGrpcMock:
 
         # 加载证书和配置
         certs = ResourceLoader.get_certs()
-        self.result = ResourceLoader.get_params()
+        self.result = ResourceLoader.get_params()  # 使用静态加载的参数
 
         # 创建gRPC通道
         creds = grpc.ssl_channel_credentials(**certs)
@@ -148,8 +259,12 @@ class BashGrpcMock:
         random_part2 = random.randint(2000, 2100)
         random_part3 = random.randint(1, 9)
 
-        # 生成图片头
-        image_header = f"{random_part1}-{random_part2}-{random_part3}{self.result['image_header']}{now_str}.jpg"
+        # 修改图片头生成逻辑
+        device_no = self.result["device_no"]
+        image_header = (
+            f"{random_part1}-{random_part2}-{random_part3}-"
+            f"{device_no}-01-02-03-04-{now_str}.jpg"
+        )
 
         # 更新索引和计数器
         self.index = (self.index + 1) % len(self.fixed_values)
@@ -158,6 +273,9 @@ class BashGrpcMock:
 
         # 发送gRPC请求
         self.grpc_request(image_header)
+
+        # log(f"生成的图片头: {image_header}", LogType.INFO)
+        # log(f"请求设备号: {self.result['device_no']}", LogType.INFO)
 
     def _build_model_result(self, image_header):
         """构建模型结果数据结构"""
@@ -374,6 +492,11 @@ def push_images_auto(config_data=None):
     """自动执行模式测试"""
     print("测试开始 (自动模式)")
     config = ResourceLoader.get_config(config_data)
+
+    # === 新增：在启动前更新JSON文件 ===
+    update_result = ResourceLoader.update_params_json()
+    if not update_result:
+        print("警告：参数文件更新失败，使用现有配置继续执行")
 
     # 使用默认参数
     address_no = Constants.DEFAULT_ADDRESS_NO

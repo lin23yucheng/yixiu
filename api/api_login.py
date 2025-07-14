@@ -13,6 +13,7 @@ section = "global"
 env = config.get(section, "execution_env")
 miai_product_code = config.get(section, "miai-product-code")
 miaispacemanageid = config.get(section, "miaispacemanageid")
+space_name = config.get(section, "space_name")
 
 if env == "dev":
     token_url = "https://dev-sso.svfactory.com:6143/auth/realms/uuam/protocol/openid-connect/token"

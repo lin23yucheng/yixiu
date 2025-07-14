@@ -22,7 +22,6 @@ class ApiDataTrainTasks:
         payload = {"data": {"onlySelf": True}, "page": {"pageIndex": 1, "pageSize": 10}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 拷贝数据训练任务
@@ -37,7 +36,6 @@ class ApiDataTrainTasks:
                    "dataAlgorithmTrainTaskId": TrainTaskId}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 删除数据训练任务
@@ -45,7 +43,6 @@ class ApiDataTrainTasks:
         url = f"{env}/miai/brainstorm/datalg/dataalgorithmtraintask/delete/{data_task_id}"
 
         response = self.client.post_with_retry(url, json=None)
-         
         return response
 
     # 生成下载数据包
@@ -53,7 +50,6 @@ class ApiDataTrainTasks:
         url = f"{env}/miai/brainstorm/datalg/dataAlgorithmCollect/createCollectTask/{data_task_id}"
 
         response = self.client.post_with_retry(url, json=None)
-         
         return response
 
     # 上传数据算法
@@ -115,7 +111,6 @@ class ApiDataTrainTasks:
         payload = {"data": {"dataAlgorithmTrainTaskId": data_task_id}, "page": {"pageIndex": 1, "pageSize": 10}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 查询下载记录
@@ -124,5 +119,4 @@ class ApiDataTrainTasks:
         payload = {"data": {"dataAlgorithmTrainTaskId": data_task_id}, "page": {"pageIndex": 1, "pageSize": 10}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response

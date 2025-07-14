@@ -1,5 +1,5 @@
 """
-单产品-标注流程
+单产品-2D标注流程
 """
 import os
 import pytest
@@ -167,7 +167,7 @@ class TestLabel:
                         attachment_type=allure.attachment_type.TEXT
                     )
 
-        with allure.step("步骤3：创建标注任务") as step3:
+        with allure.step("步骤3：创建2D标注任务") as step3:
             taskname = f"接口自动化标注-{time_str}"
             # 记录任务创建参数
             task_params = (

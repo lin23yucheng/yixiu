@@ -156,7 +156,6 @@ class Api2DLabel:
                             "startTime": "", "commitUser": ""}, "page": {"pageIndex": 1, "pageSize": 10}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 数据集撤回
@@ -165,7 +164,6 @@ class Api2DLabel:
         payload = None
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 发起重标
@@ -174,5 +172,4 @@ class Api2DLabel:
         payload = None
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response

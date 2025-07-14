@@ -87,7 +87,6 @@ class ApiBashSample:
         payload = {"sampleSource": 1}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # bash样本库-追加标注任务
@@ -121,5 +120,4 @@ class ApiBashSample:
                    "dataSyncIds": dataSyncIds}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response

@@ -114,7 +114,7 @@ def run_selected_tests():
 
     # 定义要执行的测试文件列表
     test_files = [
-        "testcase/test_standard_push_map.py"
+        "testcase/test_3D_label.py"
     ]
 
     # 添加项目根目录到Python路径
@@ -243,16 +243,19 @@ def run_parallel_tests():
     tasks = [
         # 第一组：无依赖任务（并行执行）
         {"file": "testcase/test_bash.py", "deps": None},
+        {"file": "testcase/test_standard_push_map.py", "deps": None},
         {"file": "testcase/test_deep_model_training.py", "deps": None},
         {"file": "testcase/test_class_cut_model_training.py", "deps": None},
         {"file": "testcase/test_class_original_model_training.py", "deps": None},
         {"file": "testcase/test_data_training_task.py", "deps": None},
         {"file": "testcase/test_simulation.py", "deps": None},
         {"file": "testcase/test_product_information.py", "deps": None},
+        {"file": "testcase/test_study_samples.py", "deps": None},
 
         # 第二组：有依赖任务
         {"file": "testcase/test_bash_ui.py", "deps": ["testcase/test_bash.py"], "require_success": True},
-        {"file": "testcase/test_label.py", "deps": ["testcase/test_bash_ui.py"], "require_success": True},
+        {"file": "testcase/test_2D_label.py", "deps": ["testcase/test_bash_ui.py"], "require_success": True},
+        {"file": "testcase/test_3D_label.py", "deps": ["testcase/test_standard_push_map.py"], "require_success": True},
         {
             "file": "testcase/test_post_process.py",
             "deps": [

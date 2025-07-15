@@ -31,7 +31,6 @@ class ApiBashSample:
                    "page": {"pageIndex": 1, "pageSize": 15}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # bash样本库-分拣样本
@@ -58,7 +57,6 @@ class ApiBashSample:
         }
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # bash样本库-创建标注任务
@@ -78,7 +76,6 @@ class ApiBashSample:
                    "dataSyncIds": sampledatasyncid}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 查询可追加的标注任务
@@ -103,7 +100,6 @@ class ApiBashSample:
                    "dimensionId": dimensionTaskId}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # bash样本库-ok图创建提交数据集

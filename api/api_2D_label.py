@@ -22,7 +22,6 @@ class Api2DLabel:
                    "page": {"pageIndex": 1, "pageSize": 10}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 查询标注图片
@@ -32,7 +31,6 @@ class Api2DLabel:
                    "page": {"pageIndex": 1, "pageSize": 9999, "total": 0, "pages": 0}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 标注多边形
@@ -48,7 +46,6 @@ class Api2DLabel:
                    "classifyType": label, "timeConsuming": 2400, "imageProperties": {"": ""}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 标注矩形
@@ -63,7 +60,6 @@ class Api2DLabel:
                    "imageProperties": {"": ""}}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 提交复核
@@ -72,7 +68,6 @@ class Api2DLabel:
         payload = {"dimensionTaskId": dimensionTaskId, "taskStatus": 3}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 复核判定（taskStatus：8-不通过，taskStatus：4-通过）
@@ -81,7 +76,6 @@ class Api2DLabel:
         payload = {"dimensionTaskId": dimensionTaskId, "taskStatus": taskStatus}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 标注/重标（变更状态为：进行中）
@@ -90,7 +84,6 @@ class Api2DLabel:
         payload = {"dimensionTaskId": dimensionTaskId, "taskStatus": 2}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 创建&提交数据集
@@ -100,7 +93,6 @@ class Api2DLabel:
                    "dataAlgorithmTestDatasetId": ""}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 获取争议缺陷id
@@ -109,7 +101,6 @@ class Api2DLabel:
         payload = {"dataId": dataId, "label": "", "disputeResult": ""}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 争议判定
@@ -130,7 +121,6 @@ class Api2DLabel:
              "labelIndex": 0}]}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 争议处理
@@ -146,7 +136,6 @@ class Api2DLabel:
                    "classifyType": "tuomo", "canEdit": True, "label": ""}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
     # 查询2D数据集

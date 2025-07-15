@@ -24,13 +24,16 @@ class ApiComprehensiveSampleLibrary:
                      "imageDefinition": [],
                      "sampleType": [], "dataAlgorithmSampleType": [], "deepModelSampleType": []},
             "page": {"pageIndex": 1, "pageSize": 10}}
-        return self.client.post(url, json=payload)
+
+        response = self.client.post_with_retry(url, json=payload)
+        return response
 
     # 综合样本库-创建深度训练任务
     def create_deep_training_tasks(self, defectName, photoId, cut, taskName, classifyType, caseId, caseName, type,
                                    iscut):
         url = f"{env}/miai/brainstorm/global/sample/createTrainTask"
-        payload = {"endTime": None, "startTime": None, "imgName": "", "visualGrade": [], "bashSampleType": [],
+        payload = {"endTime": None, "startTime": None, "imgName": "", "globalDatasetType": 0, "visualGrade": [],
+                   "bashSampleType": [],
                    "productId": [self.product_info_id], "defectName": defectName, "photoId": photoId,
                    "classifyType": classifyType,
                    "imageDefinition": [], "sampleType": [], "dataAlgorithmSampleType": [], "deepModelSampleType": [],
@@ -39,26 +42,31 @@ class ApiComprehensiveSampleLibrary:
                    "caseId": caseId, "caseName": caseName, "cut": iscut, "filter": False, "remark": "",
                    "defectCount": "[{\"labelName\":\"\",\"count\":\"\"}]", "cutHeight": cut, "cutWidth": cut,
                    "typeMapping": "{\"liangdian\":\"liangdian\",\"liebian\":\"liebian\"}", "type": type}
-        return self.client.post(url, json=payload)
+
+        response = self.client.post_with_retry(url, json=payload)
+        return response
 
     # 综合样本库-追加到深度训练任务(目标检测-按比例划分)
     def append_deep_training_tasks1(self, defectName, photoId, trainId):
         url = f"{env}/miai/brainstorm/global/sample/addition"
 
-        payload = {"endTime": None, "startTime": None, "imgName": "", "visualGrade": [], "bashSampleType": [],
+        payload = {"endTime": None, "startTime": None, "imgName": "", "globalDatasetType": 0, "visualGrade": [],
+                   "bashSampleType": [],
                    "productId": [self.product_info_id], "defectName": defectName, "photoId": photoId,
                    "classifyType": [],
                    "imageDefinition": [], "sampleType": [], "dataAlgorithmSampleType": [], "deepModelSampleType": [],
                    "selectIds": [], "notSelectIds": [], "testSetMinValue": 0, "testSetProportion": 40,
                    "trainId": trainId, "datasetType": 3, "filter": False, "defectCount": "[]"}
 
-        return self.client.post(url, json=payload)
+        response = self.client.post_with_retry(url, json=payload)
+        return response
 
     # 综合样本库-追加到深度训练任务(目标检测-划分训练集1/验证集2)
     def append_deep_training_tasks2(self, defectName, photoId, sampleType, trainId, datasetType):
         url = f"{env}/miai/brainstorm/global/sample/addition"
 
-        payload = {"imgName": "", "endTime": None, "startTime": None, "visualGrade": [], "bashSampleType": [],
+        payload = {"imgName": "", "endTime": None, "startTime": None, "globalDatasetType": 0, "visualGrade": [],
+                   "bashSampleType": [],
                    "productId": [self.product_info_id], "defectName": defectName, "photoId": photoId,
                    "classifyType": [],
                    "sampleType": sampleType, "imageDefinition": [], "dataAlgorithmSampleType": [],
@@ -66,12 +74,14 @@ class ApiComprehensiveSampleLibrary:
                    "selectIds": [], "notSelectIds": [], "trainId": trainId, "datasetType": datasetType,
                    "filter": False, "defectCount": "[]"}
 
-        return self.client.post(url, json=payload)
+        response = self.client.post_with_retry(url, json=payload)
+        return response
 
     # 综合样本库-创建数据训练任务
     def create_data_training_tasks(self, defectName, taskName):
         url = f"{env}/miai/brainstorm/datalg/dataalgorithmtraintask/create"
-        payload = {"imgName": "", "endTime": None, "startTime": None, "visualGrade": [], "bashSampleType": [],
+        payload = {"imgName": "", "endTime": None, "startTime": None, "globalDatasetType": 0, "visualGrade": [],
+                   "bashSampleType": [],
                    "productId": [self.product_info_id], "defectName": defectName, "photoId": [],
                    "classifyType": [], "imageDefinition": [], "sampleType": [], "dataAlgorithmSampleType": [],
                    "deepModelSampleType": [], "classifyTypeOther": [None, "mozha", "未知", "yakedian"],
@@ -89,7 +99,6 @@ class ApiComprehensiveSampleLibrary:
                    "displayName": "仿真5个分割模型组合 V23 组合"}
 
         response = self.client.post_with_retry(url, json=payload)
-         
         return response
 
 

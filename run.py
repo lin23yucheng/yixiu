@@ -82,15 +82,23 @@ def execute_test(test_file, allure_results):
     os.environ["CURRENT_TEST_FILE"] = test_file
 
     # 执行参数
+    log_file = os.path.join(str(test_workspace), 'pytest.log')
     pytest_args = [
         "-v", "-s", "-x",
         target_path,
         f"--alluredir={allure_results}",
-        # 添加随机化执行顺序，避免测试间隐含依赖
         "--random-order",
-        # 为每个测试文件创建独立日志
-        f"--log-file={os.path.join(test_workspace, 'pytest.log')}"
+        f"--log-file={log_file}"  # 使用转换后的变量
     ]
+    # pytest_args = [
+    #     "-v", "-s", "-x",
+    #     target_path,
+    #     f"--alluredir={allure_results}",
+    #     # 添加随机化执行顺序，避免测试间隐含依赖
+    #     "--random-order",
+    #     # 为每个测试文件创建独立日志
+    #     f"--log-file={os.path.join(test_workspace, 'pytest.log')}"
+    # ]
 
     # 执行测试
     exit_code = pytest.main(pytest_args)
@@ -106,7 +114,7 @@ def execute_test(test_file, allure_results):
 
     return exit_code
 
-
+# 顺序执行
 def run_selected_tests():
     """执行指定测试文件"""
     reset_logs()  # 清除之前的日志
@@ -114,6 +122,7 @@ def run_selected_tests():
 
     # 定义要执行的测试文件列表
     test_files = [
+        "testcase/test_standard_push_map.py",
         "testcase/test_3D_label.py"
     ]
 
@@ -233,7 +242,7 @@ def process_task(file, deps, require_success, event_dict, result_dict, allure_re
     result_dict[file] = exit_code
     event_dict[file].set()
 
-
+# 并行执行
 def run_parallel_tests():
     """使用进程实现依赖关系的并行测试执行"""
     reset_logs()  # 清除之前的日志

@@ -24,7 +24,7 @@ base_headers = {
 global_client = ApiClient(base_headers=base_headers)
 
 
-@allure.feature("场景：分拣&标注全流程")
+@allure.feature("场景：bash样本库分拣&2D标注全流程")
 class TestLabel:
     @classmethod
     def setup_class(cls):

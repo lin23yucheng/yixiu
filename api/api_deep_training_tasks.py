@@ -68,7 +68,7 @@ class ApiModelTrain:
 
     # 训练机器查询
     def query_machine(self):
-        url = f"{env}/miai/brainstorm/computingpower/enabledcomputinglist"
+        url = f"{env}/miai/brainstorm/computingpower/enabledcomputinglist/1"
 
         response = self.client.post_with_retry(url, json=None)
         return response

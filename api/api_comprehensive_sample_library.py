@@ -7,6 +7,14 @@ from common.Request_Response import ApiClient
 
 env = api_login.url
 
+# 初始化全局客户端
+base_headers = {
+    "Authorization": api_login.ApiLogin().login(),
+    "Miai-Product-Code": api_login.code,
+    "Miaispacemanageid": api_login.manageid
+}
+global_client = ApiClient(base_headers=base_headers)
+
 
 class ApiComprehensiveSampleLibrary:
     def __init__(self, client: ApiClient):
@@ -28,7 +36,7 @@ class ApiComprehensiveSampleLibrary:
         response = self.client.post_with_retry(url, json=payload)
         return response
 
-    # 综合样本库-创建深度训练任务
+    # 综合样本库-创建深度训练任务（globalDatasetType：0为训练集）
     def create_deep_training_tasks(self, defectName, photoId, cut, taskName, classifyType, caseId, caseName, type,
                                    iscut):
         url = f"{env}/miai/brainstorm/global/sample/createTrainTask"
@@ -44,6 +52,7 @@ class ApiComprehensiveSampleLibrary:
                    "typeMapping": "{\"liangdian\":\"liangdian\",\"liebian\":\"liebian\"}", "type": type}
 
         response = self.client.post_with_retry(url, json=payload)
+        print( response.json())
         return response
 
     # 综合样本库-追加到深度训练任务(目标检测-按比例划分)
@@ -103,9 +112,8 @@ class ApiComprehensiveSampleLibrary:
 
 
 if __name__ == '__main__':
-    pass
-    # api = ApiComprehensiveSampleLibrary()
+    api = ApiComprehensiveSampleLibrary(global_client)
     # api.comprehensive_sample_query(None, ["shang"], ["1", "2", "3"])
-    # api.create_deep_training_tasks(["shang"], ["1", "2", "3"], 1024)
+    api.create_deep_training_tasks(["dahenxian"], [], 1024, "测试集01", [], "detection", "目标检测/分割", 1, True)
     # api.append_deep_training_tasks(["yimo"], ["1", "2"], None)
     # api.append_deep_training_tasks2(None, ["3"], ["ok"], None, 1)

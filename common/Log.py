@@ -80,7 +80,8 @@ class MyLog:
         # 配置处理器
         cls.handler = logging.FileHandler(cls.get_log_file(), encoding='utf-8')
         cls.err_handler = logging.FileHandler(cls.get_err_file(), encoding='utf-8')
-        cls.err_handler.setLevel(logging.WARNING)  # 确保错误处理器只记录警告及以上
+        # cls.err_handler.setLevel(logging.WARNING)  # 确保错误处理器只记录警告及以上
+        cls.err_handler.setLevel(logging.ERROR)  # 确保错误处理器只记录ERROR及以上
 
         # 设置详细格式
         formatter = logging.Formatter(

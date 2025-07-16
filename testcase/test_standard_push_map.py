@@ -156,27 +156,35 @@ def execute_grpc_command():
             shell=True,
             check=True,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # 将 stderr 重定向到 stdout
             text=True,
             encoding='utf-8'
         )
 
         # 记录输出
-        logger.info(f"命令输出:\n{result.stdout}")
+        if result.stdout:
+            logger.info(f"命令标准输出:\n{result.stdout}")
+
         if result.stderr:
-            logger.warning(f"命令错误输出:\n{result.stderr}")
+            # 检查内容是否包含错误关键字
+            if "ERROR" in result.stderr or "WARNING" in result.stderr:
+                logger.warning(f"命令错误输出:\n{result.stderr}")
+            else:
+                logger.info(f"命令日志输出:\n{result.stderr}")  # 作为普通日志记录
 
         # 将输出附加到Allure报告
         allure.attach(
-            result.stdout,
+            result.stdout if result.stdout else "无输出",
             name="命令标准输出",
             attachment_type=allure.attachment_type.TEXT
         )
 
         if result.stderr:
+            # 根据内容决定附件名称
+            attachment_name = "命令错误输出" if ("ERROR" in result.stderr) else "命令日志输出"
             allure.attach(
                 result.stderr,
-                name="命令错误输出",
+                name=attachment_name,
                 attachment_type=allure.attachment_type.TEXT
             )
 

@@ -23,7 +23,7 @@ base_headers = {
 global_client = ApiClient(base_headers=base_headers)
 
 
-@allure.feature("场景：数据训练任务全流程")
+@allure.feature("场景：综合-数据训练任务全流程")
 class TestDataTrainingTask:
     @classmethod
     def setup_class(cls):

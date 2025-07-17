@@ -29,7 +29,7 @@ base_headers = {
 global_client = ApiClient(base_headers=base_headers)
 
 
-@allure.feature("场景：3D标注&检验GRPC推图数据")
+@allure.feature("场景：单产品-3D标注&检验GRPC推图数据")
 class Test3DLabel:
     @classmethod
     def setup_class(cls):

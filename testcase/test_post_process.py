@@ -53,7 +53,7 @@ def get_persistent_ids():
     return ids
 
 
-@allure.feature("场景：深度模型后处理全流程")
+@allure.feature("场景：综合-后处理全流程")
 class TestPostProcess:
     @classmethod
     def setup_class(cls):

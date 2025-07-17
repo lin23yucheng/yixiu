@@ -51,7 +51,7 @@ def get_persistent_ids():
     return ids
 
 
-@allure.feature("场景：检测模型训练指标")
+@allure.feature("场景：综合-检测实例分割YoloV8模型训练指标")
 class TestModelTrainingMetrics:
     @classmethod
     def setup_class(cls):

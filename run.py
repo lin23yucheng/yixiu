@@ -5,6 +5,7 @@ import json
 import pytest
 import shutil
 import psutil
+import requests
 from threading import Event
 from threading import Thread
 from utils.browser_pool import BrowserPool
@@ -90,18 +91,16 @@ def execute_test(test_file, allure_results):
         "--random-order",
         f"--log-file={log_file}"  # 使用转换后的变量
     ]
-    # pytest_args = [
-    #     "-v", "-s", "-x",
-    #     target_path,
-    #     f"--alluredir={allure_results}",
-    #     # 添加随机化执行顺序，避免测试间隐含依赖
-    #     "--random-order",
-    #     # 为每个测试文件创建独立日志
-    #     f"--log-file={os.path.join(test_workspace, 'pytest.log')}"
-    # ]
 
     # 执行测试
     exit_code = pytest.main(pytest_args)
+
+    if exit_code == 0:
+        MyLog.info(f"测试文件 {test_file} 全部通过")
+    elif exit_code == 1:
+        MyLog.error(f"测试文件 {test_file} 存在失败用例")  # 明确标记为错误
+    else:
+        MyLog.critical(f"测试文件 {test_file} 执行错误，退出码: {exit_code}")
 
     # 清理环境变量
     os.environ.pop("TEST_WORKSPACE", None)
@@ -114,9 +113,10 @@ def execute_test(test_file, allure_results):
 
     return exit_code
 
+
 # 顺序执行
 def run_selected_tests():
-    """执行指定测试文件"""
+    """执行指定测试文件（遇到任何失败立即终止，但确保生成报告）"""
     reset_logs()  # 清除之前的日志
     MyLog.info("===== 开始执行测试任务 =====")
 
@@ -148,45 +148,12 @@ def run_selected_tests():
     total_elapsed_time = 0.0  # 累加总耗时
     file_times = {}  # 存储每个文件的耗时
 
-    # 迭代执行测试文件
-    for test_file in test_files:
-        # 记录单个文件开始时间
-        file_start_time = time.time()
-
-        exit_code = execute_test(test_file, allure_results)
-
-        # 计算单个文件耗时
-        file_elapsed_time = time.time() - file_start_time
-        total_elapsed_time += file_elapsed_time
-        file_times[test_file] = file_elapsed_time
-
-        # 使用新的时间格式
-        formatted_time = format_time(file_elapsed_time)
-        MyLog.info(f"测试文件 {test_file} 执行完成，耗时: {formatted_time}")
-
-        # 检查退出代码
-        if exit_code not in [0, 1]:
-            MyLog.critical(f"执行测试文件 {test_file} 发生严重错误，程序终止")
-            sys.exit(exit_code)
-
-        # 记录结束时间
+    # 定义报告生成函数（确保在失败时也能调用）
+    def generate_report():
+        # 计算整体耗时
         end_time = time.time()
-        overall_time = end_time - start_time  # 整体耗时
+        overall_time = end_time - start_time
         formatted_overall = format_time(overall_time)
-
-        # 输出耗时统计（使用新格式）
-        MyLog.info("===== 测试文件耗时明细 =====")
-        for file, time_taken in file_times.items():
-            formatted_time = format_time(time_taken)
-            MyLog.info(f"{file}: {formatted_time}")
-
-        # 格式化并输出总耗时
-        formatted_total = format_time(total_elapsed_time)
-        MyLog.info(f"测试文件累加总耗时: {formatted_total}")
-        MyLog.info(f"一休云接口自动化测试-整体耗时: {formatted_overall}")
-
-        # 在控制台显示整体耗时
-        print(f"\033[32m一休云接口自动化测试-整体耗时: {formatted_overall}\033[0m")
 
         # 生成报告
         os.system(f"allure generate {allure_results} -o {allure_report} --clean")
@@ -210,6 +177,52 @@ def run_selected_tests():
                 MyLog.error(f"更新Allure环境信息失败: {e}")
 
         MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
+        return formatted_overall
+
+    try:
+        # 迭代执行测试文件
+        for test_file in test_files:
+            # 记录单个文件开始时间
+            file_start_time = time.time()
+
+            exit_code = execute_test(test_file, allure_results)
+
+            # 计算单个文件耗时
+            file_elapsed_time = time.time() - file_start_time
+            total_elapsed_time += file_elapsed_time
+            file_times[test_file] = file_elapsed_time
+
+            # 使用新的时间格式
+            formatted_time = format_time(file_elapsed_time)
+            MyLog.info(f"测试文件 {test_file} 执行完成，耗时: {formatted_time}")
+
+            # 遇到任何失败（包括测试用例失败）立即终止
+            if exit_code != 0:  # 0表示全部通过，其他值都视为失败
+                failure_type = "测试用例失败" if exit_code == 1 else "框架错误"
+                MyLog.critical(f"执行测试文件 {test_file} 发生{failure_type}，程序终止")
+
+                # 生成报告后再退出
+                formatted_overall = generate_report()
+
+                # 在控制台显示整体耗时
+                print(f"\033[32m一休云接口自动化测试-整体耗时: {formatted_overall}\033[0m")
+                sys.exit(exit_code)
+
+            # 输出耗时统计（使用新格式）
+            MyLog.info("===== 测试文件耗时明细 =====")
+            for file, time_taken in file_times.items():
+                formatted_time = format_time(time_taken)
+                MyLog.info(f"{file}: {formatted_time}")
+
+            # 格式化并输出总耗时
+            formatted_total = format_time(total_elapsed_time)
+            MyLog.info(f"测试文件累加总耗时: {formatted_total}")
+
+    finally:
+        # 无论成功还是失败，都生成报告
+        formatted_overall = generate_report()
+        MyLog.info(f"一休云接口自动化测试-整体耗时: {formatted_overall}")
+        print(f"\033[32m一休云接口自动化测试-整体耗时: {formatted_overall}\033[0m")
         MyLog.info("===== 测试任务完成 =====")
 
 
@@ -224,10 +237,11 @@ def process_task(file, deps, require_success, event_dict, result_dict, allure_re
             MyLog.info(f"依赖 {dep} 状态: {dep_result}")
 
             if require_success:
-                if dep_result not in [0, 1]:
+                # 严格检查：只有0才是完全成功
+                if dep_result != 0:  # 修改这里
                     MyLog.info(f"跳过 {file}，因为依赖文件 {dep} 执行失败")
                     result_dict[file] = -1
-                    event_dict[file].set()  # 设置自己的事件为完成
+                    event_dict[file].set()
                     return
             else:
                 if dep_result == -1 or dep_result > 1:
@@ -241,6 +255,7 @@ def process_task(file, deps, require_success, event_dict, result_dict, allure_re
     exit_code = execute_test(file, allure_results)
     result_dict[file] = exit_code
     event_dict[file].set()
+
 
 # 并行执行
 def run_parallel_tests():
@@ -259,7 +274,7 @@ def run_parallel_tests():
         {"file": "testcase/test_data_training_task.py", "deps": None},
         {"file": "testcase/test_simulation.py", "deps": None},
         {"file": "testcase/test_product_information.py", "deps": None},
-        {"file": "testcase/test_study_samples.py", "deps": None},
+        {"file": "testcase/test_product_samples.py", "deps": None},
 
         # 第二组：有依赖任务
         {"file": "testcase/test_bash_ui.py", "deps": ["testcase/test_bash.py"], "require_success": True},

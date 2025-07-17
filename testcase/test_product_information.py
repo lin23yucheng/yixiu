@@ -26,7 +26,7 @@ base_headers = {
 client = ApiClient(base_headers=base_headers)
 
 
-@allure.feature("场景：产品资料增删改查")
+@allure.feature("场景：单产品-产品资料流程")
 class TestProductInformation:
     @classmethod
     def setup_class(cls):

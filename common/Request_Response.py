@@ -75,6 +75,9 @@ class ApiClient:
         start_time = time.time()
         attempt = 0
 
+        # 需要重试的状态码列表
+        retry_status_codes = [422, 503]
+
         while True:
             attempt += 1
             try:
@@ -85,11 +88,29 @@ class ApiClient:
                     headers=headers,
                     **kwargs
                 )
+
+                # 检查是否需要重试的特定状态码
+                if response.status_code in retry_status_codes:
+                    raise HTTPError(f"需要重试的状态码: {response.status_code}", response=response)
+
                 response.raise_for_status()  # 触发HTTP异常
                 return response
+
             except (HTTPError, ConnectionError, Timeout) as e:
-                # 处理503错误和网络错误
-                error_type = "503错误" if isinstance(e, HTTPError) and e.response.status_code == 503 else "网络错误"
+                # 判断是否是需要重试的状态码错误
+                is_retryable_status = (
+                        isinstance(e, HTTPError) and
+                        hasattr(e, 'response') and
+                        e.response.status_code in retry_status_codes
+                )
+
+                # 判断错误类型
+                if is_retryable_status:
+                    error_type = f"{e.response.status_code}错误"
+                elif isinstance(e, HTTPError) and hasattr(e, 'response'):
+                    error_type = f"HTTP错误({e.response.status_code})"
+                else:
+                    error_type = "网络错误"
 
                 elapsed = time.time() - start_time
 
@@ -100,6 +121,7 @@ class ApiClient:
                 # 打印重试信息
                 print(f"\r{error_type}: 正在重试 (尝试 {attempt}次, 已等待 {int(elapsed)}秒)", end="")
                 time.sleep(self.retry_interval)
+
             except Exception as e:
                 # 其他异常直接抛出
                 raise

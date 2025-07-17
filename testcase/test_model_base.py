@@ -59,7 +59,7 @@ def get_persistent_ids():
     return ids
 
 
-@allure.feature("场景：模型库流程")
+@allure.feature("场景：综合-模型库流程")
 class TestModelBase:
     @classmethod
     def setup_class(cls):

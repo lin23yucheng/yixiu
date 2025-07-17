@@ -20,7 +20,7 @@ base_headers = {
 global_client = ApiClient(base_headers=base_headers)
 
 
-@allure.feature("场景：仿真测试全流程")
+@allure.feature("场景：综合-仿真测试全流程")
 class TestSimulation:
     @classmethod
     def setup_class(cls):

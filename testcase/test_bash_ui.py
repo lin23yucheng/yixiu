@@ -13,7 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from utils.browser_pool import get_browser, release_browser
 
 
-@allure.feature("场景：bash坐席分拣图片")
+@allure.feature("场景：bash坐席分拣流程")
 class TestBashUI:
     @classmethod
     def setup_class(cls):
@@ -43,7 +43,7 @@ class TestBashUI:
         except Exception as e:
             allure.attach(f"推图失败: {str(e)}", name="错误", attachment_type=allure.attachment_type.TEXT)
 
-    @allure.story("坐席分拣流程")
+    @allure.story("启动推图&分拣图片")
     def test_seat_operation(self):
         with allure.step("步骤1：林禹成账号登录bash系统"):
             self.driver.get("http://fat-bash-web.svfactory.com:6180/#/signIn")
@@ -133,7 +133,7 @@ class TestBashUI:
 
         with allure.step("步骤4：等待图片出现并分拣"):
             empty_counter = 0  # 记录连续为空的次数
-            MAX_EMPTY_COUNT = 7  # 允许连续为空的阈值（7秒）
+            MAX_EMPTY_COUNT = 10  # 监控最长时间
 
             while True:
                 try:
@@ -163,19 +163,12 @@ class TestBashUI:
                                 canvas_list[0], 10, 10
                             ).click().perform()
 
-                            # 点击后截图
-                            time.sleep(1)
-                            allure.attach(
-                                self.driver.get_screenshot_as_png(),
-                                name=f"点击后截图-{time.strftime('%H%M%S')}",
-                                attachment_type=allure.attachment_type.PNG
-                            )
                         continue
 
                     # 情况2：检测到空文本
                     elif current_text == "":
                         empty_counter += 1
-                        # 连续7次检测到空（约7秒）
+                        # 连续检测到空
                         if empty_counter >= MAX_EMPTY_COUNT:
                             # 执行离席操作
                             leave_button = WebDriverWait(self.driver, 10).until(
@@ -183,7 +176,7 @@ class TestBashUI:
                             )
                             leave_button.click()
                             sleep(3)
-                            allure.attach("连续7秒检测到空产品名称，执行离席",
+                            allure.attach(f"连续{MAX_EMPTY_COUNT}秒检测到空产品名称，执行离席",
                                           name="离席操作",
                                           attachment_type=allure.attachment_type.TEXT)
                             break

@@ -215,7 +215,7 @@ def execute_grpc_command():
         return False
 
 
-@allure.feature("GRPC命令执行")
+@allure.feature("GRPC推图")
 class TestStandardPushMap:
     @allure.story("更新配置并执行GRPC命令")
     def test_execute_grpc_command(self):

@@ -15,7 +15,7 @@ assertions = Assert.Assertions()
 # 读取配置
 config = configparser.ConfigParser()
 config.read("./config/env_config.ini")
-section_one = "global"
+section_one = "Inspection"
 section_two = "bash"
 space_name = config.get(section_one, "space_name")
 miai_product_code = config.get(section_one, "miai-product-code")

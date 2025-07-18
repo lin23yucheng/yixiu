@@ -19,10 +19,10 @@ def get_miai_product_code():
     try:
         config = configparser.ConfigParser()
         config.read(config_path)
-        if 'global' in config and config.has_option('global', 'miai-product-code'):
-            return config.get('global', 'miai-product-code')
+        if 'Inspection' in config and config.has_option('Inspection', 'miai-product-code'):
+            return config.get('Inspection', 'miai-product-code')
         else:
-            print("配置文件中缺少global节或miai-product-code字段")
+            print("配置文件中缺少Inspection节或miai-product-code字段")
             return "JHOCT001"  # 默认值
     except Exception as e:
         print(f"读取配置文件时出错: {e}")

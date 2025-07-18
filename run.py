@@ -11,13 +11,12 @@ from threading import Thread
 from utils.browser_pool import BrowserPool
 from common.Log import MyLog, set_log_level
 from multiprocessing import Process, Manager
-from bash.push.client_bash import push_images_auto, test_logic_manual
+from bash.push.client_bash import push_images_manual
 
 # 设置全局日志级别
 set_log_level('info')
 
 
-# 新增辅助函数：将秒数转换为分秒格式
 def format_time(seconds):
     """将秒数转换为 'X分X秒' 格式"""
     minutes = int(seconds // 60)
@@ -114,16 +113,46 @@ def execute_test(test_file, allure_results):
     return exit_code
 
 
-# 顺序执行
-def run_selected_tests():
+def process_task(file, deps, require_success, event_dict, result_dict, allure_results):
+    """执行测试并处理依赖关系（进程版本）"""
+    # 如果有依赖，等待所有依赖完成且检查状态
+    if deps:
+        MyLog.info(f"任务 {file} 依赖: {deps}")
+        for dep in deps:
+            event_dict[dep].wait()  # 等待依赖事件完成
+            dep_result = result_dict.get(dep)
+            MyLog.info(f"依赖 {dep} 状态: {dep_result}")
+
+            if require_success:
+                # 严格检查：只有0才是完全成功
+                if dep_result != 0:  # 修改这里
+                    MyLog.info(f"跳过 {file}，因为依赖文件 {dep} 执行失败")
+                    result_dict[file] = -1
+                    event_dict[file].set()
+                    return
+            else:
+                if dep_result == -1 or dep_result > 1:
+                    MyLog.info(f"跳过 {file}，因为依赖文件 {dep} 未完成")
+                    result_dict[file] = -1
+                    event_dict[file].set()
+                    return
+
+    # 执行测试
+    MyLog.info(f"开始执行测试文件: {file}")
+    exit_code = execute_test(file, allure_results)
+    result_dict[file] = exit_code
+    event_dict[file].set()
+
+
+# 顺序执行（一旦执行失败立即停止，生成allure报告）
+def run_order_tests():
     """执行指定测试文件（遇到任何失败立即终止，但确保生成报告）"""
     reset_logs()  # 清除之前的日志
     MyLog.info("===== 开始执行测试任务 =====")
 
     # 定义要执行的测试文件列表
     test_files = [
-        "testcase/test_standard_push_map.py",
-        "testcase/test_3D_label.py"
+        "testcase/test_product_information.py"
     ]
 
     # 添加项目根目录到Python路径
@@ -226,39 +255,8 @@ def run_selected_tests():
         MyLog.info("===== 测试任务完成 =====")
 
 
-def process_task(file, deps, require_success, event_dict, result_dict, allure_results):
-    """执行测试并处理依赖关系（进程版本）"""
-    # 如果有依赖，等待所有依赖完成且检查状态
-    if deps:
-        MyLog.info(f"任务 {file} 依赖: {deps}")
-        for dep in deps:
-            event_dict[dep].wait()  # 等待依赖事件完成
-            dep_result = result_dict.get(dep)
-            MyLog.info(f"依赖 {dep} 状态: {dep_result}")
-
-            if require_success:
-                # 严格检查：只有0才是完全成功
-                if dep_result != 0:  # 修改这里
-                    MyLog.info(f"跳过 {file}，因为依赖文件 {dep} 执行失败")
-                    result_dict[file] = -1
-                    event_dict[file].set()
-                    return
-            else:
-                if dep_result == -1 or dep_result > 1:
-                    MyLog.info(f"跳过 {file}，因为依赖文件 {dep} 未完成")
-                    result_dict[file] = -1
-                    event_dict[file].set()
-                    return
-
-    # 执行测试
-    MyLog.info(f"开始执行测试文件: {file}")
-    exit_code = execute_test(file, allure_results)
-    result_dict[file] = exit_code
-    event_dict[file].set()
-
-
-# 并行执行
-def run_parallel_tests():
+# 并行执行（存在依赖关系）
+def run_together_tests():
     """使用进程实现依赖关系的并行测试执行"""
     reset_logs()  # 清除之前的日志
     MyLog.info("===== 开始并行执行测试（带依赖关系） =====")
@@ -408,9 +406,9 @@ if __name__ == "__main__":
 
     try:
         # 选择执行模式
-        run_selected_tests()  # 顺序执行
-        # run_parallel_tests()  # 并行执行
-        # test_logic_manual()   # bash推图手动
+        run_order_tests()  # 顺序执行
+        # run_together_tests()  # 并行执行
+        # push_images_manual()  # bash手动推图
 
     finally:
         current_process = psutil.Process()

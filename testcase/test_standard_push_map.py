@@ -82,15 +82,15 @@ def update_data_json():
         if config_path.exists():
             config = configparser.ConfigParser()
             config.read(config_path)
-            if 'global' in config:
+            if 'Inspection' in config:
                 try:
-                    miai_product_code = config.get('global', 'miai-product-code')
+                    miai_product_code = config.get('Inspection', 'miai-product-code')
                     logger.info(f"成功读取miai-product-code: {miai_product_code}")
                 except configparser.NoOptionError:
                     logger.warning("配置文件中缺少miai-product-code字段")
                     return False
             else:
-                logger.warning("配置文件中缺少global节")
+                logger.warning("配置文件中缺少Inspection节")
                 return False
         else:
             logger.warning(f"配置文件不存在: {config_path}")

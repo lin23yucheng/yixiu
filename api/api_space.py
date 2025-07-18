@@ -63,7 +63,7 @@ class ApiSpace:
     # 机台查询
     def machine_query(self):
         url = env + "/miai/brainstorm/clouddevice/page"
-        data = {"data": {"deviceNo": "", "spaceManageId": manageid}, "page": {"pageIndex": 1, "pageSize": 10}}
+        data = {"data": {"deviceNo": "", "spaceManageId": manageid}, "page": {"pageIndex": 1, "pageSize": 100}}
         header = {"content-type": "application/json", "Authorization": token}
 
         rep = requests.post(url=url, json=data, headers=header)

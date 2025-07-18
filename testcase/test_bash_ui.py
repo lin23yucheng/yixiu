@@ -29,7 +29,7 @@ class TestBashUI:
         # 获取账号密码
         cls.username = config.get('bash', 'myself_account')
         cls.password = config.get('bash', 'myself_password')
-        cls.miaiproductcode = config.get('global', 'miai-product-code')
+        cls.miaiproductcode = config.get('Inspection', 'miai-product-code')
 
         # 推图线程控制
         cls.push_thread = None

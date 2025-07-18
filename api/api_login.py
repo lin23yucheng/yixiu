@@ -8,7 +8,7 @@ import configparser
 # 读取配置
 config = configparser.ConfigParser()
 config.read("./config/env_config.ini")
-section = "global"
+section = "Inspection"
 
 env = config.get(section, "execution_env")
 miai_product_code = config.get(section, "miai-product-code")

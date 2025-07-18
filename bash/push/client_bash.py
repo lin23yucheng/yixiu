@@ -18,6 +18,7 @@ import bash.push.bash_pb2 as grpc_api
 import bash.push.bash_pb2_grpc as grpc_control
 from bash.push.log import LogType, log
 
+
 # 常量定义
 class Constants:
     IS_CROP = 2
@@ -99,14 +100,14 @@ class ResourceLoader:
         if os.path.exists(config_path):
             config = configparser.ConfigParser()
             config.read(config_path)
-            if 'global' in config:
+            if 'Inspection' in config:
                 try:
-                    miai_product_code = config.get('global', 'miai-product-code')
+                    miai_product_code = config.get('Inspection', 'miai-product-code')
                     log(f"成功读取miai-product-code: {miai_product_code}", LogType.INFO)
                 except configparser.NoOptionError:
                     log(f"配置文件中缺少miai-product-code字段", LogType.WARNING)
             else:
-                log(f"配置文件中缺少global节", LogType.WARNING)
+                log(f"配置文件中缺少Inspection节", LogType.WARNING)
         else:
             log(f"配置文件不存在: {config_path}", LogType.WARNING)
 
@@ -144,17 +145,16 @@ class ResourceLoader:
         if os.path.exists(config_path):
             config = configparser.ConfigParser()
             config.read(config_path)
-            if 'global' in config:
+            if 'Inspection' in config:
                 try:
-                    miai_product_code = config.get('global', 'miai-product-code')
+                    miai_product_code = config.get('Inspection', 'miai-product-code')
                     log(f"成功读取miai-product-code: {miai_product_code}", LogType.INFO)
                 except configparser.NoOptionError:
                     log(f"配置文件中缺少miai-product-code字段", LogType.WARNING)
             else:
-                log(f"配置文件中缺少global节", LogType.WARNING)
+                log(f"配置文件中缺少Inspection节", LogType.WARNING)
         else:
             log(f"配置文件不存在: {config_path}", LogType.WARNING)
-
         # 3. 获取原始参数路径
         params_path = get_relative_path('json', 'params_data.json')
 
@@ -472,7 +472,7 @@ class BashGrpcMock:
         )
 
 
-def test_logic_manual(config_data=None):
+def push_images_manual(config_data=None):
     """手动输入模式测试"""
     print("测试开始 (手动模式)")
     config = ResourceLoader.get_config(config_data)

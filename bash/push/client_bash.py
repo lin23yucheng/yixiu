@@ -18,6 +18,12 @@ import bash.push.bash_pb2 as grpc_api
 import bash.push.bash_pb2_grpc as grpc_control
 from bash.push.log import LogType, log
 
+# 获取项目根目录
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+config_path = os.path.join(project_root, 'config', 'env_config.ini')
+config = configparser.ConfigParser()
+config.read(config_path)
+picture_num = int(config.get('bash', 'picture_num'))
 
 # 常量定义
 class Constants:
@@ -26,7 +32,7 @@ class Constants:
     SYSTEM_TYPE = 1
     DEFAULT_ADDRESS_NO = 1  # GRPC请求编号
     DEFAULT_THREADS = 1  # 线程数
-    DEFAULT_LOOPS = 3  # 循环数
+    DEFAULT_LOOPS = picture_num  # 循环数
 
 
 # 路径工具函数

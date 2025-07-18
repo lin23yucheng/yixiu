@@ -3,7 +3,7 @@
 """
 import configparser
 import allure
-
+import hashlib
 from api import api_bash
 from api.api_space import ApiSpace
 from common import Assert
@@ -21,8 +21,12 @@ space_name = config.get(section_one, "space_name")
 miai_product_code = config.get(section_one, "miai-product-code")
 miaispacemanageid = config.get(section_one, "miaispacemanageid")
 admin_account = config.get(section_two, "admin_account")
-admin_password = config.get(section_two, "admin_password")
 myself_name = config.get(section_two, "myself_name")
+
+# 获取明文密码并进行MD5加密
+plain_password = config.get(section_two, "admin_password")
+admin_password = hashlib.md5(plain_password.encode()).hexdigest()  # 加密处理
+
 
 # 格式化时间
 current_date = datetime.now().strftime("%Y-%m-%d")

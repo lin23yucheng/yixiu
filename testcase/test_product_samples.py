@@ -26,7 +26,7 @@ global_client = ApiClient(base_headers=base_headers)
 
 
 @allure.feature("场景：单产品-产品样例流程")
-class TestStudySamples:
+class TestProductSamples:
     @classmethod
     def setup_class(cls):
         cls.api_product_samples = api_product_samples.ApiProductSamples(global_client)
@@ -34,7 +34,7 @@ class TestStudySamples:
         cls.sample_name = f"CS_{time_str}"
 
     @allure.story("产品样例增删改查")
-    def test_samples_add(self):
+    def test_product_samples(self):
         with allure.step(f"步骤1：新增产品样例") as step1:
             data_value = self.api_product_samples.upload_pictures()
             response = self.api_product_samples.samples_add(data_value, self.sample_name)

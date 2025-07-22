@@ -44,11 +44,11 @@ class TestDeepModelTraining:
         config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
         config = configparser.ConfigParser()
         config.read(config_path)
-        cls.defectName = ast.literal_eval(config.get('persistent_ids', 'defectName'))
+        cls.defectName = ast.literal_eval(config.get('persistent_ids', 'defect_name'))
         # 使用 ast.literal_eval 将字符串转换为列表
-        cls.photoId_ng = ast.literal_eval(config.get('persistent_ids', 'photoId_ng'))
-        cls.photoId_ok = ast.literal_eval(config.get('persistent_ids', 'photoId_ok'))
-        cls.sampleType_ok = config.get('persistent_ids', 'sampleType_ok')
+        cls.photoId_ng = ast.literal_eval(config.get('persistent_ids', 'photo_id_ng'))
+        cls.photoId_ok = ast.literal_eval(config.get('persistent_ids', 'photo_id_ok'))
+        cls.sampleType_ok = config.get('persistent_ids', 'sample_type_ok')
         cls.machine_name = config.get('persistent_ids', 'machine_name')
 
     def teardown_class(cls):

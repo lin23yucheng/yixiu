@@ -46,8 +46,8 @@ class TestClassOriginalModelTraining:
         config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
         config = configparser.ConfigParser()
         config.read(config_path)
-        cls.classifyType = ast.literal_eval(config.get('class_original_ids', 'classifyType'))
-        cls.machine_name = config.get('persistent_ids', 'machine_name')
+        cls.classifyType = ast.literal_eval(config.get('class_original_ids', 'classify_type'))
+        cls.machine_name = config.get('class_original_ids', 'machine_name')
 
     def teardown_class(cls):
         """将生成的ID写入配置文件"""

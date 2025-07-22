@@ -39,8 +39,7 @@ class TestDataTrainingTask:
         config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
         config = configparser.ConfigParser()
         config.read(config_path)
-        cls.defectName = ast.literal_eval(config.get('data_task', 'defectName'))
-
+        cls.defectName = ast.literal_eval(config.get('data_task', 'defect_name'))
 
     def _monitor_data_task_progress(self):
         """监控数据训练任务采集状态并获取任务ID"""

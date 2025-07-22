@@ -60,7 +60,6 @@ def rename_files_and_modify_json():
             for file in files:
                 file_name, file_extension = os.path.splitext(file)
                 if file_extension.lower() in ['.jpg', '.jpeg', '.png', '.json']:
-                    # 如果文件名不在字典中，创建新的唯一文件名
                     if file_name not in file_dict:
                         # 生成随机部分
                         random_num1 = random.randint(10, 100)

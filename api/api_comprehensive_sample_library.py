@@ -37,7 +37,7 @@ class ApiComprehensiveSampleLibrary:
         return response
 
     # 综合样本库-创建深度训练任务（globalDatasetType：0为训练集）
-    def create_deep_training_tasks(self, defectName, photoId, cut, taskName, classifyType, caseId, caseName, type,
+    def create_deep_training_tasks(self, defectName, photoId, cut, taskName, classifyType, caseId, caseName, create_type,
                                    iscut):
         url = f"{env}/miai/brainstorm/global/sample/createTrainTask"
         payload = {"endTime": None, "startTime": None, "imgName": "", "globalDatasetType": 0, "visualGrade": [],
@@ -49,10 +49,10 @@ class ApiComprehensiveSampleLibrary:
                    "testSetProportion": 30,
                    "caseId": caseId, "caseName": caseName, "cut": iscut, "filter": False, "remark": "",
                    "defectCount": "[{\"labelName\":\"\",\"count\":\"\"}]", "cutHeight": cut, "cutWidth": cut,
-                   "typeMapping": "{\"liangdian\":\"liangdian\",\"liebian\":\"liebian\"}", "type": type}
+                   "typeMapping": "{\"liangdian\":\"liangdian\",\"liebian\":\"liebian\"}", "type": create_type}
 
         response = self.client.post_with_retry(url, json=payload)
-        print( response.json())
+        print(response.json())
         return response
 
     # 综合样本库-追加到深度训练任务(目标检测-按比例划分)
@@ -71,14 +71,14 @@ class ApiComprehensiveSampleLibrary:
         return response
 
     # 综合样本库-追加到深度训练任务(目标检测-划分训练集1/验证集2)
-    def append_deep_training_tasks2(self, defectName, photoId, sampleType, trainId, datasetType):
+    def append_deep_training_tasks2(self, photoId, sampleType, trainId, datasetType):
         url = f"{env}/miai/brainstorm/global/sample/addition"
 
         payload = {"imgName": "", "endTime": None, "startTime": None, "globalDatasetType": 0, "visualGrade": [],
                    "bashSampleType": [],
-                   "productId": [self.product_info_id], "defectName": defectName, "photoId": photoId,
+                   "productId": [self.product_info_id], "defectName": None, "photoId": photoId,
                    "classifyType": [],
-                   "sampleType": sampleType, "imageDefinition": [], "dataAlgorithmSampleType": [],
+                   "sampleType": [sampleType], "imageDefinition": [], "dataAlgorithmSampleType": [],
                    "deepModelSampleType": [],
                    "selectIds": [], "notSelectIds": [], "trainId": trainId, "datasetType": datasetType,
                    "filter": False, "defectCount": "[]"}

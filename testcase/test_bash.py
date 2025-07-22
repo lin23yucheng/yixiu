@@ -280,12 +280,12 @@ class TestBash:
             # 检查是否存在指定人员（即使数据为空也会执行）
             if 'data' in data and data['data'].get('selectedUserListVos'):
                 for user in data['data']['selectedUserListVos']:
-                    if user.get('userName') == "林禹成":
+                    if user.get('userName') == myself_name:
                         found_user = True
                         break
 
             if not found_user:
-                with allure.step("子步骤1：修改人员排班（缺少林禹成时触发）"):
+                with allure.step("子步骤1：修改人员排班（缺少指定人员时触发）"):
                     # 获取toBeSelectedUserListVos中的所有ID
                     to_be_selected = data['data'].get('toBeSelectedUserListVos', [])
                     userid_list = [str(user.get('id')) for user in to_be_selected if user.get('id')]
@@ -305,7 +305,7 @@ class TestBash:
                     assertions.assert_in_text(data['msg'], '操作成功')
 
                     # 记录操作信息到报告
-                    allure.attach("已将林禹成添加到当日排班",
+                    allure.attach("已将指定人员添加到当日排班",
                                   name="修改人员排班",
                                   attachment_type=allure.attachment_type.TEXT)
 
@@ -324,7 +324,7 @@ class TestBash:
             # 查找当日计划
             today_plan = None
             for plan in data['data']['list']:
-                if plan.get('startTime') == start_time.replace('.000Z', ''):  # 去掉毫秒部分以匹配格式
+                if plan.get('startTime') == start_time.replace('.000Z', ''):
                     today_plan = plan
                     break
 

@@ -38,6 +38,12 @@ class TestLabel:
         cls.dimensionTaskId = None
         cls.datasetDataId_1 = None
         cls.datasetDataId_2 = None
+        # 读取配置文件
+        config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
+        config = configparser.ConfigParser()
+        config.read(config_path)
+        cls.rectangle_label = config.get('2d_label', 'rectangle_label')
+        cls.polygon_label = config.get('2d_label', 'polygon_label')
 
     def verify_task_status(self, expected_status, status_name):
         """
@@ -466,12 +472,12 @@ class TestLabel:
                               attachment_type=allure.attachment_type.TEXT)
                 pytest.fail(error_msg)
 
-        with allure.step("步骤4：标注矩形") as step4:
+        with allure.step("步骤4：标注矩形-无争议") as step4:
             # 记录标注参数到Allure
             label_params = (
                 f"标注参数:\n"
                 f"datasetDataId: {self.datasetDataId_1}\n"
-                f"标签: 拉伤\n"
+                f"标签: {self.rectangle_label}\n"
                 f"形状: 矩形\n"
                 f"坐标: [[78, 57], [128, 83]]\n"
                 f"争议: 无争议"
@@ -480,7 +486,7 @@ class TestLabel:
                           name="矩形标注参数",
                           attachment_type=allure.attachment_type.TEXT)
 
-            response = self.api_2d_label.label_2d_rectangle(self.datasetDataId_1, "lashang", "rectangle",
+            response = self.api_2d_label.label_2d_rectangle(self.datasetDataId_1, self.rectangle_label, "rectangle",
                                                             [[78, 57], [128, 83]],
                                                             "")
             assertions.assert_code(response.status_code, 200)
@@ -492,12 +498,12 @@ class TestLabel:
                           name="矩形标注结果",
                           attachment_type=allure.attachment_type.TEXT)
 
-        with allure.step("步骤5：标注多边形") as step5:
+        with allure.step("步骤5：标注多边形-有争议") as step5:
             # 记录标注参数到Allure
             label_params = (
                 f"标注参数:\n"
                 f"datasetDataId: {self.datasetDataId_2}\n"
-                f"标签: 脱模\n"
+                f"标签: {self.polygon_label}\n"
                 f"形状: 多边形\n"
                 f"坐标: [[160, 64], [110, 116], [118, 222], [268, 242], [308, 138], [244, 60]]\n"
                 f"争议: 有争议"
@@ -506,7 +512,7 @@ class TestLabel:
                           name="多边形标注参数",
                           attachment_type=allure.attachment_type.TEXT)
 
-            response = self.api_2d_label.label_2d_polygon(self.datasetDataId_2, "tuomo", "polygon",
+            response = self.api_2d_label.label_2d_polygon(self.datasetDataId_2, self.polygon_label, "polygon",
                                                           [[160, 64], [110, 116], [118, 222], [268, 242], [308, 138],
                                                            [244, 60]],
                                                           "Dispute")
@@ -676,7 +682,8 @@ class TestLabel:
                                           attachment_type=allure.attachment_type.TEXT)
 
                             response = self.api_2d_label.dispute_judge(
-                                self.datasetDataId_2, DateTime, dispute_id)
+                                self.datasetDataId_2, DateTime, dispute_id, self.polygon_label,
+                                [[160, 64], [110, 116], [118, 222], [268, 242], [308, 138], [244, 60]])
                             assertions.assert_code(response.status_code, 200)
                             response_data = response.json()
                             assertions.assert_in_text(response_data['msg'], '成功')
@@ -702,7 +709,9 @@ class TestLabel:
                                       name="争议处理参数",
                                       attachment_type=allure.attachment_type.TEXT)
 
-                        response = self.api_2d_label.dispute_handle(self.datasetDataId_2, DateTime)
+                        response = self.api_2d_label.dispute_handle(self.datasetDataId_2, DateTime, self.polygon_label,
+                                                                    [[160, 64], [110, 116], [118, 222], [268, 242],
+                                                                     [308, 138], [244, 60]])
                         assertions.assert_code(response.status_code, 200)
                         response_data = response.json()
                         assertions.assert_in_text(response_data['msg'], '成功')

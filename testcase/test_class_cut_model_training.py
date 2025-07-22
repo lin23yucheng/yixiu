@@ -1,12 +1,14 @@
 """
 深度分类切图模型训练接口自动化流程
 """
+import ast
 from time import sleep
 
 import pytest
 import allure
 import time
 import os
+import configparser
 from configparser import ConfigParser
 from common.Request_Response import ApiClient
 from common import Assert
@@ -40,6 +42,12 @@ class TestClassCutModelTraining:
         cls.trainTaskId = None
         cls.modelTrainId = None
         cls.monitor = MonitorUtils(api_deep=cls.api_deep, api_model=cls.api_model)
+        # 读取配置文件
+        config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
+        config = configparser.ConfigParser()
+        config.read(config_path)
+        cls.classifyType = ast.literal_eval(config.get('class_cut_ids', 'classifyType'))
+        cls.machine_name = config.get('persistent_ids', 'machine_name')
 
     def teardown_class(cls):
         """将生成的ID写入配置文件"""
@@ -76,10 +84,10 @@ class TestClassCutModelTraining:
                 photoId=[],
                 cut=224,
                 taskName=self.task_name,
-                classifyType=["dahen", "seban", "mozha"],
+                classifyType=self.classifyType,
                 caseId="cls_model",
                 caseName="图像分类",
-                type=2,
+                create_type=2,
                 iscut=True
             )
 
@@ -112,16 +120,16 @@ class TestClassCutModelTraining:
 
                 # 查找测试机器
                 test_machine = next(
-                    (machine for machine in machine_data['data'] if machine['name'] == '测试机器'),
+                    (machine for machine in machine_data['data'] if machine['name'] == self.machine_name),
                     None
                 )
                 if not test_machine:
-                    pytest.fail("测试机器 not found in machine list")
+                    pytest.fail(f"{self.machine_name}在机器列表中未找到")
                 computing_power_id = test_machine['computingPowerId']
 
                 allure.attach(
-                    f"Found computingPowerId: {computing_power_id}",
-                    name="Training Machine ID",
+                    f"找到训练机器ID: {computing_power_id}",
+                    name="训练机器ID",
                     attachment_type=allure.attachment_type.TEXT
                 )
 
@@ -133,7 +141,7 @@ class TestClassCutModelTraining:
                 assertions.assert_in_text(train_data['msg'], '操作成功')
 
         with allure.step("步骤4：监控训练进度"):
-            self.modelTrainId, success = self.monitor.monitor_train_progress(self.trainTaskId,"图像分类(切图)训练")
+            self.modelTrainId, success = self.monitor.monitor_train_progress(self.trainTaskId, "图像分类(切图)训练")
             self.__class__.modelTrainId = self.modelTrainId
             time.sleep(3)
 
@@ -155,7 +163,7 @@ class TestClassCutModelTraining:
 
             # 监控提交状态
             with allure.step("子步骤2：监控模型提交状态"):
-                success = self.monitor.monitor_commit_progress(self.trainTaskId,"图像分类(切图)模型提交")
+                success = self.monitor.monitor_commit_progress(self.trainTaskId, "图像分类(切图)模型提交")
 
             # 最终成功提示
 

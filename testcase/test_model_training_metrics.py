@@ -6,6 +6,7 @@ import allure
 import time
 import os
 import json
+import configparser
 from configparser import ConfigParser
 from common.Request_Response import ApiClient
 from common import Assert
@@ -62,77 +63,11 @@ class TestModelTrainingMetrics:
         cls.poll_interval = 10  # 轮询间隔10秒
         cls.trainTaskId = None
         cls.monitor = MonitorUtils(api_deep=cls.api_deep, api_model=cls.api_model)
-
-    # def _monitor_train_progress(self):
-    #     """模型训练状态监控"""
-    #     start_time = time.time()
-    #     attempt = 0
-    #
-    #     with allure.step("监控模型训练与验证状态"):
-    #         while True:
-    #             attempt += 1
-    #             with allure.step(f"第{attempt}次训练状态检查"):
-    #                 # 发送查询请求
-    #                 response = self.api_model.query_train_records(self.trainTaskId)
-    #                 assertions.assert_code(response.status_code, 200)
-    #
-    #                 # 解析响应数据
-    #                 response_data = response.json()
-    #                 records = response_data['data']['list']
-    #
-    #                 # 记录原始响应到Allure
-    #                 allure.attach(
-    #                     str(response_data),
-    #                     name="训练记录响应数据",
-    #                     attachment_type=allure.attachment_type.JSON
-    #                 )
-    #
-    #                 # 验证记录存在性
-    #                 if not records:
-    #                     pytest.fail(f"未找到trainTaskId={self.trainTaskId}的训练记录")
-    #
-    #                 current_record = records[0]  # 取第一条记录
-    #                 train_status = current_record['trainStatus']
-    #                 verify_status = current_record.get('verifyStatus', None)
-    #                 self.modelTrainId = current_record['modelTrainId']
-    #                 self.__class__.modelTrainId = current_record['modelTrainId']  # 关键：赋值给类变量
-    #
-    #                 # 时间统计
-    #                 current_duration = int(time.time() - start_time)
-    #                 mins, secs = divmod(current_duration, 60)
-    #                 time_message = f"训练等待时间：{mins}分{secs}秒"
-    #
-    #                 # 状态信息汇总
-    #                 status_info = (
-    #                     f"\ntrainStatus={train_status} "
-    #                     f"(0=训练中,1=训练失败,2=训练完成,3=打包中,4=排队中,5=转onnx中,6=转triton中)\n"
-    #                     f"verifyStatus={verify_status} "
-    #                     f"(0=未验证,1=验证中,2=验证失败,3=验证成功)\n"
-    #                     f"{time_message}\n"
-    #                     f"-------------------------------\n"
-    #                 )
-    #                 allure.attach(status_info, name="状态详情")
-    #
-    #                 # 控制台实时打印
-    #                 print(f"训练/验证状态: {status_info}", end="")
-    #
-    #                 # 状态机判断
-    #                 if train_status == 1:
-    #                     pytest.fail("训练失败，请检查日志")
-    #                 elif train_status == 2:
-    #                     if verify_status == 2:
-    #                         pytest.fail("验证失败，请检查日志")
-    #                     elif verify_status == 3:
-    #                         allure.attach("训练&验证已完成", name="最终状态")
-    #                         return True  # 符合继续执行的条件
-    #
-    #                 # 超时检查（30分钟）
-    #                 elapsed = time.time() - start_time
-    #                 if elapsed > self.max_wait_seconds:
-    #                     pytest.fail(f"训练卡住，请检查日志（等待超过{self.max_wait_seconds}秒）")
-    #
-    #                 # 间隔等待
-    #                 time.sleep(self.poll_interval)
+        # 读取配置文件
+        config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
+        config = configparser.ConfigParser()
+        config.read(config_path)
+        cls.machine_name = config.get('persistent_ids', 'machine_name')
 
     @allure.story("验证模型训练前后指标一致")
     def test_model_train_metrics(self, get_persistent_ids):
@@ -160,16 +95,16 @@ class TestModelTrainingMetrics:
 
                 # 查找测试机器
                 test_machine = next(
-                    (machine for machine in machine_data['data'] if machine['name'] == '测试机器'),
+                    (machine for machine in machine_data['data'] if machine['name'] == self.machine_name),
                     None
                 )
                 if not test_machine:
-                    pytest.fail("测试机器 not found in machine list")
+                    pytest.fail(f"{self.machine_name}在机器列表中未找到")
                 computing_power_id = test_machine['computingPowerId']
 
                 allure.attach(
-                    f"Found computingPowerId: {computing_power_id}",
-                    name="Training Machine ID",
+                    f"找到训练机器ID: {computing_power_id}",
+                    name="训练机器ID",
                     attachment_type=allure.attachment_type.TEXT
                 )
 
@@ -190,7 +125,7 @@ class TestModelTrainingMetrics:
 
         with allure.step("步骤2：监控训练进度"):
             try:
-                _, success = self.monitor.monitor_train_progress(self.trainTaskId,"YoloV8实例分割训练")
+                _, success = self.monitor.monitor_train_progress(self.trainTaskId, "YoloV8实例分割训练")
             except Exception as e:
                 allure.attach(f"训练监控失败: {str(e)}", name="错误详情")
                 pytest.fail(f"训练监控过程中发生错误: {str(e)}")

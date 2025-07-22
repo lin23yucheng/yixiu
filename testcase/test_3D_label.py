@@ -43,6 +43,12 @@ class Test3DLabel:
         cls.dimensionTaskId = None
         cls.dimensionDataId_1 = None
         cls.dimensionDataId_2 = None
+        # 读取配置文件
+        config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
+        config = configparser.ConfigParser()
+        config.read(config_path)
+        cls.label_1 = config.get('3d_label', 'label_1')
+        cls.label_2 = config.get('3d_label', 'label_2')
 
     def verify_task_status(self, expected_status, status_name):
         """
@@ -519,7 +525,7 @@ class Test3DLabel:
                                                                                   118.08943939200213,
                                                                                   276.82962552300023, 324.1271494817036,
                                                                                   83.89034464762142, 0, 0, 0],
-                                                  "lashang","WH")
+                                                  self.label_1,"WH")
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
@@ -528,7 +534,7 @@ class Test3DLabel:
             response = self.api_3d_label.label_3d(Test3DLabel.dimensionDataId_2,
                                                   [561.5785487046447, 475.4253437561026, 256.74868729206804,
                                                    263.9773852012997, 229.18250488057146, 552.493992091475, 0, 0, 0],
-                                                  "wailie","GH")
+                                                  self.label_2,"GH")
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')

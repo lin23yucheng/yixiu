@@ -104,12 +104,12 @@ class Api2DLabel:
         return response
 
     # 争议判定
-    def dispute_judge(self, dataId, DateTime, dispute_id):
+    def dispute_judge(self, dataId, DateTime, dispute_id, label, points):
         url = f"{env}/miai/brainstorm/standard/manage/process"
         payload = {"canEdit": False, "dataId": dataId, "label": "", "shapes": [
-            {"customDefectField": {}, "isDispute": "Dispute", "label": "tuomo", "disputeResult": "误判",
+            {"customDefectField": {}, "isDispute": "Dispute", "label": label, "disputeResult": "误判",
              "disputeProcessTime": f"{DateTime}T02:01:38.683Z", "score": None, "length": None, "width": 1, "radius": "",
-             "flags": {}, "tag": None, "points": [[160, 64], [110, 116], [118, 222], [268, 242], [308, 138], [244, 60]],
+             "flags": {}, "tag": None, "points": points,
              "position": None, "grade": "GQX", "checkType": "", "confusionType": "", "definition": "QX",
              "visualGrade": "S2", "Shape": "", "Area": "", "Brightness": "", "IsUneven": "", "ContrastRatio": "",
              "Smoothness": "", "DefectLength": "", "DefectWidth": "", "point_arr": None, "id": dispute_id,
@@ -124,16 +124,16 @@ class Api2DLabel:
         return response
 
     # 争议处理
-    def dispute_handle(self, dataId, DateTime):
+    def dispute_handle(self, dataId, DateTime, label, points):
         url = f"{env}/miai/brainstorm/standard/manage/process"
         payload = {"dataId": dataId, "shapes": [
             {"disputeProcessTime": f"{DateTime}T02:12:52.009Z", "disputeResult": "变更标准", "radius": "",
              "attributeP": "", "attributeM": "", "Smoothness": "", "ContrastRatio": "", "IsUneven": "",
              "DefectWidth": "", "DefectLength": "", "Brightness": "", "Area": "", "Shape": "", "confusionType": "",
              "checkType": "", "grade": "GQX", "isDispute": "Undispute", "visualGrade": "S2", "definition": "QX",
-             "customDefectField": {}, "label": "tuomo", "shape_type": "polygon", "width": 1,
-             "points": [[160, 64], [110, 116], [118, 222], [268, 242], [308, 138], [244, 60]]}],
-                   "classifyType": "tuomo", "canEdit": True, "label": ""}
+             "customDefectField": {}, "label": label, "shape_type": "polygon", "width": 1,
+             "points": points}],
+                   "classifyType": label, "canEdit": True, "label": ""}
 
         response = self.client.post_with_retry(url, json=payload)
         return response

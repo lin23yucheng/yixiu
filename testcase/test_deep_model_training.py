@@ -5,9 +5,11 @@ import pytest
 import allure
 import time
 import os
+import ast
 from configparser import ConfigParser
 from common.Request_Response import ApiClient
 from common import Assert
+import configparser
 from api import api_login, api_comprehensive_sample_library, api_deep_training_tasks
 from common.monitor_utils import MonitorUtils
 
@@ -38,6 +40,16 @@ class TestDeepModelTraining:
         cls.trainTaskId = None
         cls.modelTrainId = None
         cls.monitor = MonitorUtils(api_deep=cls.api_deep, api_model=cls.api_model)
+        # 读取配置文件
+        config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
+        config = configparser.ConfigParser()
+        config.read(config_path)
+        cls.defectName = ast.literal_eval(config.get('persistent_ids', 'defectName'))
+        # 使用 ast.literal_eval 将字符串转换为列表
+        cls.photoId_ng = ast.literal_eval(config.get('persistent_ids', 'photoId_ng'))
+        cls.photoId_ok = ast.literal_eval(config.get('persistent_ids', 'photoId_ok'))
+        cls.sampleType_ok = config.get('persistent_ids', 'sampleType_ok')
+        cls.machine_name = config.get('persistent_ids', 'machine_name')
 
     def teardown_class(cls):
         """将生成的ID写入配置文件"""
@@ -70,14 +82,14 @@ class TestDeepModelTraining:
         with allure.step("步骤1：创建深度训练任务"):
             self.cut_value = 1024
             response = self.api_comprehensive.create_deep_training_tasks(
-                defectName=["shang"],
-                photoId=["1", "2", "3"],
+                defectName=self.defectName,
+                photoId=self.photoId_ng,
                 cut=self.cut_value,
                 taskName=self.task_name,
                 classifyType=[],
                 caseId="detection",
                 caseName="目标检测/分割",
-                type=1,
+                create_type=1,
                 iscut=True
             )
 
@@ -105,9 +117,8 @@ class TestDeepModelTraining:
             if not self.trainTaskId:
                 pytest.fail("trainTaskId未被正确获取，请检查监控方法")
             response = self.api_comprehensive.append_deep_training_tasks2(
-                defectName=None,
-                photoId=["3"],
-                sampleType=["ok"],
+                photoId=self.photoId_ok,
+                sampleType=self.sampleType_ok,
                 trainId=self.trainTaskId,
                 datasetType=1
             )
@@ -135,8 +146,7 @@ class TestDeepModelTraining:
                 # 解析case映射关系
                 cut_case_mapping = {
                     768: "DetS V2 实例分割",
-                    1024: "Det V2 目标检测",
-                    2048: "Det V1 目标检测"
+                    1024: "Det V2 目标检测"
                 }
                 if self.cut_value not in cut_case_mapping:
                     pytest.fail(f"Invalid cut value: {self.cut_value}, expected 1024/768/2048")
@@ -164,18 +174,18 @@ class TestDeepModelTraining:
                 machine_data = machine_response.json()
                 assertions.assert_in_text(machine_data['msg'], '操作成功')
 
-                # 查找测试机器
+                # 查找指定的训练机器
                 test_machine = next(
-                    (machine for machine in machine_data['data'] if machine['name'] == '测试机器'),
+                    (machine for machine in machine_data['data'] if machine['name'] == self.machine_name),
                     None
                 )
                 if not test_machine:
-                    pytest.fail("测试机器 not found in machine list")
+                    pytest.fail(f"{self.machine_name}在机器列表中未找到")
                 computing_power_id = test_machine['computingPowerId']
 
                 allure.attach(
-                    f"Found computingPowerId: {computing_power_id}",
-                    name="Training Machine ID",
+                    f"找到训练机器ID: {computing_power_id}",
+                    name="训练机器ID",
                     attachment_type=allure.attachment_type.TEXT
                 )
 
@@ -188,7 +198,7 @@ class TestDeepModelTraining:
                 assertions.assert_in_text(train_data['msg'], '操作成功')
 
         with allure.step("步骤6：监控训练进度"):
-            self.modelTrainId, success = self.monitor.monitor_train_progress(self.trainTaskId,"YoloV8目标检测训练")
+            self.modelTrainId, success = self.monitor.monitor_train_progress(self.trainTaskId, "YoloV8目标检测训练")
             self.__class__.modelTrainId = self.modelTrainId
             time.sleep(3)
 
@@ -211,7 +221,7 @@ class TestDeepModelTraining:
 
             # 监控提交状态
             with allure.step("子步骤2：监控模型提交状态"):
-                success = self.monitor.monitor_commit_progress(self.trainTaskId,"YoloV8目标检测模型提交")
+                success = self.monitor.monitor_commit_progress(self.trainTaskId, "YoloV8目标检测模型提交")
 
             # 最终成功提示
         allure.dynamic.description(

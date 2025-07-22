@@ -1,6 +1,7 @@
 """
 数据训练任务接口自动化流程
 """
+import ast
 import os
 import pytest
 import allure
@@ -34,6 +35,12 @@ class TestDataTrainingTask:
         cls.max_wait_seconds = 1800
         cls.poll_interval = 10
         cls.dataAlgorithmTrainTaskId = None
+        # 读取配置文件
+        config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
+        config = configparser.ConfigParser()
+        config.read(config_path)
+        cls.defectName = ast.literal_eval(config.get('data_task', 'defectName'))
+
 
     def _monitor_data_task_progress(self):
         """监控数据训练任务采集状态并获取任务ID"""
@@ -204,7 +211,7 @@ class TestDataTrainingTask:
         # 步骤1：创建数据训练任务
         with allure.step("步骤1：创建数据训练任务") as step1:
             step_start = time.time()
-            response = self.api_comprehensive.create_data_training_tasks(["mozha", "yakedian"], self.task_name)
+            response = self.api_comprehensive.create_data_training_tasks(self.defectName, self.task_name)
 
             # 验证响应
             assertions.assert_code(response.status_code, 200)

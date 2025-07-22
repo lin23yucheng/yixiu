@@ -22,23 +22,38 @@ token = login.login()
 
 class ApiSpace:
     # 项目空间查询
-    def space_query(self):
+    def space_query(self,spaceName):
         url = env + "/miai/brainstorm/spacemanage/page"
-        data = {"data": {"spaceName": "", "showUnsettle": False}, "page": {"pageIndex": 1, "pageSize": 100}}
+        data = {"data": {"spaceName": spaceName, "showUnsettle": False}, "page": {"pageIndex": 1, "pageSize": 100}}
         header = {"content-type": "application/json", "Authorization": token}
 
         rep_product_query = requests.post(url=url, json=data, headers=header)
         rep_json = rep_product_query.json()
+
         if rep_json.get("success"):
             space_list = rep_json["data"]["list"]
-            # 遍历查找目标产品
-            for space in space_list:
-                if space["spaceName"] == space_name:
-                    return space["spaceManageId"]  # 找到后直接返回
-            return None  # 未找到返回None
+
+            # 如果列表不为空，返回第一条数据的spaceManageId
+            if space_list:
+                first_space = space_list[0]
+                return first_space["spaceManageId"]
+            else:
+                print("空间列表为空")
+                return None
         else:
             print("请求失败：", rep_json.get("msg"))
             return None
+
+        # if rep_json.get("success"):
+        #     space_list = rep_json["data"]["list"]
+        #     # 遍历查找目标产品
+        #     for space in space_list:
+        #         if space["spaceName"] == space_name:
+        #             return space["spaceManageId"]  # 找到后直接返回
+        #     return None  # 未找到返回None
+        # else:
+        #     print("请求失败：", rep_json.get("msg"))
+        #     return None
 
     # 产品查询
     def product_query(self):

@@ -4,6 +4,7 @@ import time
 from requests.exceptions import HTTPError
 from requests.exceptions import ConnectionError, Timeout
 
+
 def log_allure_request_response(func):
     """
     Allure请求响应记录装饰器
@@ -59,12 +60,13 @@ def log_allure_request_response(func):
 
 class ApiClient:
     """封装的请求客户端"""
+
     def __init__(self, base_headers=None):
         self.session = requests.Session()
         self.base_headers = base_headers or {}
 
         # 添加重试配置
-        self.max_retry_seconds = 60  # 最大重试时间60秒
+        self.max_retry_seconds = 10  # 最大重试时间60秒
         self.retry_interval = 5  # 重试间隔5秒
 
     @log_allure_request_response
@@ -96,30 +98,41 @@ class ApiClient:
                 response.raise_for_status()  # 触发HTTP异常
                 return response
 
-            except (HTTPError, ConnectionError, Timeout) as e:
-                # 判断是否是需要重试的状态码错误
-                is_retryable_status = (
-                        isinstance(e, HTTPError) and
-                        hasattr(e, 'response') and
-                        e.response.status_code in retry_status_codes
-                )
 
-                # 判断错误类型
-                if is_retryable_status:
-                    error_type = f"{e.response.status_code}错误"
-                elif isinstance(e, HTTPError) and hasattr(e, 'response'):
-                    error_type = f"HTTP错误({e.response.status_code})"
-                else:
+            except (HTTPError, ConnectionError, Timeout) as e:
+                # 判断是否可重试
+                is_retryable = False
+                # 1. 网络错误总是可重试
+                if isinstance(e, (ConnectionError, Timeout)):
+                    is_retryable = True
                     error_type = "网络错误"
 
-                elapsed = time.time() - start_time
+                # 2. HTTP错误根据状态码判断
+                elif isinstance(e, HTTPError) and hasattr(e, 'response'):
+                    status_code = e.response.status_code
+                    # 可重试状态码
+                    if status_code in retry_status_codes:
+                        is_retryable = True
+                        error_type = f"{status_code}错误"
 
-                # 检查是否超过最大重试时间
+                    # 400错误特殊处理
+                    elif status_code == 400:
+                        # 直接抛出，不重试
+                        raise ValueError("客户端请求错误，请检查参数") from e
+
+                    # 其他HTTP错误
+                    else:
+                        error_type = f"HTTP错误({status_code})"
+                # 不可重试的错误直接抛出
+                if not is_retryable:
+                    raise
+                # 以下为可重试错误的处理逻辑
+                elapsed = time.time() - start_time
                 if elapsed > self.max_retry_seconds:
                     raise Exception(f"重试超过{self.max_retry_seconds}秒仍然失败") from e
 
-                # 打印重试信息
                 print(f"\r{error_type}: 正在重试 (尝试 {attempt}次, 已等待 {int(elapsed)}秒)", end="")
+
                 time.sleep(self.retry_interval)
 
             except Exception as e:

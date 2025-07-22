@@ -25,6 +25,7 @@ config = configparser.ConfigParser()
 config.read(config_path)
 picture_num = int(config.get('bash', 'picture_num'))
 
+
 # 常量定义
 class Constants:
     IS_CROP = 2
@@ -33,6 +34,12 @@ class Constants:
     DEFAULT_ADDRESS_NO = 1  # GRPC请求编号
     DEFAULT_THREADS = 1  # 线程数
     DEFAULT_LOOPS = picture_num  # 循环数
+
+
+# 生成随机的前三位数字 (1000-9999)
+random_part1 = random.randint(1000, 1100)
+random_part2 = random.randint(2000, 2100)
+random_part3 = random.randint(1, 9)
 
 
 # 路径工具函数
@@ -250,20 +257,15 @@ class BashGrpcMock:
             self._process_single_request()
             loop_count += 1
 
-    # 添加停止方法
     def stop(self):
         self.stop_event.set()
 
+    # 处理单个请求(可修改光学面号等参数)
     def _process_single_request(self):
         """处理单个请求"""
         now_time = time.time() * 1000
         now_str = (time.strftime("%Y%m%d%H%M%S", time.localtime(now_time / 1000))
                    + f"{now_time % 1000:03.0f}")
-
-        # 生成随机的前三位数字 (1000-9999)
-        random_part1 = random.randint(1000, 1100)
-        random_part2 = random.randint(2000, 2100)
-        random_part3 = random.randint(1, 9)
 
         # 修改图片头生成逻辑
         device_no = self.result["device_no"]
@@ -478,6 +480,7 @@ class BashGrpcMock:
         )
 
 
+# 手动推图
 def push_images_manual(config_data=None):
     """手动输入模式测试"""
     print("测试开始 (手动模式)")
@@ -494,6 +497,7 @@ def push_images_manual(config_data=None):
     run_test(config, address_no, i_threads, i_loops)
 
 
+# 自动推图
 def push_images_auto(config_data=None):
     """自动执行模式测试"""
     print("测试开始 (自动模式)")

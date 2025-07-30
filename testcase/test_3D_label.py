@@ -43,12 +43,8 @@ class Test3DLabel:
         cls.dimensionTaskId = None
         cls.dimensionDataId_1 = None
         cls.dimensionDataId_2 = None
-        # 读取配置文件
-        config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
-        config = configparser.ConfigParser()
-        config.read(config_path)
-        cls.label_1 = config.get('3d_label', 'label_1')
-        cls.label_2 = config.get('3d_label', 'label_2')
+        cls.label_3d_1 = None
+        cls.label_3d_2 = None
 
     def verify_task_status(self, expected_status, status_name):
         """
@@ -520,26 +516,54 @@ class Test3DLabel:
                               attachment_type=allure.attachment_type.TEXT)
                 pytest.fail(error_msg)
 
-        with allure.step("步骤12：3D标注第一张") as step12:
+        with allure.step("步骤12：获取标注标签") as step12:
+            response = self.api_3d_label.query_3d_label()
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 提取前两条数据的labelName值
+            label_data = response_data.get('data', [])
+            if len(label_data) >= 2:
+                Test3DLabel.label_3d_1 = label_data[0].get('labelName')
+                Test3DLabel.label_3d_2 = label_data[1].get('labelName')
+
+                # 记录提取的标签名称到Allure报告
+                extracted_labels = (
+                    f"提取的前两条labelName:\n"
+                    f"1. {Test3DLabel.label_3d_1}\n"
+                    f"2. {Test3DLabel.label_3d_2}"
+                )
+                allure.attach(extracted_labels,
+                              name="提取的labelName",
+                              attachment_type=allure.attachment_type.TEXT)
+            else:
+                error_msg = "错误: 响应数据不足2条，无法提取全部labelName"
+                allure.attach(error_msg,
+                              name="标签数据提取失败",
+                              attachment_type=allure.attachment_type.TEXT)
+                pytest.fail(error_msg)
+
+        with allure.step("步骤13：3D标注第一张") as step13:
             response = self.api_3d_label.label_3d(Test3DLabel.dimensionDataId_1, [566.0107005214322, 243.03692916466312,
                                                                                   118.08943939200213,
                                                                                   276.82962552300023, 324.1271494817036,
                                                                                   83.89034464762142, 0, 0, 0],
-                                                  self.label_1,"WH")
+                                                  self.label_3d_1, "WH")
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
-        with allure.step("步骤13：3D标注第二张") as step13:
+        with allure.step("步骤14：3D标注第二张") as step14:
             response = self.api_3d_label.label_3d(Test3DLabel.dimensionDataId_2,
                                                   [561.5785487046447, 475.4253437561026, 256.74868729206804,
                                                    263.9773852012997, 229.18250488057146, 552.493992091475, 0, 0, 0],
-                                                  self.label_2,"GH")
+                                                  self.label_3d_2, "GH")
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
-        with allure.step("步骤14：判断3D标注任务是否完成") as step14:
+        with allure.step("步骤15：判断3D标注任务是否完成") as step15:
             response = self.api_3d_label.query_3d_task()
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -585,7 +609,7 @@ class Test3DLabel:
                               attachment_type=allure.attachment_type.TEXT)
                 pytest.fail(error_msg)
 
-        with allure.step("步骤15：3D任务提交复核") as step15:
+        with allure.step("步骤16：3D任务提交复核") as step16:
             response = self.api_3d_label.three_dim_task_commit_review(Test3DLabel.dimensionTaskId)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -593,7 +617,7 @@ class Test3DLabel:
 
             self.verify_task_status(3, "待复核")
 
-        with allure.step("步骤16：3D任务复核不通过") as step16:
+        with allure.step("步骤17：3D任务复核不通过") as step17:
             response = self.api_3d_label.three_dim_task_review_judge(Test3DLabel.dimensionTaskId, 8)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -601,7 +625,7 @@ class Test3DLabel:
 
             self.verify_task_status(8, "复核未通过")
 
-        with allure.step("步骤17：3D任务重标") as step17:
+        with allure.step("步骤18：3D任务重标") as step18:
             response = self.api_3d_label.change_3d_task_status(Test3DLabel.dimensionTaskId)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -609,7 +633,7 @@ class Test3DLabel:
 
             self.verify_task_status(2, "进行中")
 
-        with allure.step("步骤18：3D任务再次提交复核") as step18:
+        with allure.step("步骤19：3D任务再次提交复核") as step19:
             response = self.api_3d_label.three_dim_task_commit_review(Test3DLabel.dimensionTaskId)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -617,7 +641,7 @@ class Test3DLabel:
 
             self.verify_task_status(3, "待复核")
 
-        with allure.step("步骤19：3D任务复核通过") as step19:
+        with allure.step("步骤20：3D任务复核通过") as step20:
             response = self.api_3d_label.three_dim_task_review_judge(Test3DLabel.dimensionTaskId, 4)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -625,7 +649,7 @@ class Test3DLabel:
 
             self.verify_task_status(4, "复核通过")
 
-        with allure.step("步骤20：创建&提交3D数据集") as step20:
+        with allure.step("步骤21：创建&提交3D数据集") as step21:
             response = self.api_3d_label.create_3d_dataset(self.task_name, Test3DLabel.dimensionTaskId)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -633,7 +657,7 @@ class Test3DLabel:
 
             self.verify_task_status(5, "已提交")
 
-        with allure.step("步骤21：查询3D数据集管理") as step21:
+        with allure.step("步骤22：查询3D数据集管理") as step22:
             dataset_name = f"{self.task_name}-train"
 
             response = self.api_3d_label.query_3d_dataset()
@@ -701,7 +725,7 @@ class Test3DLabel:
                               attachment_type=allure.attachment_type.TEXT)
                 pytest.fail(error_msg)
 
-        with allure.step("步骤22：撤回3D标注任务") as step22:
+        with allure.step("步骤23：撤回3D标注任务") as step23:
             if hasattr(Test3DLabel, 'train_dataset_id') and Test3DLabel.train_dataset_id:
                 # 记录撤回参数
                 withdraw_params = (
@@ -785,7 +809,7 @@ class Test3DLabel:
                               attachment_type=allure.attachment_type.TEXT)
                 pytest.fail(error_msg)
 
-        with allure.step("步骤23：3D任务发起重标") as step23:
+        with allure.step("步骤24：3D任务发起重标") as step24:
             # 检查是否成功获取了datasetId
             if hasattr(Test3DLabel, 'train_dataset_id') and Test3DLabel.train_dataset_id:
                 # 记录重标参数
@@ -870,7 +894,7 @@ class Test3DLabel:
                               attachment_type=allure.attachment_type.TEXT)
                 pytest.fail(error_msg)
 
-        with allure.step("步骤24：检查3D标注任务状态") as step24:
+        with allure.step("步骤25：检查3D标注任务状态") as step25:
             response = self.api_3d_label.query_3d_task()
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()

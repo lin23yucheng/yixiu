@@ -53,7 +53,6 @@ class TestDeepModelTraining:
         # 使用 ast.literal_eval 将字符串转换为列表
         cls.photoId_ng = ast.literal_eval(config.get('persistent_ids', 'photo_id_ng'))
         cls.photoId_ok = ast.literal_eval(config.get('persistent_ids', 'photo_id_ok'))
-        cls.sampleType_ok = config.get('persistent_ids', 'sample_type_ok')
         cls.machine_name = config.get('persistent_ids', 'machine_name')
 
     # 将生成的ID写入配置文件
@@ -367,7 +366,7 @@ class TestDeepModelTraining:
                 pytest.fail("trainTaskId未被正确获取，请检查监控方法")
             response = self.api_comprehensive.append_deep_training_tasks2(
                 photoId=self.photoId_ok,
-                sampleType=self.sampleType_ok,
+                sampleType="ok",
                 trainId=self.trainTaskId,
                 datasetType=1
             )

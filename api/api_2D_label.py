@@ -33,6 +33,14 @@ class Api2DLabel:
         response = self.client.post_with_retry(url, json=payload)
         return response
 
+    # 获取标注标签
+    def query_2d_label(self):
+        url = f"{env}/miai/brainstorm/labelinfo/productCode?spaceType=1"
+        payload = None
+
+        response = self.client.post_with_retry(url, json=payload)
+        return response
+
     # 标注多边形
     def label_2d_polygon(self, dataId, label, shape_type, points, isDispute):
         url = f"{env}/miai/brainstorm/dimensiontaskdatalist/saveLabelJson"

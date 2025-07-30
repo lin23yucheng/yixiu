@@ -148,6 +148,15 @@ class Api3DLabel:
         response = self.client.post_with_retry(url, json=payload)
         return response
 
+    # 获取标注标签
+    def query_3d_label(self):
+        url = f"{env}/miai/brainstorm/labelinfo/productCode?spaceType=1"
+        payload = None
+
+        response = self.client.post_with_retry(url, json=payload)
+        return response
+
+
     # 3D标注
     def label_3d(self, dataId, points, label, confusionType):
         url = f"{env}/miai/brainstorm/threedim/dimensiontaskdatalist/saveLabelJson"

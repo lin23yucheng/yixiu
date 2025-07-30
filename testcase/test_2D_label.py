@@ -38,12 +38,8 @@ class TestLabel:
         cls.dimensionTaskId = None
         cls.datasetDataId_1 = None
         cls.datasetDataId_2 = None
-        # 读取配置文件
-        config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
-        config = configparser.ConfigParser()
-        config.read(config_path)
-        cls.rectangle_label = config.get('2d_label', 'rectangle_label')
-        cls.polygon_label = config.get('2d_label', 'polygon_label')
+        cls.label_2d_1 = None
+        cls.label_2d_2 = None
 
     def verify_task_status(self, expected_status, status_name):
         """
@@ -472,12 +468,67 @@ class TestLabel:
                               attachment_type=allure.attachment_type.TEXT)
                 pytest.fail(error_msg)
 
-        with allure.step("步骤4：标注矩形-无争议") as step4:
+        with allure.step("步骤4：获取标注缺陷") as step4:
+            response = self.api_2d_label.query_2d_label()
+            assertions.assert_code(response.status_code, 200)
+            response_data = response.json()
+            assertions.assert_in_text(response_data['msg'], '成功')
+
+            # 提取标记方法为"矩形"和"多边形"的第一条数据的labelName
+            label_data = response_data.get('data', [])
+
+            rectangle_label = None
+            polygon_label = None
+
+            # 查找标记方法为"矩形"的第一条数据
+            for item in label_data:
+                if item.get('markMethod') == '矩形':
+                    rectangle_label = item.get('labelName')
+                    break
+
+            # 查找标记方法为"多边形"的第一条数据
+            for item in label_data:
+                if item.get('markMethod') == '多边形':
+                    polygon_label = item.get('labelName')
+                    break
+
+            # 赋值给类变量
+            if rectangle_label:
+                TestLabel.label_2d_1 = rectangle_label
+            if polygon_label:
+                TestLabel.label_2d_2 = polygon_label
+
+            # 记录提取结果到Allure报告
+            extracted_labels = (
+                f"提取的标签名称:\n"
+                f"矩形标签(label_2d_1): {TestLabel.label_2d_1}\n"
+                f"多边形标签(label_2d_2): {TestLabel.label_2d_2}"
+            )
+            allure.attach(extracted_labels,
+                          name="提取的labelName",
+                          attachment_type=allure.attachment_type.TEXT)
+
+            # 检查是否成功提取到所需标签
+            if not rectangle_label:
+                error_msg = "错误: 未找到标记方法为'矩形'的标签数据"
+                allure.attach(error_msg,
+                              name="矩形标签提取失败",
+                              attachment_type=allure.attachment_type.TEXT)
+                pytest.fail(error_msg)
+
+            if not polygon_label:
+                error_msg = "错误: 未找到标记方法为'多边形'的标签数据"
+                allure.attach(error_msg,
+                              name="多边形标签提取失败",
+                              attachment_type=allure.attachment_type.TEXT)
+                pytest.fail(error_msg)
+
+        with allure.step("步骤5：标注矩形-无争议") as step5:
             # 记录标注参数到Allure
             label_params = (
                 f"标注参数:\n"
                 f"datasetDataId: {self.datasetDataId_1}\n"
-                f"标签: {self.rectangle_label}\n"
+                f"标签: {self.label_2d_1}\n"
                 f"形状: 矩形\n"
                 f"坐标: [[78, 57], [128, 83]]\n"
                 f"争议: 无争议"
@@ -486,7 +537,7 @@ class TestLabel:
                           name="矩形标注参数",
                           attachment_type=allure.attachment_type.TEXT)
 
-            response = self.api_2d_label.label_2d_rectangle(self.datasetDataId_1, self.rectangle_label, "rectangle",
+            response = self.api_2d_label.label_2d_rectangle(self.datasetDataId_1, self.label_2d_1, "rectangle",
                                                             [[78, 57], [128, 83]],
                                                             "")
             assertions.assert_code(response.status_code, 200)
@@ -498,12 +549,12 @@ class TestLabel:
                           name="矩形标注结果",
                           attachment_type=allure.attachment_type.TEXT)
 
-        with allure.step("步骤5：标注多边形-有争议") as step5:
+        with allure.step("步骤6：标注多边形-有争议") as step6:
             # 记录标注参数到Allure
             label_params = (
                 f"标注参数:\n"
                 f"datasetDataId: {self.datasetDataId_2}\n"
-                f"标签: {self.polygon_label}\n"
+                f"标签: {self.label_2d_2}\n"
                 f"形状: 多边形\n"
                 f"坐标: [[160, 64], [110, 116], [118, 222], [268, 242], [308, 138], [244, 60]]\n"
                 f"争议: 有争议"
@@ -512,7 +563,7 @@ class TestLabel:
                           name="多边形标注参数",
                           attachment_type=allure.attachment_type.TEXT)
 
-            response = self.api_2d_label.label_2d_polygon(self.datasetDataId_2, self.polygon_label, "polygon",
+            response = self.api_2d_label.label_2d_polygon(self.datasetDataId_2, self.label_2d_2, "polygon",
                                                           [[160, 64], [110, 116], [118, 222], [268, 242], [308, 138],
                                                            [244, 60]],
                                                           "Dispute")
@@ -525,7 +576,7 @@ class TestLabel:
                           name="多边形标注结果",
                           attachment_type=allure.attachment_type.TEXT)
 
-        with allure.step("步骤6：判断2D标注任务是否完成") as step6:
+        with allure.step("步骤7：判断2D标注任务是否完成") as step7:
             response = self.api_2d_label.query_2d_task(self.task_name)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -571,7 +622,7 @@ class TestLabel:
                               attachment_type=allure.attachment_type.TEXT)
                 pytest.fail(error_msg)
 
-        with allure.step("步骤7：提交复核") as step7:
+        with allure.step("步骤8：提交复核") as step8:
             response = self.api_2d_label.submit_review(dimensionTaskId)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -579,7 +630,7 @@ class TestLabel:
 
             self.verify_task_status(3, "待复核")
 
-        with allure.step("步骤8：复核不通过") as step8:
+        with allure.step("步骤9：复核不通过") as step9:
             response = self.api_2d_label.review_judge(dimensionTaskId, 8)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -587,7 +638,7 @@ class TestLabel:
 
             self.verify_task_status(8, "复核未通过")
 
-        with allure.step("步骤9：重标") as step9:
+        with allure.step("步骤10：重标") as step10:
             response = self.api_2d_label.re_label(dimensionTaskId)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -595,7 +646,7 @@ class TestLabel:
 
             self.verify_task_status(2, "进行中")
 
-        with allure.step("步骤10：再次提交复核") as step10:
+        with allure.step("步骤11：再次提交复核") as step11:
             response = self.api_2d_label.submit_review(dimensionTaskId)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -603,7 +654,7 @@ class TestLabel:
 
             self.verify_task_status(3, "待复核")
 
-        with allure.step("步骤11：复核通过") as step11:
+        with allure.step("步骤12：复核通过") as step12:
             response = self.api_2d_label.review_judge(dimensionTaskId, 4)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -611,7 +662,7 @@ class TestLabel:
 
             self.verify_task_status(4, "复核通过")
 
-        with allure.step("步骤12：判断是否标注有争议") as step12:
+        with allure.step("步骤13：判断是否标注有争议") as step13:
             response = self.api_2d_label.query_2d_task(self.task_name)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -682,7 +733,7 @@ class TestLabel:
                                           attachment_type=allure.attachment_type.TEXT)
 
                             response = self.api_2d_label.dispute_judge(
-                                self.datasetDataId_2, DateTime, dispute_id, self.polygon_label,
+                                self.datasetDataId_2, DateTime, dispute_id, self.label_2d_2,
                                 [[160, 64], [110, 116], [118, 222], [268, 242], [308, 138], [244, 60]])
                             assertions.assert_code(response.status_code, 200)
                             response_data = response.json()
@@ -709,7 +760,7 @@ class TestLabel:
                                       name="争议处理参数",
                                       attachment_type=allure.attachment_type.TEXT)
 
-                        response = self.api_2d_label.dispute_handle(self.datasetDataId_2, DateTime, self.polygon_label,
+                        response = self.api_2d_label.dispute_handle(self.datasetDataId_2, DateTime, self.label_2d_2,
                                                                     [[160, 64], [110, 116], [118, 222], [268, 242],
                                                                      [308, 138], [244, 60]])
                         assertions.assert_code(response.status_code, 200)
@@ -766,7 +817,7 @@ class TestLabel:
                               attachment_type=allure.attachment_type.TEXT)
                 pytest.fail(error_msg)
 
-        with allure.step("步骤13：创建&提交数据集") as step13:
+        with allure.step("步骤14：创建&提交数据集") as step14:
             response = self.api_2d_label.create_dataset(self.task_name, dimensionTaskId)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
@@ -774,7 +825,7 @@ class TestLabel:
 
             self.verify_task_status(5, "已提交")
 
-        with allure.step("步骤14：查询2D数据集管理") as step14:
+        with allure.step("步骤15：查询2D数据集管理") as step15:
             # 构建数据集名称
             dataset_name = f"{self.task_name}-train"
 
@@ -843,7 +894,7 @@ class TestLabel:
                               attachment_type=allure.attachment_type.TEXT)
                 pytest.fail(error_msg)
 
-        with allure.step("步骤15：撤回标注样本") as step15:
+        with allure.step("步骤16：撤回标注样本") as step16:
             # 检查是否成功获取了datasetId
             if hasattr(TestLabel, 'train_dataset_id') and TestLabel.train_dataset_id:
                 # 记录撤回参数
@@ -928,7 +979,7 @@ class TestLabel:
                               attachment_type=allure.attachment_type.TEXT)
                 pytest.fail(error_msg)
 
-        with allure.step("步骤16：发起重标") as step16:
+        with allure.step("步骤17：发起重标") as step17:
             # 检查是否成功获取了datasetId
             if hasattr(TestLabel, 'train_dataset_id') and TestLabel.train_dataset_id:
                 # 记录重标参数
@@ -1013,7 +1064,7 @@ class TestLabel:
                               attachment_type=allure.attachment_type.TEXT)
                 pytest.fail(error_msg)
 
-        with allure.step("步骤17：检查标注任务状态") as step17:
+        with allure.step("步骤18：检查标注任务状态") as step18:
             response = self.api_2d_label.query_2d_task(self.task_name)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()

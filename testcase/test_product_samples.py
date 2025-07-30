@@ -1,15 +1,11 @@
 """
 产品样例接口自动化流程
 """
-import json
-import re
-import pytest
 import allure
 import time
 from common import Assert
 from api import api_login, api_product_samples
 from common.Request_Response import ApiClient
-from common.Log import MyLog
 
 assertions = Assert.Assertions()
 code = api_login.code

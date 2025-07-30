@@ -1,12 +1,9 @@
 """
 单产品-3D标注流程
 """
-import os
+import time
 import pytest
 import allure
-import psycopg2
-import configparser
-import time
 from common import Assert
 from datetime import datetime, timedelta
 from common.Request_Response import ApiClient
@@ -124,7 +121,7 @@ class Test3DLabel:
             else:
                 allure.attach("标准样数据为空，推图失败", name="数据检查结果",
                               attachment_type=allure.attachment_type.TEXT)
-                assertions.fail("标准样数据为空，推图失败")
+                pytest.fail("标准样数据为空，推图失败")
 
         with allure.step("步骤2：检验标准样本库-缺陷料") as step2:
             response = self.api_other_sample.query_standard_sample(startDateTime, endDateTime, "defects")
@@ -139,7 +136,7 @@ class Test3DLabel:
             else:
                 allure.attach("缺陷料数据为空，推图失败", name="数据检查结果",
                               attachment_type=allure.attachment_type.TEXT)
-                assertions.fail("缺陷料数据为空，推图失败")
+                pytest.fail("缺陷料数据为空，推图失败")
 
         with allure.step("步骤3：检验限度样本库-标准限度样") as step3:
             response = self.api_other_sample.query_limit_sample()
@@ -154,7 +151,7 @@ class Test3DLabel:
             else:
                 allure.attach("标准限度样数据为空，推图失败", name="数据检查结果",
                               attachment_type=allure.attachment_type.TEXT)
-                assertions.fail("标准限度样数据为空，推图失败")
+                pytest.fail("标准限度样数据为空，推图失败")
 
         with allure.step("步骤4：检验抽检样本库") as step4:
             response = self.api_other_sample.query_sample_check_sample(startDateTime, endDateTime)
@@ -169,7 +166,7 @@ class Test3DLabel:
             else:
                 allure.attach("抽检样本数据为空，推图失败", name="数据检查结果",
                               attachment_type=allure.attachment_type.TEXT)
-                assertions.fail("抽检样本数据为空，推图失败")
+                pytest.fail("抽检样本数据为空，推图失败")
 
     @pytest.mark.order(2)
     @allure.story("3D标注")
@@ -549,7 +546,7 @@ class Test3DLabel:
                                                                                   118.08943939200213,
                                                                                   276.82962552300023, 324.1271494817036,
                                                                                   83.89034464762142, 0, 0, 0],
-                                                  self.label_3d_1, "WH")
+                                                  Test3DLabel.label_3d_1, "WH")
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
@@ -558,7 +555,7 @@ class Test3DLabel:
             response = self.api_3d_label.label_3d(Test3DLabel.dimensionDataId_2,
                                                   [561.5785487046447, 475.4253437561026, 256.74868729206804,
                                                    263.9773852012997, 229.18250488057146, 552.493992091475, 0, 0, 0],
-                                                  self.label_3d_2, "GH")
+                                                  Test3DLabel.label_3d_2, "GH")
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')

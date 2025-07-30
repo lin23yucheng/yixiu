@@ -1,12 +1,9 @@
 """
 单产品-2D标注流程
 """
-import os
+import time
 import pytest
 import allure
-import psycopg2
-import configparser
-import time
 from common import Assert
 from datetime import datetime, timedelta
 from common.Request_Response import ApiClient

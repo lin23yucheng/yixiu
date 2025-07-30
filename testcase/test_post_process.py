@@ -85,7 +85,6 @@ class TestPostProcess:
         color_mapping = {
             1: "\033[93m",  # 分析中 - 黄色
             2: "\033[92m",  # 分析完成 - 绿色
-            "default": "\033[91m"  # 其他状态 - 红色
         }
 
         with allure.step(f"监控{analysis_type}状态"):
@@ -123,8 +122,9 @@ class TestPostProcess:
 
                     # 仅当状态信息变化时更新控制台（避免频繁刷新）
                     if status_info != last_status_info:
-                        # 选择颜色
-                        color_code = color_mapping.get(subStatus, color_mapping["default"])
+                        # 处理None值和获取颜色
+                        subStatus = subStatus if subStatus is not None else -1  # 将None转换为一个不会匹配的值
+                        color_code = color_mapping.get(subStatus, "\033[91m")  # 默认红色
 
                         # 单行更新（使用回车符覆盖上一行）
                         print(f"\r{color_code}{status_info}\033[0m", end="", flush=True)

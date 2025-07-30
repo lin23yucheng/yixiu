@@ -5,10 +5,6 @@ import json
 import pytest
 import shutil
 import psutil
-import requests
-from threading import Event
-from threading import Thread
-from utils.browser_pool import BrowserPool
 from common.Log import MyLog, set_log_level
 from multiprocessing import Process, Manager
 from bash.push.client_bash import push_images_manual
@@ -403,10 +399,6 @@ if __name__ == "__main__":
         children = current_process.children(recursive=True)
         for child in children:
             child.terminate()
-
-        # 原有浏览器清理
-        if hasattr(BrowserPool, '_drivers'):
-            BrowserPool.quit_all()
 
     MyLog.info("===== 测试执行程序结束 =====")
     print("===== 测试执行程序结束 =====")

@@ -7,7 +7,6 @@ import time
 import os
 import json
 import configparser
-from configparser import ConfigParser
 from common.Request_Response import ApiClient
 from common import Assert
 from api import api_login, api_deep_training_tasks

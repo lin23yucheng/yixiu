@@ -4,7 +4,6 @@ import allure
 import threading
 import configparser
 from time import sleep
-from selenium import webdriver
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from bash.push.client_bash import push_images_auto

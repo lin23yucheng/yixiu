@@ -129,7 +129,7 @@ class TestDeepModelTraining:
                     # 仅当状态信息变化时更新控制台（避免频繁刷新）
                     if status_info != last_status_info:
                         # 选择颜色
-                        color_code = color_mapping.get(subStatus, color_mapping["default"])
+                        color_code = color_mapping.get(subStatus, color_mapping["default"]) if subStatus is not None else color_mapping["default"]
 
                         # 单行更新（使用回车符覆盖上一行）
                         print(f"\r{color_code}{status_info}\033[0m", end="", flush=True)

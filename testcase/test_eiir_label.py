@@ -4,7 +4,6 @@ EIIR空间标注流程
 import os
 import pytest
 import allure
-import psycopg2
 import configparser
 import time
 from common import Assert
@@ -40,9 +39,9 @@ base_headers = {
 global_client = ApiClient(base_headers=base_headers)
 
 # 计算日期参数
-# current_date = datetime.now()
-# endDateTime = current_date.strftime("%Y-%m-%d")
-# startDateTime = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
+current_date = datetime.now()
+endDateTime = current_date.strftime("%Y-%m-%d")
+startDateTime = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
 start_time = "2025-05-31"
 end_time = "2025-06-30"
 

@@ -74,11 +74,11 @@ class ApiModelTrain:
         return response
 
     # 开始模型训练
-    def start_train(self, caseId, modelSize, computingPowerId, trainTaskId, Width, Height, modelCaseTemplateId, epoch):
+    def start_train(self, caseId, modelSize, computingPowerId, trainTaskId, Width, Height, modelCaseTemplateId, epoch,modelVersion):
         url = f"{env}/miai/brainstorm/newmodeltrain/startTrain"
         payload = {"resizeWidth": Width, "resizeHeight": Height, "caseId": caseId, "modelSize": modelSize,
                    "gpuCount": "1", "gpuSize": 999, "source": 0, "keepLabels": [],
-                   "computingPowerId": computingPowerId, "trainParams": True, "schemePhase": 1,
+                   "computingPowerId": computingPowerId, "trainParams": True, "schemePhase": 1,"modelVersion":modelVersion,
                    "paramSetting1": {"epoch": epoch, "batchSize": 16, "lr": 0.0002}, "paramSetting2": None,
                    "trainTaskId": trainTaskId, "remark": f"接口自动化训练-{time_str}",
                    "modelCaseTemplateId": modelCaseTemplateId}

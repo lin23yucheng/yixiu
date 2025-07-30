@@ -1,3 +1,6 @@
+"""
+模型库功能
+"""
 import json
 import os
 import time
@@ -104,18 +107,18 @@ class TestModelBase:
 
         pytest.fail(f"未找到匹配的modelManageId: {model_train_id or model_name}")
 
-    def _withdraw_model(self, model_manage_id, model_type):
-        """通用模型撤回方法"""
-        with allure.step(f"{model_type}模型撤回"):
-            response = self.api_base.model_withdraw(model_manage_id, 1)
-            assertions.assert_code(response.status_code, 200)
-            response_data = response.json()
-            assertions.assert_in_text(response_data['msg'], '成功')
-            allure.attach(
-                f"{model_type}模型撤回成功: {model_manage_id}",
-                name=f"{model_type}模型撤回",
-                attachment_type=allure.attachment_type.TEXT
-            )
+    # def _withdraw_model(self, model_manage_id, model_type):
+    #     """通用模型撤回方法"""
+    #     with allure.step(f"{model_type}模型撤回"):
+    #         response = self.api_base.model_withdraw(model_manage_id, 1)
+    #         assertions.assert_code(response.status_code, 200)
+    #         response_data = response.json()
+    #         assertions.assert_in_text(response_data['msg'], '成功')
+    #         allure.attach(
+    #             f"{model_type}模型撤回成功: {model_manage_id}",
+    #             name=f"{model_type}模型撤回",
+    #             attachment_type=allure.attachment_type.TEXT
+    #         )
 
     def _monitor_generic_progress(self, api_call, get_status_func,
                                   in_progress_status, success_status,
@@ -282,49 +285,49 @@ class TestModelBase:
         self.__class__.class_cut_trainTaskId = get_persistent_ids['class_cut_train_task_id']
         self.__class__.class_original_trainTaskId = get_persistent_ids['class_original_train_task_id']
 
-        with allure.step("步骤1：通过modelTrainId获取modelManageId"):
-            self.__class__.modelManageId = self._get_model_manage_id(
-                model_train_id=self.__class__.modelTrainId
-            )
-            allure.attach(
-                f"modelManageId: {self.modelManageId}",
-                name="目标检测模型ManageID",
-                attachment_type=allure.attachment_type.TEXT
-            )
+        # with allure.step("步骤1：通过modelTrainId获取modelManageId"):
+        #     self.__class__.modelManageId = self._get_model_manage_id(
+        #         model_train_id=self.__class__.modelTrainId
+        #     )
+        #     allure.attach(
+        #         f"modelManageId: {self.modelManageId}",
+        #         name="目标检测模型ManageID",
+        #         attachment_type=allure.attachment_type.TEXT
+        #     )
+        #
+        # with allure.step("步骤2：部署测试"):
+        #     response = self.api_base.deploy_test(self.__class__.modelManageId)
+        #
+        #     # 响应断言
+        #     assertions.assert_code(response.status_code, 200)
+        #     response_data = response.json()
+        #     assertions.assert_in_text(response_data['msg'], '成功')
+        #
+        # with allure.step("步骤3：监控部署测试状态"):
+        #     # 定义状态提取函数
+        #     def get_deployment_status(response_data):
+        #         model_list = response_data.get('data', {}).get('list', [])
+        #         for model in model_list:
+        #             if model.get('modelManageId') == self.__class__.modelManageId:
+        #                 return model.get('status')
+        #         return None
+        #
+        #     # 调用监控方法
+        #     self._monitor_generic_progress(
+        #         api_call=self.api_base.query_model_base,
+        #         get_status_func=get_deployment_status,
+        #         in_progress_status=1,  # 测试中
+        #         success_status=3,  # 测试完成
+        #         step_name="部署测试",
+        #         status_mapping={
+        #             0: "已提交",
+        #             1: "测试中",
+        #             2: "测试失败",
+        #             3: "测试完成"
+        #         }
+        #     )
 
-        with allure.step("步骤2：部署测试"):
-            response = self.api_base.deploy_test(self.__class__.modelManageId)
-
-            # 响应断言
-            assertions.assert_code(response.status_code, 200)
-            response_data = response.json()
-            assertions.assert_in_text(response_data['msg'], '成功')
-
-        with allure.step("步骤3：监控部署测试状态"):
-            # 定义状态提取函数
-            def get_deployment_status(response_data):
-                model_list = response_data.get('data', {}).get('list', [])
-                for model in model_list:
-                    if model.get('modelManageId') == self.__class__.modelManageId:
-                        return model.get('status')
-                return None
-
-            # 调用监控方法
-            self._monitor_generic_progress(
-                api_call=self.api_base.query_model_base,
-                get_status_func=get_deployment_status,
-                in_progress_status=1,  # 测试中
-                success_status=3,  # 测试完成
-                step_name="部署测试",
-                status_mapping={
-                    0: "已提交",
-                    1: "测试中",
-                    2: "测试失败",
-                    3: "测试完成"
-                }
-            )
-
-        with allure.step("步骤4：模型组合"):
+        with allure.step("步骤1：模型组合"):
             # 读取组合模型JSON
             json_path = self.get_testdata_path("组合模型.json")
             with open(json_path, "r", encoding="utf-8") as f:
@@ -344,7 +347,7 @@ class TestModelBase:
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
-        with allure.step("步骤5：提取组合模型的modelManageId"):
+        with allure.step("步骤2：提取组合模型的modelManageId"):
             self.__class__.combination_modelManageId = self._get_model_manage_id(
                 model_name=f"自动化模型组合-{time_str}"
             )
@@ -354,7 +357,7 @@ class TestModelBase:
                 attachment_type=allure.attachment_type.TEXT
             )
 
-        with allure.step("步骤6：监控模型组合状态"):
+        with allure.step("步骤3：监控模型组合状态"):
             # 定义状态提取函数（根据实际API响应调整）
             def get_combine_status(response_data):
                 model_list = response_data.get('data', {}).get('list', [])
@@ -377,7 +380,7 @@ class TestModelBase:
                 }
             )
 
-        with allure.step("步骤7：组合模型验证"):
+        with allure.step("步骤4：组合模型验证"):
             response = self.api_base.model_verify(self.__class__.combination_modelManageId)
 
             # 响应断言
@@ -385,7 +388,7 @@ class TestModelBase:
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
-        with allure.step("步骤8：监控组合模型的验证状态"):
+        with allure.step("步骤5：监控组合模型的验证状态"):
             # 定义状态提取函数（根据实际API响应调整）
             def get_combine_status(response_data):
                 model_list = response_data.get('data', {}).get('list', [])
@@ -409,7 +412,7 @@ class TestModelBase:
                 }
             )
 
-        with allure.step("步骤9：组合模型提交"):
+        with allure.step("步骤6：组合模型提交"):
             response = self.api_base.model_submit(self.__class__.combination_modelManageId)
 
             # 响应断言
@@ -417,11 +420,7 @@ class TestModelBase:
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
-    @pytest.mark.order(2)
-    @allure.story("测试数据删除")
-    def test_deepdata_delete(self):  # 注入fixture
-
-        with allure.step("步骤1：组合模型删除"):
+        with allure.step("步骤7：组合模型删除"):
             response = self.api_base.model_withdraw(self.__class__.combination_modelManageId, 2)
 
             # 响应断言
@@ -429,41 +428,53 @@ class TestModelBase:
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
-        with allure.step("步骤2：目标检测模型撤回"):
-            self._withdraw_model(self.modelManageId, "目标检测")
+    # @pytest.mark.order(2)
+    # @allure.story("测试数据删除")
+    # def test_deepdata_delete(self):  # 注入fixture
+    #
+    #     with allure.step("步骤1：组合模型删除"):
+    #         response = self.api_base.model_withdraw(self.__class__.combination_modelManageId, 2)
+    #
+    #         # 响应断言
+    #         assertions.assert_code(response.status_code, 200)
+    #         response_data = response.json()
+    #         assertions.assert_in_text(response_data['msg'], '成功')
 
-        with allure.step("步骤3：分类大图模型撤回"):
-            class_original_manage_id = self._get_model_manage_id(
-                model_train_id=self.class_original_modelTrainId
-            )
-            self._withdraw_model(class_original_manage_id, "分类大图")
-
-        with allure.step("步骤4：分类切图模型撤回"):
-            class_cut_manage_id = self._get_model_manage_id(
-                model_train_id=self.class_cut_modelTrainId
-            )
-            self._withdraw_model(class_cut_manage_id, "分类切图")
-
-        with allure.step("步骤5：目标检测训练任务删除"):
-            response = self.api_deep.delete_train_tasks(self.trainTaskId)
-
-            # 响应断言
-            assertions.assert_code(response.status_code, 200)
-            response_data = response.json()
-            assertions.assert_in_text(response_data['msg'], '成功')
-
-        with allure.step("步骤6：分类大图训练任务删除"):
-            response = self.api_deep.delete_train_tasks(self.class_original_trainTaskId)
-
-            # 响应断言
-            assertions.assert_code(response.status_code, 200)
-            response_data = response.json()
-            assertions.assert_in_text(response_data['msg'], '成功')
-
-        with allure.step("步骤7：分类切图训练任务删除"):
-            response = self.api_deep.delete_train_tasks(self.class_cut_trainTaskId)
-
-            # 响应断言
-            assertions.assert_code(response.status_code, 200)
-            response_data = response.json()
-            assertions.assert_in_text(response_data['msg'], '成功')
+        # with allure.step("步骤2：目标检测Yolov8模型撤回"):
+        #     self._withdraw_model(self.modelManageId, "目标检测")
+        #
+        # with allure.step("步骤3：分类大图Yolov8模型撤回"):
+        #     class_original_manage_id = self._get_model_manage_id(
+        #         model_train_id=self.class_original_modelTrainId
+        #     )
+        #     self._withdraw_model(class_original_manage_id, "分类大图")
+        #
+        # with allure.step("步骤4：分类切图Yolov8模型撤回"):
+        #     class_cut_manage_id = self._get_model_manage_id(
+        #         model_train_id=self.class_cut_modelTrainId
+        #     )
+        #     self._withdraw_model(class_cut_manage_id, "分类切图")
+        #
+        # with allure.step("步骤5：目标检测训练任务删除"):
+        #     response = self.api_deep.delete_train_tasks(self.trainTaskId)
+        #
+        #     # 响应断言
+        #     assertions.assert_code(response.status_code, 200)
+        #     response_data = response.json()
+        #     assertions.assert_in_text(response_data['msg'], '成功')
+        #
+        # with allure.step("步骤6：分类大图训练任务删除"):
+        #     response = self.api_deep.delete_train_tasks(self.class_original_trainTaskId)
+        #
+        #     # 响应断言
+        #     assertions.assert_code(response.status_code, 200)
+        #     response_data = response.json()
+        #     assertions.assert_in_text(response_data['msg'], '成功')
+        #
+        # with allure.step("步骤7：分类切图训练任务删除"):
+        #     response = self.api_deep.delete_train_tasks(self.class_cut_trainTaskId)
+        #
+        #     # 响应断言
+        #     assertions.assert_code(response.status_code, 200)
+        #     response_data = response.json()
+        #     assertions.assert_in_text(response_data['msg'], '成功')

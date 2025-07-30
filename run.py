@@ -5,12 +5,48 @@ import json
 import pytest
 import shutil
 import psutil
+import signal
 from common.Log import MyLog, set_log_level
 from multiprocessing import Process, Manager
 from bash.push.client_bash import push_images_manual
 
+# 添加全局变量来跟踪是否需要生成报告
+should_generate_report = True
+allure_results = os.path.join(os.getcwd(), "report", "allure-results")
+allure_report = os.path.join(os.getcwd(), "report", "allure-report")
+
 # 设置全局日志级别
 set_log_level('info')
+
+
+def signal_handler(sig, frame):
+    """处理中断信号"""
+    global should_generate_report
+    MyLog.info("接收到中断信号，正在优雅退出...")
+    print("\n接收到中断信号，正在生成测试报告...")
+
+    # 设置标志位，让程序知道需要生成报告
+    should_generate_report = True
+
+    # 如果已经初始化了报告路径，则生成报告
+    if allure_results and allure_report:
+        generate_report_on_exit()
+
+    MyLog.info("测试报告已生成，程序退出")
+    sys.exit(0)
+
+
+def generate_report_on_exit():
+    """在退出时生成报告"""
+    global allure_results, allure_report
+
+    if allure_results and os.path.exists(allure_results):
+        try:
+            os.system(f"allure generate {allure_results} -o {allure_report} --clean")
+            MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
+            print(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
+        except Exception as e:
+            MyLog.error(f"生成报告时出错: {e}")
 
 
 def format_time(seconds):
@@ -143,6 +179,8 @@ def process_task(file, deps, require_success, event_dict, result_dict, allure_re
 # 顺序执行（一旦执行失败立即停止，生成allure报告）
 def run_order_tests():
     """执行指定测试文件（遇到任何失败立即终止，但确保生成报告）"""
+    global allure_results, allure_report
+
     reset_logs()  # 清除之前的日志
     MyLog.info("===== 开始执行测试任务 =====")
 
@@ -245,17 +283,26 @@ def run_order_tests():
             formatted_total = format_time(total_elapsed_time)
             MyLog.info(f"测试文件累加总耗时: {formatted_total}")
 
+    except KeyboardInterrupt:
+        MyLog.info("用户中断测试执行")
+        print("\n用户中断测试执行，正在生成报告...")
+
     finally:
         # 无论成功还是失败，都生成报告
-        formatted_overall = generate_report()
-        MyLog.info(f"一休云接口自动化测试-整体耗时: {formatted_overall}")
-        print(f"\033[32m一休云接口自动化测试-整体耗时: {formatted_overall}\033[0m")
+        if os.path.exists(allure_results) and os.listdir(allure_results):
+            formatted_overall = generate_report()
+            MyLog.info(f"一休云接口自动化测试-整体耗时: {formatted_overall}")
+            print(f"\033[32m一休云接口自动化测试-整体耗时: {formatted_overall}\033[0m")
+        else:
+            MyLog.info("没有生成测试结果，跳过报告生成")
         MyLog.info("===== 测试任务完成 =====")
 
 
 # 并行执行（存在依赖关系）
 def run_together_tests():
     """使用进程实现依赖关系的并行测试执行"""
+    global allure_results, allure_report
+
     reset_logs()  # 清除之前的日志
     MyLog.info("===== 开始并行执行测试（带依赖关系） =====")
 
@@ -302,48 +349,58 @@ def run_together_tests():
     start_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))
     MyLog.info(f"开始并行测试 at {start_time_str}")
 
-    # ==== 使用多进程替代多线程 ====
-    with Manager() as manager:
-        # 创建共享的事件字典和结果字典
-        event_dict = manager.dict()
-        result_dict = manager.dict()
+    try:
+        # ==== 使用多进程替代多线程 ====
+        with Manager() as manager:
+            # 创建共享的事件字典和结果字典
+            event_dict = manager.dict()
+            result_dict = manager.dict()
 
-        # 收集所有需要管理的文件（包括任务文件和依赖文件）
-        all_files = set()
-        for task in tasks:
-            all_files.add(task["file"])
-            if task.get("deps"):
-                for dep in task["deps"]:
-                    all_files.add(dep)
+            # 收集所有需要管理的文件（包括任务文件和依赖文件）
+            all_files = set()
+            for task in tasks:
+                all_files.add(task["file"])
+                if task.get("deps"):
+                    for dep in task["deps"]:
+                        all_files.add(dep)
 
-        # 初始化事件和结果字典
-        for test_file in all_files:
-            event_dict[test_file] = manager.Event()
-            result_dict[test_file] = None  # 初始化为未执行状态
-            MyLog.info(f"初始化事件和结果字典 for: {test_file}")
+            # 初始化事件和结果字典
+            for test_file in all_files:
+                event_dict[test_file] = manager.Event()
+                result_dict[test_file] = None  # 初始化为未执行状态
+                MyLog.info(f"初始化事件和结果字典 for: {test_file}")
 
-        # 创建并启动进程
-        processes = []
-        for task in tasks:
-            p = Process(
-                target=process_task,  # 使用外部函数
-                args=(
-                    task["file"],
-                    task.get("deps", []),  # 如果没有依赖，默认为空列表
-                    task.get("require_success", False),  # 默认不要求依赖成功
-                    event_dict,
-                    result_dict,
-                    allure_results
+            # 创建并启动进程
+            processes = []
+            for task in tasks:
+                p = Process(
+                    target=process_task,  # 使用外部函数
+                    args=(
+                        task["file"],
+                        task.get("deps", []),  # 如果没有依赖，默认为空列表
+                        task.get("require_success", False),  # 默认不要求依赖成功
+                        event_dict,
+                        result_dict,
+                        allure_results
+                    )
                 )
-            )
-            p.start()
-            processes.append(p)
-            MyLog.info(f"启动进程: {p.pid} 执行 {task['file']}")
+                p.start()
+                processes.append(p)
+                MyLog.info(f"启动进程: {p.pid} 执行 {task['file']}")
 
-        # 等待所有进程完成
+            # 等待所有进程完成
+            for p in processes:
+                p.join()
+                MyLog.info(f"进程完成: {p.pid}")
+
+    except KeyboardInterrupt:
+        MyLog.info("用户中断测试执行")
+        print("\n用户中断测试执行，正在等待当前进程完成...")
+        # 给进程一些时间完成当前任务
         for p in processes:
-            p.join()
-            MyLog.info(f"进程完成: {p.pid}")
+            if p.is_alive():
+                p.join(timeout=5)  # 等待最多5秒
+        print("正在生成报告...")
 
     # 记录结束时间
     end_time = time.time()
@@ -357,31 +414,39 @@ def run_together_tests():
     print(f"\033[32m一休云接口自动化测试-整体耗时: {formatted_time}\033[0m")
 
     # 生成报告
-    os.system(f"allure generate {allure_results} -o {allure_report} --clean")
+    if os.path.exists(allure_results) and os.listdir(allure_results):
+        os.system(f"allure generate {allure_results} -o {allure_report} --clean")
 
-    # 在Allure报告中添加执行时间信息
-    report_env_file = os.path.join(allure_report, 'widgets', 'environment.json')
-    if os.path.exists(report_env_file):
-        try:
-            with open(report_env_file, 'r', encoding='utf-8') as f:
-                env_data = json.load(f)
+        # 在Allure报告中添加执行时间信息
+        report_env_file = os.path.join(allure_report, 'widgets', 'environment.json')
+        if os.path.exists(report_env_file):
+            try:
+                with open(report_env_file, 'r', encoding='utf-8') as f:
+                    env_data = json.load(f)
 
-            # 添加执行时间信息
-            env_data.append({
-                "name": "执行时间",
-                "values": [f"总耗时: {formatted_time}"]
-            })
+                # 添加执行时间信息
+                env_data.append({
+                    "name": "执行时间",
+                    "values": [f"总耗时: {formatted_time}"]
+                })
 
-            with open(report_env_file, 'w', encoding='utf-8') as f:
-                json.dump(env_data, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            MyLog.error(f"更新Allure环境信息失败: {e}")
+                with open(report_env_file, 'w', encoding='utf-8') as f:
+                    json.dump(env_data, f, ensure_ascii=False, indent=2)
+            except Exception as e:
+                MyLog.error(f"更新Allure环境信息失败: {e}")
 
-    MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
+        MyLog.info(f"测试报告生成成功: file://{os.path.abspath(allure_report)}/index.html")
+    else:
+        MyLog.info("没有生成测试结果，跳过报告生成")
+
     MyLog.info("===== 并行测试完成 =====")
 
 
 if __name__ == "__main__":
+    # 注册信号处理器
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     # 添加环境变量优化
     os.environ['NO_PROXY'] = 'localhost,127.0.0.1'
 

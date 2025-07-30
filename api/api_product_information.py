@@ -2,7 +2,6 @@
 产品资料相关接口
 """
 import time
-import requests
 from api import api_login
 from common.Log import MyLog
 from common.Request_Response import ApiClient
@@ -31,7 +30,7 @@ class ApiProductInformation:
 
         except Exception as e:
             MyLog.error(f"文件上传失败: {str(e)}")
-            return None
+            return ""
 
     # 新增产品资料
     def information_add(self, information_dataPath, information_name):

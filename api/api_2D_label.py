@@ -2,7 +2,6 @@
 2d标注相关接口
 """
 import time
-import random
 from api import api_login, api_space
 from common.Request_Response import ApiClient
 

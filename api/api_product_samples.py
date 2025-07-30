@@ -2,7 +2,6 @@
 产品样例相关接口
 """
 import time
-import requests
 from api import api_login
 from common.Request_Response import ApiClient
 

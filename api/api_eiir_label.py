@@ -1,10 +1,8 @@
 """
 EIIR空间标注相关接口
 """
-import os
 import time
-import requests
-from api import api_login, api_space
+from api import api_login
 from common.Request_Response import ApiClient
 
 env = api_login.url

@@ -11,7 +11,7 @@ from configparser import ConfigParser
 from common.Request_Response import ApiClient
 from common import Assert
 import configparser
-from api import api_login, api_comprehensive_sample_library, api_deep_training_tasks,api_model_base
+from api import api_login, api_comprehensive_sample_library, api_deep_training_tasks, api_model_base
 from common.monitor_utils import MonitorUtils
 
 assertions = Assert.Assertions()
@@ -53,7 +53,6 @@ class TestDeepModelTraining:
         # 使用 ast.literal_eval 将字符串转换为列表
         cls.photoId_ng = ast.literal_eval(config.get('persistent_ids', 'photo_id_ng'))
         cls.photoId_ok = ast.literal_eval(config.get('persistent_ids', 'photo_id_ok'))
-        cls.sampleType_ok = config.get('persistent_ids', 'sample_type_ok')
         cls.machine_name = config.get('persistent_ids', 'machine_name')
 
     def teardown_class(cls):
@@ -129,7 +128,9 @@ class TestDeepModelTraining:
                     # 仅当状态信息变化时更新控制台（避免频繁刷新）
                     if status_info != last_status_info:
                         # 选择颜色
-                        color_code = color_mapping.get(subStatus, color_mapping["default"]) if subStatus is not None else color_mapping["default"]
+                        color_code = color_mapping.get(subStatus,
+                                                       color_mapping["default"]) if subStatus is not None else \
+                            color_mapping["default"]
 
                         # 单行更新（使用回车符覆盖上一行）
                         print(f"\r{color_code}{status_info}\033[0m", end="", flush=True)
@@ -365,7 +366,7 @@ class TestDeepModelTraining:
                 pytest.fail("trainTaskId未被正确获取，请检查监控方法")
             response = self.api_comprehensive.append_deep_training_tasks2(
                 photoId=self.photoId_ok,
-                sampleType=self.sampleType_ok,
+                sampleType="ok",
                 trainId=self.trainTaskId,
                 datasetType=1
             )

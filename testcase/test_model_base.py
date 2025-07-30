@@ -107,19 +107,6 @@ class TestModelBase:
 
         pytest.fail(f"未找到匹配的modelManageId: {model_train_id or model_name}")
 
-    # def _withdraw_model(self, model_manage_id, model_type):
-    #     """通用模型撤回方法"""
-    #     with allure.step(f"{model_type}模型撤回"):
-    #         response = self.api_base.model_withdraw(model_manage_id, 1)
-    #         assertions.assert_code(response.status_code, 200)
-    #         response_data = response.json()
-    #         assertions.assert_in_text(response_data['msg'], '成功')
-    #         allure.attach(
-    #             f"{model_type}模型撤回成功: {model_manage_id}",
-    #             name=f"{model_type}模型撤回",
-    #             attachment_type=allure.attachment_type.TEXT
-    #         )
-
     def _monitor_generic_progress(self, api_call, get_status_func,
                                   in_progress_status, success_status,
                                   step_name, status_mapping=None):
@@ -284,48 +271,6 @@ class TestModelBase:
         self.__class__.trainTaskId = get_persistent_ids['train_task_id']
         self.__class__.class_cut_trainTaskId = get_persistent_ids['class_cut_train_task_id']
         self.__class__.class_original_trainTaskId = get_persistent_ids['class_original_train_task_id']
-
-        # with allure.step("步骤1：通过modelTrainId获取modelManageId"):
-        #     self.__class__.modelManageId = self._get_model_manage_id(
-        #         model_train_id=self.__class__.modelTrainId
-        #     )
-        #     allure.attach(
-        #         f"modelManageId: {self.modelManageId}",
-        #         name="目标检测模型ManageID",
-        #         attachment_type=allure.attachment_type.TEXT
-        #     )
-        #
-        # with allure.step("步骤2：部署测试"):
-        #     response = self.api_base.deploy_test(self.__class__.modelManageId)
-        #
-        #     # 响应断言
-        #     assertions.assert_code(response.status_code, 200)
-        #     response_data = response.json()
-        #     assertions.assert_in_text(response_data['msg'], '成功')
-        #
-        # with allure.step("步骤3：监控部署测试状态"):
-        #     # 定义状态提取函数
-        #     def get_deployment_status(response_data):
-        #         model_list = response_data.get('data', {}).get('list', [])
-        #         for model in model_list:
-        #             if model.get('modelManageId') == self.__class__.modelManageId:
-        #                 return model.get('status')
-        #         return None
-        #
-        #     # 调用监控方法
-        #     self._monitor_generic_progress(
-        #         api_call=self.api_base.query_model_base,
-        #         get_status_func=get_deployment_status,
-        #         in_progress_status=1,  # 测试中
-        #         success_status=3,  # 测试完成
-        #         step_name="部署测试",
-        #         status_mapping={
-        #             0: "已提交",
-        #             1: "测试中",
-        #             2: "测试失败",
-        #             3: "测试完成"
-        #         }
-        #     )
 
         with allure.step("步骤1：模型组合"):
             # 读取组合模型JSON

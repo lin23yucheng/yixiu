@@ -39,7 +39,7 @@ class Constants:
 # 生成随机的前三位数字 (1000-9999)
 random_part1 = random.randint(1000, 1100)
 random_part2 = random.randint(2000, 2100)
-random_part3 = random.randint(1, 9)
+random_part3 = random.randint(1, 5)
 
 
 # 路径工具函数
@@ -485,6 +485,11 @@ def push_images_manual(config_data=None):
     """手动输入模式测试"""
     print("测试开始 (手动模式)")
     config = ResourceLoader.get_config(config_data)
+
+    # === 新增：在启动前更新JSON文件 ===
+    update_result = ResourceLoader.update_params_json()
+    if not update_result:
+        print("警告：参数文件更新失败，使用现有配置继续执行")
 
     print("性能Bash工具 - 手动模式")
     for i, url in enumerate(config['channel'], 1):

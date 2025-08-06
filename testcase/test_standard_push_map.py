@@ -12,7 +12,8 @@ import pytest
 import importlib.util
 
 # 推图命令
-fat_command = "main.exe test --grpc=fat-yixiu-brainstorm-grpc.svfactory.com:9181 -m 1"
+fat_command = "main.exe test --grpc=fat-yixiu-brainstorm-grpc.svfactory.com:9181 -m 1"   # fat
+# fat_command = "main.exe test  --grpc=yixiu-grpc.idmaic.cn:9181 -m 1"  # 生产
 
 # 初始化日志记录器
 logger = logging.getLogger(__name__)

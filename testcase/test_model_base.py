@@ -7,10 +7,9 @@ import time
 import pytest
 import allure
 import requests
-from api.api_login import ApiLogin
 from common import Assert
-from configparser import ConfigParser
 from common.Request_Response import ApiClient
+from api.api_login import ApiLogin
 from api import api_login, api_deep_training_tasks, api_model_base
 
 assertions = Assert.Assertions()
@@ -27,39 +26,6 @@ base_headers = {
     "Miaispacemanageid": api_login.manageid
 }
 global_client = ApiClient(base_headers=base_headers)
-
-
-@pytest.fixture(scope="function")
-def get_persistent_ids():
-    """从配置文件中读取ID"""
-    # 构建配置文件路径
-    config_path = os.path.abspath(os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),  # 向上一级，回到项目根目录
-        'config/env_config.ini'  # 根目录下的 config 目录
-    ))
-
-    # 检查配置文件是否存在
-    if not os.path.exists(config_path):
-        pytest.skip("配置文件不存在")
-
-    # 初始化ConfigParser并读取配置文件
-    config = ConfigParser()
-    config.read(config_path)
-
-    # 获取配置文件中的ID值
-    ids = {
-        'train_task_id': config.get('persistent_ids', 'train_task_id', fallback=None),
-        'model_train_id': config.get('persistent_ids', 'model_train_id', fallback=None),
-        'class_cut_train_task_id': config.get('class_cut_ids', 'train_task_id', fallback=None),
-        'class_cut_model_train_id': config.get('class_cut_ids', 'model_train_id', fallback=None),
-        'class_original_train_task_id': config.get('class_original_ids', 'train_task_id', fallback=None),
-        'class_original_model_train_id': config.get('class_original_ids', 'model_train_id', fallback=None)
-    }
-
-    # 检查是否有任何ID值为None
-    if None in ids.values():
-        pytest.skip("训练任务ID未就绪")
-    return ids
 
 
 @allure.feature("场景：综合-模型库流程")
@@ -262,15 +228,8 @@ class TestModelBase:
                     else:  # 其他状态
                         pytest.fail(f"{step_name}遇到未知状态: {current_status}")
 
-    @pytest.mark.order(1)
     @allure.story("模型库测试流程")
-    def test_deployment(self, get_persistent_ids):  # 注入fixture
-        self.__class__.modelTrainId = get_persistent_ids['model_train_id']
-        self.__class__.class_cut_modelTrainId = get_persistent_ids['class_cut_model_train_id']
-        self.__class__.class_original_modelTrainId = get_persistent_ids['class_original_model_train_id']
-        self.__class__.trainTaskId = get_persistent_ids['train_task_id']
-        self.__class__.class_cut_trainTaskId = get_persistent_ids['class_cut_train_task_id']
-        self.__class__.class_original_trainTaskId = get_persistent_ids['class_original_train_task_id']
+    def test_deployment(self):
 
         with allure.step("步骤1：模型组合"):
             # 读取组合模型JSON
@@ -372,54 +331,3 @@ class TestModelBase:
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
-
-    # @pytest.mark.order(2)
-    # @allure.story("测试数据删除")
-    # def test_deepdata_delete(self):  # 注入fixture
-    #
-    #     with allure.step("步骤1：组合模型删除"):
-    #         response = self.api_base.model_withdraw(self.__class__.combination_modelManageId, 2)
-    #
-    #         # 响应断言
-    #         assertions.assert_code(response.status_code, 200)
-    #         response_data = response.json()
-    #         assertions.assert_in_text(response_data['msg'], '成功')
-
-        # with allure.step("步骤2：目标检测Yolov8模型撤回"):
-        #     self._withdraw_model(self.modelManageId, "目标检测")
-        #
-        # with allure.step("步骤3：分类大图Yolov8模型撤回"):
-        #     class_original_manage_id = self._get_model_manage_id(
-        #         model_train_id=self.class_original_modelTrainId
-        #     )
-        #     self._withdraw_model(class_original_manage_id, "分类大图")
-        #
-        # with allure.step("步骤4：分类切图Yolov8模型撤回"):
-        #     class_cut_manage_id = self._get_model_manage_id(
-        #         model_train_id=self.class_cut_modelTrainId
-        #     )
-        #     self._withdraw_model(class_cut_manage_id, "分类切图")
-        #
-        # with allure.step("步骤5：目标检测训练任务删除"):
-        #     response = self.api_deep.delete_train_tasks(self.trainTaskId)
-        #
-        #     # 响应断言
-        #     assertions.assert_code(response.status_code, 200)
-        #     response_data = response.json()
-        #     assertions.assert_in_text(response_data['msg'], '成功')
-        #
-        # with allure.step("步骤6：分类大图训练任务删除"):
-        #     response = self.api_deep.delete_train_tasks(self.class_original_trainTaskId)
-        #
-        #     # 响应断言
-        #     assertions.assert_code(response.status_code, 200)
-        #     response_data = response.json()
-        #     assertions.assert_in_text(response_data['msg'], '成功')
-        #
-        # with allure.step("步骤7：分类切图训练任务删除"):
-        #     response = self.api_deep.delete_train_tasks(self.class_cut_trainTaskId)
-        #
-        #     # 响应断言
-        #     assertions.assert_code(response.status_code, 200)
-        #     response_data = response.json()
-        #     assertions.assert_in_text(response_data['msg'], '成功')

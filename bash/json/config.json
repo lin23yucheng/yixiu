@@ -1,12 +1,12 @@
 {
   "channel": [
     "qa-bash-grpc.svfactory.com:9198",
+    "bash-grpc.idmaic.cn:9182",
     "dev-bash-grpc.svfactory.com:9187",
     "fat-bash-grpc.svfactory.com:9188",
     "fat-bash-grpc.ty.loc:32016",
     "192.168.100.212:8001",
     "192.168.14.17:8001",
-    "bash-grpc.idmaic.cn:9182",
     "fat-yixiu-brainstorm-grpc.svfactory.com:9181",
     "172.16.8.110:31001",
     "192.168.100.17:31001",
@@ -15,4 +15,3 @@
   "thread_num": 1,
   "loop_num": 1
 }
-

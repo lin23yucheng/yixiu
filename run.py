@@ -186,8 +186,6 @@ def run_order_tests():
 
     # 定义要执行的测试文件列表
     test_files = [
-        "testcase/test_bash.py",
-        "testcase/test_bash_ui.py",
         "testcase/test_standard_push_map.py"
     ]
 
@@ -447,8 +445,12 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    # 添加环境变量优化
+    # 添加环境变量
     os.environ['NO_PROXY'] = 'localhost,127.0.0.1'
+    # 添加 webdriver-manager 相关环境变量
+    os.environ['WDM_SSL_VERIFY'] = '0'  # 禁用SSL验证
+    os.environ['WDM_LOG_LEVEL'] = '0'  # 禁用 webdriver-manager 日志
+    os.environ['WDM_PRINT_FIRST_LINE'] = 'False'  # 禁用首行打印
 
     print("===== 测试执行程序启动 =====")
     MyLog.info("===== 测试执行程序启动 =====")

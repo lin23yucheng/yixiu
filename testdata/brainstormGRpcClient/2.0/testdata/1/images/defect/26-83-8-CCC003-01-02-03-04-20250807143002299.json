@@ -1,0 +1,121 @@
+{
+    "version": "1.0",
+    "imageData": null,
+    "imageWidth": 2640,
+    "imageHeight": 1680,
+    "imageDepth": 1,
+    "imagePath": "26-83-8-CCC003-01-02-03-04-20250807143002299.jpg",
+    "bashRes": null,
+    "finalRes": null,
+    "deepRes": null,
+    "dataRes": null,
+    "bashUserId": null,
+    "shapes": [
+        {
+            "sampleResult": null,
+            "sampleDataType": null,
+            "sampleDataResult": null,
+            "customDefectField": {},
+            "isDispute": "",
+            "label": "huashang-QX-S4-00",
+            "disputeResult": null,
+            "disputeProcessTime": null,
+            "score": null,
+            "length": null,
+            "width": 1,
+            "radius": "",
+            "flags": null,
+            "tag": null,
+            "points": [
+                [
+                    2167.837837837838,
+                    934.0154440154442
+                ],
+                [
+                    2168.3783783783783,
+                    975.3667953667955
+                ],
+                [
+                    2165.945945945946,
+                    1035.3667953667955
+                ],
+                [
+                    2165.135135135135,
+                    1079.96138996139
+                ],
+                [
+                    2169.4594594594596,
+                    1078.6100386100388
+                ],
+                [
+                    2173.2432432432433,
+                    1058.3397683397684
+                ],
+                [
+                    2174.864864864865,
+                    1012.6640926640928
+                ],
+                [
+                    2173.7837837837837,
+                    991.5830115830117
+                ],
+                [
+                    2174.324324324324,
+                    960.7722007722009
+                ],
+                [
+                    2175.135135135135,
+                    938.0694980694982
+                ],
+                [
+                    2176.4864864864867,
+                    930.7722007722009
+                ],
+                [
+                    2172.972972972973,
+                    929.1505791505793
+                ],
+                [
+                    2169.4594594594596,
+                    929.4208494208495
+                ]
+            ],
+            "grade": "",
+            "checkType": "",
+            "confusionType": "",
+            "definition": "",
+            "visualGrade": "",
+            "id": "1796358462071644161",
+            "deep_result": null,
+            "data_result": null,
+            "is_final": null,
+            "pixel_area": null,
+            "if_model": false,
+            "model_info": null,
+            "labeller_info": {
+                "name": "sunting",
+                "date": "2024-05-31 09:50:06"
+            },
+            "shape_type": "polygon",
+            "labelType": null,
+            "group_id": null,
+            "merge_type": null,
+            "gt_label": null,
+            "pre_label": null,
+            "type": null,
+            "post_process_label": null,
+            "use_show_result_type": null
+        }
+    ],
+    "detectionArea": null,
+    "detectionAreaType": null,
+    "detectionComment": null,
+    "imageOffsetTop": 0.0,
+    "imageOffsetLeft": 0.0,
+    "label": "ok",
+    "cls": "",
+    "score": 0,
+    "top_point": null,
+    "time_Labeled": "2024-05-22",
+    "modelResult": null
+}

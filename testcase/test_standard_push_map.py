@@ -6,13 +6,25 @@ import json
 import configparser
 import subprocess
 import logging
-from pathlib import Path
 import allure
 import pytest
 import importlib.util
+from pathlib import Path
+from common import Assert
+from api.api_space import ApiSpace
+
+assertions = Assert.Assertions()
+
+# 读取配置
+config = configparser.ConfigParser()
+config.read("./config/env_config.ini")
+section_one = "Inspection"
+section_two = "bash"
+space_name = config.get(section_one, "space_name")
+miai_product_code = config.get(section_one, "miai-product-code")
 
 # 推图命令
-fat_command = "main.exe test --grpc=fat-yixiu-brainstorm-grpc.svfactory.com:9181 -m 1"   # fat
+fat_command = "main.exe test --grpc=fat-yixiu-brainstorm-grpc.svfactory.com:9181 -m 1"  # fat
 # fat_command = "main.exe test  --grpc=yixiu-grpc.idmaic.cn:9181 -m 1"  # 生产
 
 # 初始化日志记录器
@@ -224,8 +236,129 @@ class TestStandardPushMap:
     @allure.story("更新配置并执行GRPC命令")
     def test_execute_grpc_command(self):
         """测试更新配置并执行GRPC命令"""
-        # 步骤0: 执行2D和3D图像重命名
-        with allure.step("执行2D和3D图像重命名"):
+        with allure.step("步骤1：验证一休机台管理"):
+            # 初始化一休云空间API
+            api_space = ApiSpace()
+            device_id = None  # 用于存储设备ID
+
+            # 第一次查询机台列表
+            response = api_space.machine_query()
+            assertions.assert_code(response.status_code, 200)
+            data = response.json()
+
+            # 检查响应是否成功
+            if not data.get("success", False):
+                error_msg = f"查询机台失败: {data.get('msg', '未知错误')}"
+                allure.attach(error_msg, name="机台查询错误", attachment_type=allure.attachment_type.TEXT)
+                raise AssertionError(error_msg)
+
+            # 判断是否有数据
+            has_data = 'data' in data and data['data'].get('list') is not None and len(data['data']['list']) > 0
+            found_device = False
+
+            # 如果有数据，检查是否有目标设备
+            if has_data:
+                for machine in data['data']['list']:
+                    if (machine.get('spaceName') == space_name and
+                            machine.get('localDeviceNo') == miai_product_code):
+                        # 提取cloudDeviceNo值
+                        device_id = machine.get('cloudDeviceNo')
+                        if device_id:
+                            found_device = True
+                            allure.attach(f"找到匹配机台: {machine}",
+                                          name="机台详情",
+                                          attachment_type=allure.attachment_type.JSON)
+                            allure.attach(f"提取机台ID: {device_id}",
+                                          name="机台ID",
+                                          attachment_type=allure.attachment_type.TEXT)
+                            break
+
+            # 如果没有数据或没有找到目标设备，添加机台并再次查询
+            if not has_data or not found_device:
+                with allure.step("子步骤1：添加机台"):
+                    response = api_space.machine_add()
+                    assertions.assert_code(response.status_code, 200)
+                    add_data = response.json()
+
+                    if not add_data.get("success", False):
+                        error_msg = f"添加机台失败: {add_data.get('msg', '未知错误')}"
+                        allure.attach(error_msg, name="添加机台错误", attachment_type=allure.attachment_type.TEXT)
+                        raise AssertionError(error_msg)
+
+                    allure.attach("已添加新机台",
+                                  name="添加机台成功",
+                                  attachment_type=allure.attachment_type.TEXT)
+
+                with allure.step("子步骤2：再次查询机台列表"):
+                    response = api_space.machine_query()
+                    assertions.assert_code(response.status_code, 200)
+                    data = response.json()
+
+                    if not data.get("success", False):
+                        error_msg = f"再次查询机台失败: {data.get('msg', '未知错误')}"
+                        allure.attach(error_msg, name="机台查询错误", attachment_type=allure.attachment_type.TEXT)
+                        raise AssertionError(error_msg)
+
+                    # 检查是否有数据
+                    if 'data' not in data or not data['data'].get('list'):
+                        error_msg = "机台列表仍为空，添加机台后未找到机台"
+                        allure.attach(error_msg, name="机台数据为空错误", attachment_type=allure.attachment_type.TEXT)
+                        raise AssertionError(error_msg)
+
+                    # 在机台列表中查找目标设备
+                    found_device = False
+                    for machine in data['data']['list']:
+                        if (machine.get('spaceName') == space_name and
+                                machine.get('localDeviceNo') == miai_product_code):
+                            # 提取cloudDeviceNo值
+                            device_id = machine.get('cloudDeviceNo')
+                            if device_id:
+                                found_device = True
+                                allure.attach(f"找到新添加机台: {machine}",
+                                              name="机台详情",
+                                              attachment_type=allure.attachment_type.JSON)
+                                allure.attach(f"提取机台ID: {device_id}",
+                                              name="机台ID",
+                                              attachment_type=allure.attachment_type.TEXT)
+                                break
+
+                    # 如果第二次查询后仍未找到设备ID
+                    if not found_device:
+                        error_msg = "添加机台后仍未找到目标机台"
+                        allure.attach(error_msg, name="机台缺失错误", attachment_type=allure.attachment_type.TEXT)
+                        raise AssertionError(error_msg)
+
+        with allure.step("步骤2：下载设备Token"):
+            # 确保设备ID存在
+            if not device_id:
+                error_msg = "机台ID缺失，无法下载Token"
+                allure.attach(error_msg, name="机台ID缺失错误", attachment_type=allure.attachment_type.TEXT)
+                raise AssertionError(error_msg)
+
+            # 下载机台Token
+            token_path = api_space.machine_token_download(device_id)
+            if not token_path:
+                error_msg = "下载机台Token失败"
+                allure.attach(error_msg, name="Token下载错误", attachment_type=allure.attachment_type.TEXT)
+                raise AssertionError(error_msg)
+
+            # 记录下载成功信息
+            allure.attach(f"Token文件路径: {token_path}",
+                          name="Token下载成功",
+                          attachment_type=allure.attachment_type.TEXT)
+
+            # 读取并记录Token内容
+            try:
+                with open(token_path, 'r') as f:
+                    token_content = f.read()
+                    allure.attach(f"机台Token: {token_content}",
+                                  name="Token内容",
+                                  attachment_type=allure.attachment_type.TEXT)
+            except Exception as e:
+                error_msg = f"读取Token文件失败: {str(e)}"
+                allure.attach(error_msg, name="Token读取错误", attachment_type=allure.attachment_type.TEXT)
+
+        with allure.step("步骤3：执行2D和3D图像重命名"):
             renaming_success = run_renaming_scripts()
             assert renaming_success, "2D/3D图像重命名失败"
 
@@ -240,8 +373,7 @@ class TestStandardPushMap:
         if not renaming_success:
             pytest.fail("2D/3D图像重命名失败，终止测试")
 
-        # 步骤1: 更新data.json
-        with allure.step("更新data.json配置"):
+        with allure.step("步骤4：更新data.json配置"):
             update_success = update_data_json()
 
             # 使用标准的Python断言替代自定义断言
@@ -254,8 +386,7 @@ class TestStandardPushMap:
                 attachment_type=allure.attachment_type.TEXT
             )
 
-        # 步骤2: 执行GRPC命令
-        with allure.step("执行GRPC命令"):
+        with allure.step("步骤5：执行GRPC命令"):
             command_success = execute_grpc_command()
 
             # 使用标准的Python断言替代自定义断言

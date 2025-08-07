@@ -60,6 +60,20 @@ class ApiBashSample:
         response = self.client.post_with_retry(url, json=payload)
         return response
 
+    # 修改产品管理 productDetectionType=2 处理模式为“全量”
+    def update_product_manage(self, projectId, projectName, productId, productCode):
+        url = f"{bash_fat}/manage/product/update"
+        payload = {"projectId": projectId, "projectName": projectName, "id": productId,
+                   "productCode": productCode, "settingStatus": 1, "productSwitch": 1, "productYield": None,
+                   "ctTime": 30,
+                   "exactCtTime": None, "imgNumber": None, "seatTime": 30, "exactSeatTime": None,
+                   "productDetectionType": 2, "productHandleType": 1, "idleIntervalTime": "", "productLevel": 0,
+                   "switchTime": None, "imageTransformTime": 0, "imageTransformSwitch": 2, "productDefectBoxWidth": 100,
+                   "productDefectBoxHeight": 100}
+
+        response = self.client.post_with_retry(url, json=payload)
+        return response
+
     # 查询人员userId
     def query_personnel_id(self):
         url = f"{bash_fat}/manage/user/userList"

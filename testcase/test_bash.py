@@ -27,7 +27,6 @@ myself_name = config.get(section_two, "myself_name")
 plain_password = config.get(section_two, "admin_password")
 admin_password = hashlib.md5(plain_password.encode()).hexdigest()  # 加密处理
 
-
 # 格式化时间
 current_date = datetime.now().strftime("%Y-%m-%d")
 end_time = f"{current_date}T23:59:00.000Z"
@@ -68,7 +67,7 @@ class TestBash:
             bash_space_id = first_product.get('id')
             TestBash.bash_space_id = bash_space_id
 
-        with allure.step("步骤2：查看产品是否存在"):
+        with allure.step("步骤2：查看产品是否存在/修改处理模式为全量"):
             response = self.api_bash.query_product_manage(miaispacemanageid, miai_product_code)
             assertions.assert_code(response.status_code, 200)
             data = response.json()
@@ -96,6 +95,18 @@ class TestBash:
                 allure.attach(error_msg, name="产品状态错误", attachment_type=allure.attachment_type.TEXT)
                 allure.attach(str(first_product), name="产品详情", attachment_type=allure.attachment_type.JSON)
                 raise AssertionError(error_msg)
+
+            # 调用更新接口修改处理模式为全量
+            update_response = self.api_bash.update_product_manage(TestBash.bash_space_id, space_name,
+                                                                  TestBash.bash_product_id, miai_product_code)
+            update_data = update_response.json()
+            if update_data.get('msg') != '操作成功':
+                error_msg = f"更新产品处理模式失败: {update_data.get('msg')}"
+                allure.attach(error_msg, name="更新产品错误", attachment_type=allure.attachment_type.TEXT)
+                raise AssertionError(error_msg)
+            else:
+                allure.attach("成功更新产品处理模式为全量", name="产品更新成功",
+                              attachment_type=allure.attachment_type.TEXT)
 
         with allure.step("步骤3：查看bash人员是否存在"):
             response = self.api_bash.query_personnel_id()
@@ -479,5 +490,3 @@ class TestBash:
             except Exception as e:
                 error_msg = f"读取Token文件失败: {str(e)}"
                 allure.attach(error_msg, name="Token读取错误", attachment_type=allure.attachment_type.TEXT)
-
-

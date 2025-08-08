@@ -1,8 +1,6 @@
 """
 EIIR模型训练接口自动化流程
 """
-import datetime
-
 import pytest
 import allure
 import time
@@ -11,12 +9,13 @@ import ast
 from common.Request_Response import ApiClient
 from common import Assert
 import configparser
-from api import api_login, api_eiir_samples, api_deep_training_tasks, api_eiir_training_tasks, api_space,api_eiir_model
+from api import api_login, api_eiir_samples, api_deep_training_tasks, api_eiir_training_tasks, api_space, api_eiir_model
 from datetime import datetime, timedelta
 
 assertions = Assert.Assertions()
 time_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
 
+# 读取配置文件
 config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
 config = configparser.ConfigParser()
 config.read(config_path)
@@ -27,9 +26,8 @@ machineId = ast.literal_eval(config.get('EIIR', 'machineId'))
 componentLabel = ast.literal_eval(config.get('EIIR', 'componentLabel'))
 append_componentLabel = ast.literal_eval(config.get('EIIR', 'append_componentLabel'))
 
-miaispacemanageid = None
-
 # 获取空间ID - 添加错误检查
+miaispacemanageid = None
 try:
     miaispacemanageid = api_space.ApiSpace().space_query(space_name)
     if not miaispacemanageid:
@@ -52,7 +50,7 @@ start_time = "2025-06-01"
 end_time = "2025-08-01"
 
 
-@allure.feature("场景：EIIR空间训练全流程")
+@allure.feature("场景：EIIR模型训练全流程")
 class TestEiirModelTraining:
     @classmethod
     def setup_class(cls):
@@ -306,26 +304,58 @@ class TestEiirModelTraining:
                     # 间隔等待
                     time.sleep(self.poll_interval)
 
-    @allure.story("EIIR模型训练&后处理&部署测试")
+    @allure.story("EIIR模型训练&提交")
     def test_eiir_task_workflow(self):
         total_start = time.time()  # 记录总开始时间
 
         with allure.step("步骤1：创建EIIR训练任务"):
+            allure.attach(
+                f"任务名称: {TestEiirModelTraining.task_name}\n"
+                f"开始时间: {start_time}\n"
+                f"结束时间: {end_time}\n"
+                f"机器ID: {machineId}\n"
+                f"组件标签: {componentLabel}",
+                name="创建任务参数",
+                attachment_type=allure.attachment_type.TEXT
+            )
+
             response = self.api_eiir_samples.create_train_task(TestEiirModelTraining.task_name, start_time, end_time,
                                                                machineId, componentLabel)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
+            allure.attach(
+                str(response_data),
+                name="创建任务响应",
+                attachment_type=allure.attachment_type.JSON
+            )
+
         with allure.step("步骤2：监控创建数据处理进度"):
             self._monitor_eiir_data_progress(TestEiirModelTraining.task_name, "EIIR创建数据处理")
 
         with allure.step("步骤3：追加EIIR训练任务"):
+            allure.attach(
+                f"训练任务ID: {TestEiirModelTraining.trainTaskId}\n"
+                f"开始时间: {start_time}\n"
+                f"结束时间: {end_time}\n"
+                f"机器ID: {machineId}\n"
+                f"追加组件标签: {append_componentLabel}",
+                name="追加任务参数",
+                attachment_type=allure.attachment_type.TEXT
+            )
+
             response = self.api_eiir_samples.append_train_task(TestEiirModelTraining.trainTaskId, start_time, end_time,
                                                                machineId, append_componentLabel)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
+
+            allure.attach(
+                str(response_data),
+                name="追加任务响应",
+                attachment_type=allure.attachment_type.JSON
+            )
 
         with allure.step("步骤4：监控追加数据处理进度"):
             self._monitor_eiir_data_progress(TestEiirModelTraining.task_name, "EIIR追加数据处理")
@@ -357,11 +387,24 @@ class TestEiirModelTraining:
                 assertions.assert_in_text(machine_data['msg'], '操作成功')
 
             with allure.step("子步骤2：组装参数并开始EIIR模型训练"):
+                allure.attach(
+                    f"训练机器ID: {computing_power_id}\n"
+                    f"训练任务ID: {TestEiirModelTraining.trainTaskId}",
+                    name="模型训练参数",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
                 train_response = self.api_eiir_training.create_train_task(computing_power_id,
                                                                           TestEiirModelTraining.trainTaskId)
                 assertions.assert_code(train_response.status_code, 200)
                 train_data = train_response.json()
                 assertions.assert_in_text(train_data['msg'], '操作成功')
+
+                allure.attach(
+                    str(train_data),
+                    name="开始训练响应",
+                    attachment_type=allure.attachment_type.JSON
+                )
 
         with allure.step("步骤6：监控EIIR模型训练进度"):
             self._monitor_eiir_train_progress(
@@ -372,11 +415,23 @@ class TestEiirModelTraining:
             )
         with allure.step("步骤7：提交EIIR模型"):
             with allure.step("子步骤1：发起EIIR模型提交"):
+                allure.attach(
+                    f"训练任务名称: {TestEiirModelTraining.task_name}\n"
+                    f"模型训练ID: {TestEiirModelTraining.modelTrainId}",
+                    name="模型提交参数",
+                    attachment_type=allure.attachment_type.TEXT
+                )
                 response = self.api_eiir_training.submit_eiir_model(TestEiirModelTraining.task_name,
-                                                                          TestEiirModelTraining.modelTrainId)
+                                                                    TestEiirModelTraining.modelTrainId)
                 assertions.assert_code(response.status_code, 200)
                 response_data = response.json()
                 assertions.assert_in_text(response_data['msg'], '成功')
+
+                allure.attach(
+                    str(response_data),
+                    name="模型提交响应",
+                    attachment_type=allure.attachment_type.JSON
+                )
 
             with allure.step("子步骤2：监控模型提交状态"):
                 self._monitor_eiir_train_progress(
@@ -385,16 +440,6 @@ class TestEiirModelTraining:
                     success_test_status=None,
                     success_commit_status=2
                 )
-
-                allure.dynamic.description(
-                    "EIIR模型训练测试完成！\n"
-                    f"总耗时: {time.strftime('%H:%M:%S', time.gmtime(time.time() - total_start))}"
-                )
-                print("\n\n\033[92mEIIR模型训练测试完成！\033[0m")
-                print(f"总耗时: {time.strftime('%H:%M:%S', time.gmtime(time.time() - total_start))}")
-
-                if __name__ == '__main__':
-                    pytest.main([__file__, '-v', '--alluredir=./allure-results'])
 
         with allure.step("步骤8：查询目标检测模型库"):
             response = self.api_eiir_model.query_eiir_model()
@@ -421,15 +466,59 @@ class TestEiirModelTraining:
             else:
                 pytest.fail(f"未找到modelTrainId为'{TestEiirModelTraining.modelTrainId}'的模型记录")
 
-
         with allure.step("步骤9：EIIR模型撤回"):
+            allure.attach(
+                f"模型管理ID: {TestEiirModelTraining.modelManageId}",
+                name="撤回模型参数",
+                attachment_type=allure.attachment_type.TEXT
+            )
             response = self.api_eiir_model.rollback_eiir_model(TestEiirModelTraining.modelManageId)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
 
+            allure.attach(
+                str(response_data),
+                name="模型撤回响应",
+                attachment_type=allure.attachment_type.JSON
+            )
+
         with allure.step("步骤10：删除EIIR训练任务"):
+            allure.attach(
+                f"训练任务ID: {TestEiirModelTraining.trainTaskId}",
+                name="删除任务参数",
+                attachment_type=allure.attachment_type.TEXT
+            )
+
             response = self.api_eiir_training.delete_eiir_task(TestEiirModelTraining.trainTaskId)
             assertions.assert_code(response.status_code, 200)
             response_data = response.json()
             assertions.assert_in_text(response_data['msg'], '成功')
+
+            allure.attach(
+                str(response_data),
+                name="删除任务响应",
+                attachment_type=allure.attachment_type.JSON
+            )
+
+            # 总结信息
+            total_duration = time.time() - total_start
+            allure.attach(
+                f"测试总耗时: {time.strftime('%H:%M:%S', time.gmtime(total_duration))}\n"
+                f"任务名称: {TestEiirModelTraining.task_name}\n"
+                f"训练任务ID: {TestEiirModelTraining.trainTaskId}\n"
+                f"模型训练ID: {TestEiirModelTraining.modelTrainId}\n"
+                f"模型管理ID: {TestEiirModelTraining.modelManageId}",
+                name="测试总结",
+                attachment_type=allure.attachment_type.TEXT
+            )
+
+        allure.dynamic.description(
+            "EIIR模型训练测试完成！\n"
+            f"总耗时: {time.strftime('%H:%M:%S', time.gmtime(time.time() - total_start))}"
+        )
+        print("\n\n\033[92mEIIR模型训练测试完成！\033[0m")
+        print(f"总耗时: {time.strftime('%H:%M:%S', time.gmtime(time.time() - total_start))}")
+
+        if __name__ == '__main__':
+            pytest.main([__file__, '-v', '--alluredir=./allure-results'])

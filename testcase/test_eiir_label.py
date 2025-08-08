@@ -42,8 +42,8 @@ global_client = ApiClient(base_headers=base_headers)
 current_date = datetime.now()
 endDateTime = current_date.strftime("%Y-%m-%d")
 startDateTime = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
-start_time = "2025-05-31"
-end_time = "2025-06-30"
+start_time = "2025-06-01"
+end_time = "2025-08-01"
 
 
 @allure.feature("场景：EIIR-标注流程")

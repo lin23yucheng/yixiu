@@ -8,6 +8,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import WebDriverException
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
+from webdriver_manager.core.driver_cache import DriverCacheManager
 from threading import local
 
 
@@ -56,16 +57,18 @@ class BrowserPool:
 
         # 设置窗口大小和最大化
         chrome_options.add_argument("--window-size=1920,1080")
-        chrome_options.add_argument("--start-maximized")  # 添加这行实现窗口最大化
+        chrome_options.add_argument("--start-maximized")
 
         # 为每个实例创建独立的临时用户数据目录
         temp_profile = tempfile.mkdtemp()
         chrome_options.add_argument(f"--user-data-dir={temp_profile}")
         chrome_options.add_argument(f"--profile-directory=Profile{threading.get_ident()}")
 
-        # 使用 webdriver-manager 自动管理 ChromeDriver
+        # 使用 webdriver-manager 自动管理 ChromeDriver，配置国内镜像
         try:
             print(f"线程 {threading.get_ident()} 开始下载/获取 ChromeDriver")
+            # 配置国内镜像源
+            os.environ['WDM_CHROMEDRIVER_REPO'] = 'https://cdn.npmmirror.com/binaries/chromedriver'
             service = Service(ChromeDriverManager().install())
             print(f"线程 {threading.get_ident()} ChromeDriver 准备就绪")
         except Exception as e:
@@ -75,12 +78,12 @@ class BrowserPool:
         # 创建并返回浏览器实例
         try:
             driver = webdriver.Chrome(service=service, options=chrome_options)
-            driver.implicitly_wait(15)  # 增加隐式等待时间
+            driver.implicitly_wait(15)
 
             # 移除自动化标记
             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
-            # 如果上面的参数方式不生效，可以通过代码方式最大化
+            # 窗口最大化
             try:
                 driver.maximize_window()
                 print(f"线程 {threading.get_ident()} 浏览器窗口已最大化")

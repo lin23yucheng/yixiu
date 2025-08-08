@@ -186,7 +186,8 @@ def run_order_tests():
 
     # 定义要执行的测试文件列表
     test_files = [
-        "testcase/test_eiir_model_training.py"
+        "testcase/test_bash.py",
+        "testcase/test_bash_ui.py"
     ]
 
     # 添加项目根目录到Python路径
@@ -319,6 +320,7 @@ def run_together_tests():
         {"file": "testcase/test_product_information.py", "deps": None},
         {"file": "testcase/test_product_samples.py", "deps": None},
         {"file": "testcase/test_eiir_label.py", "deps": None},
+        {"file": "testcase/test_eiir_model_training.py", "deps": None},
 
         # 第二组：有依赖任务
         {"file": "testcase/test_bash_ui.py", "deps": ["testcase/test_bash.py"], "require_success": True},
@@ -451,6 +453,8 @@ if __name__ == "__main__":
     os.environ['WDM_SSL_VERIFY'] = '0'  # 禁用SSL验证
     os.environ['WDM_LOG_LEVEL'] = '0'  # 禁用 webdriver-manager 日志
     os.environ['WDM_PRINT_FIRST_LINE'] = 'False'  # 禁用首行打印
+    # 添加国内镜像源
+    os.environ['WDM_CHROMEDRIVER_REPO'] = 'https://cdn.npmmirror.com/binaries/chromedriver'
 
     print("===== 测试执行程序启动 =====")
     MyLog.info("===== 测试执行程序启动 =====")

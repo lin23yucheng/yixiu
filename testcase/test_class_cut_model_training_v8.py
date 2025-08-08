@@ -106,7 +106,7 @@ class TestClassCutModelTraining:
             )
 
     @allure.story("图像分类(切图)YoloV8模型训练&后处理")
-    def test_class_cut_task_workflow(self):
+    def test_class_cut_task_workflow_v8(self):
         total_start = time.time()  # 记录总开始时间
 
         with allure.step("步骤1：创建分类切图训练任务"):

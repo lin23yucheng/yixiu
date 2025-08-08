@@ -324,7 +324,7 @@ class TestDeepModelTraining:
         pytest.fail(f"未找到匹配的modelManageId: {model_train_id or model_name}")
 
     @allure.story("深度(目标检测)YoloV8模型训练&后处理&部署测试")
-    def test_deep_task_workflow(self):
+    def test_deep_task_workflow_v8(self):
         total_start = time.time()  # 记录总开始时间
 
         with allure.step("步骤1：创建深度训练任务"):

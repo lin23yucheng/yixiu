@@ -105,7 +105,7 @@ class TestClassOriginalModelTraining:
             )
 
     @allure.story("图像分类(大图)YoloV8模型训练&提交&后处理")
-    def test_class_original_task_workflow(self):
+    def test_class_original_task_workflow_v8(self):
         total_start = time.time()  # 记录总开始时间
 
         with allure.step("步骤1：创建分类大图训练任务"):

@@ -66,7 +66,7 @@ class ApiClient:
         self.base_headers = base_headers or {}
 
         # 添加重试配置
-        self.max_retry_seconds = 10  # 最大重试时间60秒
+        self.max_retry_seconds = 60  # 最大重试时间60秒
         self.retry_interval = 5  # 重试间隔5秒
 
     @log_allure_request_response

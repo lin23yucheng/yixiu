@@ -32,7 +32,7 @@ class ApiEiirLabel:
     # 获取标注样本的dataId
     def query_label_data_id(self, task_id):
         url = f"{env}/miai/brainstorm/eiir/dimensiontask/image/list"
-        payload = {"dimensionTaskId": task_id, "labeled": True}
+        payload = {"dimensionTaskId": task_id, "labeled": False}
 
         response = self.client.post_with_retry(url, json=payload)
         return response

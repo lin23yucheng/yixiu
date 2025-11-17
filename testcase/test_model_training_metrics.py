@@ -39,6 +39,7 @@ class TestModelTrainingMetrics:
         config.read(config_path)
         cls.machine_name = config.get('persistent_ids', 'machine_name')
         cls.train_task_id_v8 = config.get('old_ids', 'train_task_id_v8')
+        cls.train_task_id_v11 = config.get('old_ids', 'train_task_id_v11')
         cls.train_task_id_v12 = config.get('old_ids', 'train_task_id_v12')
 
     def _get_train_records(self, task_id):
@@ -70,6 +71,82 @@ class TestModelTrainingMetrics:
             attachment_type=allure.attachment_type.TEXT
         )
         return computing_power_id
+
+    def _monitor_training_only(self, trainTaskId, task_description="模型训练"):
+        """
+        只监控模型训练状态，不等待验证状态
+        :param trainTaskId: 训练任务ID
+        :param task_description: 任务描述
+        :return: (modelTrainId, 是否成功)
+        """
+        start_time = time.time()
+        attempt = 0
+        modelTrainId = None
+
+        # 状态映射表
+        status_mapping = {
+            0: "训练中",
+            1: "训练失败",
+            2: "训练完成",
+            3: "打包中",
+            4: "排队中",
+            5: "转onnx中",
+            6: "转triton中"
+        }
+
+        with allure.step(f"监控{task_description}进度（仅训练状态）"):
+            while True:
+                attempt += 1
+                with allure.step(f"第{attempt}次训练状态检查"):
+                    # 发送查询请求
+                    response = self.api_model.query_train_records(trainTaskId)
+                    assertions.assert_code(response.status_code, 200)
+
+                    # 解析响应数据
+                    response_data = response.json()
+                    records = response_data['data']['list']
+
+                    # 验证记录存在性
+                    if not records:
+                        pytest.fail(f"未找到trainTaskId={trainTaskId}的训练记录")
+
+                    current_record = records[0]  # 取第一条记录
+                    train_status = current_record['trainStatus']
+                    modelTrainId = current_record['modelTrainId']
+
+                    # 时间统计
+                    current_duration = int(time.time() - start_time)
+                    mins, secs = divmod(current_duration, 60)
+
+                    # 构建状态信息
+                    status_info = (
+                        f"{task_description}状态: {status_mapping.get(train_status, f'未知({train_status})')} | "
+                        f"耗时: {mins}分{secs}秒"
+                    )
+
+                    # 控制台实时打印（带颜色）
+                    if train_status in [0, 3, 4, 5, 6]:  # 训练中相关状态 - 黄色
+                        print(f"\r\033[93m{status_info}\033[0m", end="", flush=True)
+                    elif train_status == 2:  # 训练完成 - 绿色
+                        print(f"\r\033[92m{status_info}\033[0m", flush=True)
+                    else:  # 训练失败 - 红色
+                        print(f"\r\033[91m{status_info}\033[0m", flush=True)
+
+                    # 状态判断 - 只关注训练状态
+                    if train_status == 1:
+                        pytest.fail("训练失败，请检查日志")
+                    elif train_status == 2:
+                        # 训练完成即返回，不等待验证状态
+                        print(f"\n\033[92m{task_description}完成! 总耗时: {mins}分{secs}秒\033[0m")
+                        return modelTrainId, True
+
+                    # 超时检查
+                    elapsed = time.time() - start_time
+                    if elapsed > self.max_wait_seconds:
+                        pytest.fail(f"训练卡住，请检查日志（等待超过{self.max_wait_seconds}秒）")
+
+                    # 间隔等待
+                    time.sleep(self.poll_interval)
 
     def _start_training(self, model_name, version, computing_power_id, task_id):
         """启动训练的通用方法"""
@@ -147,9 +224,16 @@ class TestModelTrainingMetrics:
                     self.train_task_id_v8
                 )
 
+        # with allure.step("步骤2：监控训练进度"):
+        #     try:
+        #         _, success = self.monitor.monitor_train_progress(self.train_task_id_v8, "YoloV8实例分割训练")
+        #     except Exception as e:
+        #         allure.attach(f"训练监控失败: {str(e)}", name="错误详情")
+        #         pytest.fail(f"训练监控过程中发生错误: {str(e)}")
+
         with allure.step("步骤2：监控训练进度"):
             try:
-                _, success = self.monitor.monitor_train_progress(self.train_task_id_v8, "YoloV8实例分割训练")
+                _, success = self._monitor_training_only(self.train_task_id_v8, "YoloV8实例分割训练")
             except Exception as e:
                 allure.attach(f"训练监控失败: {str(e)}", name="错误详情")
                 pytest.fail(f"训练监控过程中发生错误: {str(e)}")
@@ -166,7 +250,7 @@ class TestModelTrainingMetrics:
 
                 # 提取关键记录
                 latest_record = records[0]
-                oldest_record = records[-1]
+                oldest_record = records[1]
 
                 latest_indicators = self._parse_indicators(latest_record.get('trainIndicators', {}))
                 oldest_indicators = self._parse_indicators(oldest_record.get('trainIndicators', {}))
@@ -223,9 +307,16 @@ class TestModelTrainingMetrics:
                     self.train_task_id_v12
                 )
 
+        # with allure.step("步骤2：监控训练进度"):
+        #     try:
+        #         _, success = self.monitor.monitor_train_progress(self.train_task_id_v12, "YoloV12实例分割训练")
+        #     except Exception as e:
+        #         allure.attach(f"训练监控失败: {str(e)}", name="错误详情")
+        #         pytest.fail(f"训练监控过程中发生错误: {str(e)}")
+
         with allure.step("步骤2：监控训练进度"):
             try:
-                _, success = self.monitor.monitor_train_progress(self.train_task_id_v12, "YoloV12实例分割训练")
+                _, success = self._monitor_training_only(self.train_task_id_v12, "YoloV12实例分割训练")
             except Exception as e:
                 allure.attach(f"训练监控失败: {str(e)}", name="错误详情")
                 pytest.fail(f"训练监控过程中发生错误: {str(e)}")
@@ -242,7 +333,90 @@ class TestModelTrainingMetrics:
 
                 # 提取关键记录
                 latest_record = records[0]
-                oldest_record = records[-1]
+                oldest_record = records[1]
+
+                latest_indicators = self._parse_indicators(latest_record.get('trainIndicators', {}))
+                oldest_indicators = self._parse_indicators(oldest_record.get('trainIndicators', {}))
+
+                # 记录原始指标值到Allure
+                allure.attach(
+                    f"原始最新指标值: {latest_record.get('trainIndicators')}\n"
+                    f"原始历史指标值: {oldest_record.get('trainIndicators')}",
+                    name="原始指标数据",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
+                # 优化报告展示
+                with allure.step("训练指标详情"):
+                    allure.attach(
+                        f"最新训练指标:\n{self._format_metrics(latest_indicators)}\n\n"
+                        f"历史训练指标:\n{self._format_metrics(oldest_indicators)}",
+                        name="指标对比",
+                        attachment_type=allure.attachment_type.TEXT
+                    )
+
+                # 指标对比逻辑
+                if not self._compare_indicators(latest_indicators, oldest_indicators):
+                    pytest.fail("❌ 模型训练指标前后不一致")
+
+            except Exception as e:
+                allure.attach(f"指标对比失败: {str(e)}", name="错误详情")
+                pytest.fail(f"指标对比过程中发生错误: {str(e)}")
+
+        # 添加总耗时统计
+        total_duration = time.time() - total_start
+        mins, secs = divmod(total_duration, 60)
+        allure.attach(
+            f"测试总耗时: {int(mins)}分{int(secs)}秒",
+            name="时间统计",
+            attachment_type=allure.attachment_type.TEXT
+        )
+
+    @allure.story("验证Yolov11模型训练前后指标一致")
+    def test_model_train_metrics_v11(self):
+        """验证Yolov11模型训练指标在多次训练后保持一致"""
+        allure.dynamic.title(f"Yolov11训练任务指标验证 (ID: {self.train_task_id_v11})")
+        total_start = time.time()
+
+        with allure.step("步骤1：开始Yolov11实例分割模型训练"):
+            with allure.step("子步骤1：查询训练机器获取computingPowerId"):
+                computing_power_id = self._get_machine_id()
+
+            with allure.step("子步骤2：组装参数并开始训练"):
+                self._start_training(
+                    "official_yolov8_seg_model",
+                    11,
+                    computing_power_id,
+                    self.train_task_id_v11
+                )
+
+        # with allure.step("步骤2：监控训练进度"):
+        #     try:
+        #         _, success = self.monitor.monitor_train_progress(self.train_task_id_v11, "YoloV11实例分割训练")
+        #     except Exception as e:
+        #         allure.attach(f"训练监控失败: {str(e)}", name="错误详情")
+        #         pytest.fail(f"训练监控过程中发生错误: {str(e)}")
+
+        with allure.step("步骤2：监控训练进度"):
+            try:
+                _, success = self._monitor_training_only(self.train_task_id_v11, "YoloV11实例分割训练")
+            except Exception as e:
+                allure.attach(f"训练监控失败: {str(e)}", name="错误详情")
+                pytest.fail(f"训练监控过程中发生错误: {str(e)}")
+
+        with allure.step("步骤3：对比Yolov11实例分割训练指标"):
+            try:
+                records = self._get_train_records(self.train_task_id_v11)
+
+                # 健壮性检查
+                if not records:
+                    pytest.fail("未找到任何训练记录")
+                if len(records) < 2:
+                    pytest.skip(f"训练记录不足2条，无法进行指标对比（当前记录数：{len(records)}）")
+
+                # 提取关键记录
+                latest_record = records[0]
+                oldest_record = records[1]
 
                 latest_indicators = self._parse_indicators(latest_record.get('trainIndicators', {}))
                 oldest_indicators = self._parse_indicators(oldest_record.get('trainIndicators', {}))

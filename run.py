@@ -191,7 +191,7 @@ def run_order_tests():
 
     # 定义要执行的测试文件列表
     test_files = [
-        "testcase/test_model_training_metrics.py"]
+        "testcase/test_standard_push_map.py"]
 
     # 添加项目根目录到Python路径
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -476,8 +476,8 @@ if __name__ == "__main__":
 
     try:
         # 选择执行模式
-        run_order_tests()  # 顺序执行
-        # run_together_tests()  # 并行执行
+        # run_order_tests()  # 顺序执行
+        run_together_tests()  # 并行执行
         # push_images_manual()  # bash手动推图
 
     finally:

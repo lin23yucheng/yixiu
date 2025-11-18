@@ -119,7 +119,8 @@ class TestClassOriginalModelTraining:
                 caseId="cls_model",
                 caseName="图像分类",
                 create_type=2,
-                iscut=False
+                iscut=False,
+                remark="图像分类(大图)YoloV8模型训练"
             )
 
             # 验证初始响应
@@ -167,6 +168,7 @@ class TestClassOriginalModelTraining:
             with allure.step("子步骤2：组装参数并开始YoloV8训练"):
                 train_response = self.api_model.start_train("official_yolov8_cls_model", -1, computing_power_id,
                                                             self.trainTaskId, "100", "100", "1704414001586651246", 30,
+                                                            16,
                                                             8)
                 assertions.assert_code(train_response.status_code, 200)
                 train_data = train_response.json()

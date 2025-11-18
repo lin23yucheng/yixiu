@@ -37,8 +37,9 @@ class ApiComprehensiveSampleLibrary:
         return response
 
     # 综合样本库-创建深度训练任务（globalDatasetType：0为训练集）
-    def create_deep_training_tasks(self, defectName, photoId, cut, taskName, classifyType, caseId, caseName, create_type,
-                                   iscut):
+    def create_deep_training_tasks(self, defectName, photoId, cut, taskName, classifyType, caseId, caseName,
+                                   create_type,
+                                   iscut, remark):
         url = f"{env}/miai/brainstorm/global/sample/createTrainTask"
         payload = {"endTime": None, "startTime": None, "imgName": "", "globalDatasetType": 0, "visualGrade": [],
                    "bashSampleType": [],
@@ -47,7 +48,7 @@ class ApiComprehensiveSampleLibrary:
                    "imageDefinition": [], "sampleType": [], "dataAlgorithmSampleType": [], "deepModelSampleType": [],
                    "selectIds": [], "notSelectIds": [], "taskName": taskName, "testSetMinValue": 0,
                    "testSetProportion": 30,
-                   "caseId": caseId, "caseName": caseName, "cut": iscut, "filter": False, "remark": "",
+                   "caseId": caseId, "caseName": caseName, "cut": iscut, "filter": False, "remark": remark,
                    "defectCount": "[{\"labelName\":\"\",\"count\":\"\"}]", "cutHeight": cut, "cutWidth": cut,
                    "typeMapping": "{\"liangdian\":\"liangdian\",\"liebian\":\"liebian\"}", "type": create_type}
 
@@ -114,6 +115,6 @@ class ApiComprehensiveSampleLibrary:
 if __name__ == '__main__':
     api = ApiComprehensiveSampleLibrary(global_client)
     # api.comprehensive_sample_query(None, ["shang"], ["1", "2", "3"])
-    api.create_deep_training_tasks(["dahenxian"], [], 1024, "测试集01", [], "detection", "目标检测/分割", 1, True)
+    api.create_deep_training_tasks(["dahenxian"], [], 1024, "测试集01", [], "detection", "目标检测/分割", 1, True,"")
     # api.append_deep_training_tasks(["yimo"], ["1", "2"], None)
     # api.append_deep_training_tasks2(None, ["3"], ["ok"], None, 1)

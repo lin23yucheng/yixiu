@@ -12,7 +12,7 @@ import configparser
 from configparser import ConfigParser
 from common.Request_Response import ApiClient
 from common import Assert
-from api import api_login, api_comprehensive_sample_library, api_deep_training_tasks,api_model_base
+from api import api_login, api_comprehensive_sample_library, api_deep_training_tasks, api_model_base
 from common.monitor_utils import MonitorUtils
 
 assertions = Assert.Assertions()
@@ -120,7 +120,8 @@ class TestClassCutModelTraining:
                 caseId="cls_model",
                 caseName="图像分类",
                 create_type=2,
-                iscut=True
+                iscut=True,
+                remark="图像分类(切图)YoloV8模型训练"
             )
 
             # 验证初始响应
@@ -168,7 +169,7 @@ class TestClassCutModelTraining:
             with allure.step("子步骤2：组装参数并开始训练"):
                 train_response = self.api_model.start_train("official_yolov8_cls_model", -1, computing_power_id,
                                                             self.trainTaskId, "224", "224", "1704414001586651248", 30,
-                                                            8)
+                                                            16, 8)
                 assertions.assert_code(train_response.status_code, 200)
                 train_data = train_response.json()
                 assertions.assert_in_text(train_data['msg'], '操作成功')

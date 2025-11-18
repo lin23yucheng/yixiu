@@ -338,7 +338,8 @@ class TestDeepModelTraining:
                 caseId="detection",
                 caseName="目标检测/分割",
                 create_type=1,
-                iscut=True
+                iscut=True,
+                remark="1024-YoloV12模型训练"
             )
 
             # 验证初始响应
@@ -437,7 +438,7 @@ class TestDeepModelTraining:
 
             with allure.step("子步骤3：组装参数并开始YoloV12训练"):
                 train_response = self.api_model.start_train(case_id, -1, computing_power_id, self.trainTaskId, "", "",
-                                                            "1704414001586651234", 30, 12)
+                                                            "1704414001586651234", 30, 16, 12)
                 assertions.assert_code(train_response.status_code, 200)
                 train_data = train_response.json()
                 assertions.assert_in_text(train_data['msg'], '操作成功')

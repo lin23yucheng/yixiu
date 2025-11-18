@@ -130,7 +130,9 @@ class TestDeepModelTraining:
                     # 仅当状态信息变化时更新控制台（避免频繁刷新）
                     if status_info != last_status_info:
                         # 选择颜色
-                        color_code = color_mapping.get(subStatus, color_mapping["default"]) if subStatus is not None else color_mapping["default"]
+                        color_code = color_mapping.get(subStatus,
+                                                       color_mapping["default"]) if subStatus is not None else \
+                        color_mapping["default"]
 
                         # 单行更新（使用回车符覆盖上一行）
                         print(f"\r{color_code}{status_info}\033[0m", end="", flush=True)
@@ -328,7 +330,7 @@ class TestDeepModelTraining:
         total_start = time.time()  # 记录总开始时间
 
         with allure.step("步骤1：创建深度训练任务"):
-            self.cut_value = 768
+            self.cut_value = 1024
             response = self.api_comprehensive.create_deep_training_tasks(
                 defectName=self.defectName,
                 photoId=self.photoId_ng,
@@ -338,7 +340,8 @@ class TestDeepModelTraining:
                 caseId="detection",
                 caseName="目标检测/分割",
                 create_type=1,
-                iscut=True
+                iscut=True,
+                remark="1024-YoloV11模型训练"
             )
 
             # 验证初始响应
@@ -437,7 +440,7 @@ class TestDeepModelTraining:
 
             with allure.step("子步骤3：组装参数并开始YoloV11训练"):
                 train_response = self.api_model.start_train(case_id, -1, computing_power_id, self.trainTaskId, "", "",
-                                                            "1704414001586651237", 30, 11)
+                                                            "1704414001586651234", 30, 16, 11)
                 assertions.assert_code(train_response.status_code, 200)
                 train_data = train_response.json()
                 assertions.assert_in_text(train_data['msg'], '操作成功')

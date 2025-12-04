@@ -17,8 +17,8 @@ token = login.login()
 
 
 # 代码推送
-# git push -u gitlab main
-# git push -u origin main
+# git push gitlab main
+# git push origin main
 # git push github main
 
 class ApiSpace:

@@ -22,7 +22,7 @@ token = login.login()
 
 class ApiSpace:
     # 项目空间查询
-    def space_query(self,spaceName):
+    def space_query(self, spaceName):
         url = env + "/miai/brainstorm/spacemanage/page"
         data = {"data": {"spaceName": spaceName, "showUnsettle": False}, "page": {"pageIndex": 1, "pageSize": 100}}
         header = {"content-type": "application/json", "Authorization": token}
@@ -58,7 +58,7 @@ class ApiSpace:
             # 遍历查找目标产品
             for product in product_list:
                 if product["productName"] == product_code:
-                    return product["productInfoId"]  # 找到后直接返回
+                    return product["productInfoId"]
             return None  # 未找到返回None
         else:
             print("请求失败：", rep_json.get("msg"))

@@ -13,8 +13,8 @@ webdriver-manager==4.0.2
 websocket-client==1.8.0
 
 # HTTP请求
-requests==2.32.3
-urllib3==2.4.0
+requests==2.32.4
+urllib3==2.5.0
 charset-normalizer==3.4.1
 idna==3.10
 
@@ -43,7 +43,7 @@ python-dotenv==1.1.1
 google==3.0.0
 grpcio==1.74.0
 grpcio-tools==1.73.1
-protobuf==6.30.0
+protobuf==6.31.1
 PySocks==1.7.1
 
 # 证书和安全

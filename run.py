@@ -191,7 +191,10 @@ def run_order_tests():
 
     # 定义要执行的测试文件列表
     test_files = [
-        "testcase/test_standard_push_map.py"]
+        "testcase/test_bash.py",
+        "testcase/test_bash_ui.py",
+        "testcase/test_2D_label.py"
+    ]
 
     # 添加项目根目录到Python路径
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -335,15 +338,6 @@ def run_together_tests():
         {"file": "testcase/test_model_training_metrics.py", "deps": ["testcase/test_data_training_task.py"],
          "require_success": True}
     ]
-    # tasks = [
-    #     # 第一组：无依赖任务（并行执行）
-    #     {"file": "testcase/test_bash.py", "deps": None},
-    #     {"file": "testcase/test_eiir_model_training.py", "deps": None},
-    #     {"file": "testcase/test_model_training_metrics.py", "deps": None},
-    #
-    #     # 第二组：有依赖任务
-    #     {"file": "testcase/test_bash_ui.py", "deps": ["testcase/test_bash.py"], "require_success": True},
-    #     {"file": "testcase/test_2D_label.py", "deps": ["testcase/test_bash_ui.py"], "require_success": True}]
 
     # 添加项目根目录到Python路径
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))

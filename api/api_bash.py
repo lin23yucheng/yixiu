@@ -28,11 +28,20 @@ class ApiBashSample:
                 timeout=20
             )
 
+            # 检查响应状态码是否为成功
+            if response.status_code != 200:
+                raise ValueError(f"登录请求失败，HTTP 状态码: {response.status_code}")
+
             try:
                 token_data = response.json()
+                # 检查 success 字段是否为 false，表示登录失败
+                if not token_data.get("success", True):
+                    msg = token_data.get("msg", "未知错误")
+                    raise ValueError(msg)
+
                 accessToken = token_data["data"]["tokenInfo"]["accessToken"]
-            except KeyError:
-                raise ValueError("响应结构无效：未找到accessToken")
+            except KeyError as e:
+                raise ValueError(f"响应结构无效：未找到 accessToken 或相关字段，错误: {e}")
             except ValueError as e:
                 raise ValueError(f"JSON 解析异常: {e}")
 

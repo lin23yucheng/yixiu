@@ -98,10 +98,29 @@ class BrowserPool:
 
     @classmethod
     def _create_driver(cls):
-        """优化ChromeDriver启动逻辑（移除冲突参数）"""
+        """优化ChromeDriver启动逻辑（读取环境变量中的Chrome路径）"""
         logger.info(f"线程 {threading.get_ident()} 开始创建浏览器实例")
 
+        # ========== 优先读取环境变量中的Chrome路径 ==========
+        chrome_binary_path = os.getenv("CHROME_BIN_PATH")
+        # 兜底检查常见路径
+        if not chrome_binary_path or not os.path.exists(chrome_binary_path):
+            chrome_paths = ["/usr/bin/google-chrome-stable", "/usr/bin/google-chrome"]
+            for path in chrome_paths:
+                if os.path.exists(path):
+                    chrome_binary_path = path
+                    break
+        if not chrome_binary_path:
+            raise FileNotFoundError(
+                "未找到Chrome二进制文件！\n"
+                "请检查环境变量CHROME_BIN_PATH，或确认已安装Chrome：apt install google-chrome-stable"
+            )
+        logger.info(f"使用Chrome二进制路径：{chrome_binary_path}")
+        # ======================================================
+
         chrome_options = Options()
+        # 关键：指定Chrome binary路径
+        chrome_options.binary_location = chrome_binary_path
 
         # ========== 核心参数：仅保留必需项，移除冲突参数 ==========
         # 必加参数（容器+无头）

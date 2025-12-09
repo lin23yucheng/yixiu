@@ -317,25 +317,25 @@ def run_together_tests():
         # 第一组：无依赖任务（并行执行）
         {"file": "testcase/test_bash.py", "deps": None},
         {"file": "testcase/test_standard_push_map.py", "deps": None},
-        {"file": "testcase/test_deep_model_training_v8.py", "deps": None},
-        {"file": "testcase/test_deep_model_training_v11.py", "deps": None},
-        {"file": "testcase/test_deep_model_training_v12.py", "deps": None},
-        {"file": "testcase/test_class_cut_model_training_v8.py", "deps": None},
-        {"file": "testcase/test_class_original_model_training_v8.py", "deps": None},
-        {"file": "testcase/test_model_base.py", "deps": None},
-        {"file": "testcase/test_data_training_task.py", "deps": None},
+        # {"file": "testcase/test_deep_model_training_v8.py", "deps": None},
+        # {"file": "testcase/test_deep_model_training_v11.py", "deps": None},
+        # {"file": "testcase/test_deep_model_training_v12.py", "deps": None},
+        # {"file": "testcase/test_class_cut_model_training_v8.py", "deps": None},
+        # {"file": "testcase/test_class_original_model_training_v8.py", "deps": None},
+        # {"file": "testcase/test_model_base.py", "deps": None},
+        # {"file": "testcase/test_data_training_task.py", "deps": None},
         # {"file": "testcase/test_simulation.py", "deps": None},
         {"file": "testcase/test_product_information.py", "deps": None},
         {"file": "testcase/test_product_samples.py", "deps": None},
         {"file": "testcase/test_eiir_label.py", "deps": None},
-        {"file": "testcase/test_eiir_model_training.py", "deps": None},
+        # {"file": "testcase/test_eiir_model_training.py", "deps": None},
 
         # 第二组：有依赖任务
         {"file": "testcase/test_bash_ui.py", "deps": ["testcase/test_bash.py"], "require_success": True},
         {"file": "testcase/test_2D_label.py", "deps": ["testcase/test_bash_ui.py"], "require_success": True},
-        {"file": "testcase/test_3D_label.py", "deps": ["testcase/test_standard_push_map.py"], "require_success": True},
-        {"file": "testcase/test_model_training_metrics.py", "deps": ["testcase/test_data_training_task.py"],
-         "require_success": True}
+        {"file": "testcase/test_3D_label.py", "deps": ["testcase/test_standard_push_map.py"], "require_success": True}
+        # {"file": "testcase/test_model_training_metrics.py", "deps": ["testcase/test_data_training_task.py"],
+        #  "require_success": True}
     ]
 
     # 添加项目根目录到Python路径

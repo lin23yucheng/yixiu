@@ -14,7 +14,7 @@ websocket-client==1.8.0
 
 # HTTP请求
 requests==2.32.4
-urllib3==2.5.0
+urllib3==2.4.7
 charset-normalizer==3.4.1
 idna==3.10
 

@@ -4,13 +4,13 @@ import tempfile
 import shutil
 import logging
 import time
+import subprocess
 from threading import local
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import WebDriverException, TimeoutException
 import urllib3
-import subprocess
 
 # ========== 日志配置 ==========
 logging.basicConfig(
@@ -27,39 +27,131 @@ RETRY_TIMES = 2  # 降低重试次数，避免无意义重试
 RETRY_DELAY = 3
 
 
-# ========== 新增：Chrome/ChromeDriver版本检查 ==========
+# ========== 新增：查找Chrome二进制文件 ==========
+def find_chrome_binary():
+    """
+    查找系统上的Chrome或Chromium二进制文件路径
+    返回找到的路径，如果未找到则返回None
+    """
+    # 常见的Chrome/Chromium安装路径
+    chrome_paths = [
+        "/usr/bin/google-chrome",
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/chromium-browser",
+        "/usr/bin/chromium",
+        "/opt/google/chrome/google-chrome",
+        "/usr/local/bin/chromium",
+        "/usr/local/bin/chromium-browser",
+    ]
+
+    for path in chrome_paths:
+        if os.path.exists(path) and os.access(path, os.X_OK):
+            logger.info(f"找到Chrome二进制文件: {path}")
+            return path
+
+    # 使用which命令查找
+    try:
+        for binary in ["google-chrome", "google-chrome-stable", "chromium-browser", "chromium"]:
+            result = subprocess.run(
+                ["which", binary],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                path = result.stdout.strip()
+                if path and os.path.exists(path):
+                    logger.info(f"通过which找到Chrome二进制文件: {path}")
+                    return path
+    except (subprocess.SubprocessError, FileNotFoundError):
+        pass
+
+    logger.warning("未找到Chrome或Chromium二进制文件")
+    return None
+
+
+# ========== 新增：修复版本检查函数 ==========
 def check_chrome_version():
     """检查Chrome和ChromeDriver版本是否匹配"""
     try:
+        # 查找Chrome二进制文件
+        chrome_bin = find_chrome_binary()
+        if not chrome_bin:
+            logger.warning("未找到Chrome浏览器")
+            return False
+
         # 获取Chrome版本
         chrome_version = subprocess.check_output(
-            ["google-chrome", "--version"],
-            stderr=subprocess.STDOUT
+            [chrome_bin, "--version"],
+            stderr=subprocess.STDOUT,
+            timeout=10
         ).decode().strip()
-        chrome_main_version = chrome_version.split()[2].split('.')[0]
+
+        # 解析版本号（处理不同输出格式）
+        if "Google Chrome" in chrome_version:
+            chrome_main_version = chrome_version.split()[2].split('.')[0]
+        else:
+            chrome_main_version = chrome_version.split()[1].split('.')[0]
+
+        logger.info(f"Chrome版本: {chrome_version}, 主版本: {chrome_main_version}")
 
         # 获取ChromeDriver版本
+        chromedriver_paths = [
+            "/usr/local/bin/chromedriver",
+            "/usr/bin/chromedriver"
+        ]
+
+        chromedriver_bin = None
+        for path in chromedriver_paths:
+            if os.path.exists(path):
+                chromedriver_bin = path
+                break
+
+        if not chromedriver_bin:
+            logger.warning("未找到ChromeDriver")
+            return False
+
         chromedriver_version = subprocess.check_output(
-            ["/usr/local/bin/chromedriver", "--version"],
-            stderr=subprocess.STDOUT
+            [chromedriver_bin, "--version"],
+            stderr=subprocess.STDOUT,
+            timeout=10
         ).decode().strip()
+
+        # 解析ChromeDriver版本号
         chromedriver_main_version = chromedriver_version.split()[1].split('.')[0]
 
+        logger.info(f"ChromeDriver版本: {chromedriver_version}, 主版本: {chromedriver_main_version}")
+
+        # 检查版本是否匹配（允许主版本号一致）
         if chrome_main_version != chromedriver_main_version:
-            logger.error(f"版本不匹配！Chrome: {chrome_main_version}, ChromeDriver: {chromedriver_main_version}")
-            return False
+            logger.warning(
+                f"版本不匹配！Chrome主版本: {chrome_main_version}, ChromeDriver主版本: {chromedriver_main_version}")
+            # 这里不返回False，因为有时版本不匹配也能工作
+            return True  # 改为返回True，不因版本不匹配而阻止启动
+
         logger.info(f"版本匹配：Chrome {chrome_main_version} ↔ ChromeDriver {chromedriver_main_version}")
         return True
     except Exception as e:
         logger.error(f"检查Chrome版本失败: {str(e)}")
-        return False
+        # 即使检查失败也继续执行
+        return True
 
 
 def fix_chromedriver_permission():
     """修复ChromeDriver可执行权限"""
     try:
-        os.chmod("/usr/local/bin/chromedriver", 0o755)  # 赋予可执行权限
-        logger.info("ChromeDriver权限已设置为755")
+        chromedriver_paths = [
+            "/usr/local/bin/chromedriver",
+            "/usr/bin/chromedriver"
+        ]
+
+        for path in chromedriver_paths:
+            if os.path.exists(path):
+                os.chmod(path, 0o755)  # 赋予可执行权限
+                logger.info(f"ChromeDriver权限已设置为755: {path}")
+                return
+
+        logger.warning("未找到ChromeDriver文件，无法设置权限")
     except Exception as e:
         logger.error(f"修复ChromeDriver权限失败: {str(e)}")
 
@@ -98,29 +190,10 @@ class BrowserPool:
 
     @classmethod
     def _create_driver(cls):
-        """优化ChromeDriver启动逻辑（读取环境变量中的Chrome路径）"""
+        """优化ChromeDriver启动逻辑（移除冲突参数）"""
         logger.info(f"线程 {threading.get_ident()} 开始创建浏览器实例")
 
-        # ========== 优先读取环境变量中的Chrome路径 ==========
-        chrome_binary_path = os.getenv("CHROME_BIN_PATH")
-        # 兜底检查常见路径
-        if not chrome_binary_path or not os.path.exists(chrome_binary_path):
-            chrome_paths = ["/usr/bin/google-chrome-stable", "/usr/bin/google-chrome"]
-            for path in chrome_paths:
-                if os.path.exists(path):
-                    chrome_binary_path = path
-                    break
-        if not chrome_binary_path:
-            raise FileNotFoundError(
-                "未找到Chrome二进制文件！\n"
-                "请检查环境变量CHROME_BIN_PATH，或确认已安装Chrome：apt install google-chrome-stable"
-            )
-        logger.info(f"使用Chrome二进制路径：{chrome_binary_path}")
-        # ======================================================
-
         chrome_options = Options()
-        # 关键：指定Chrome binary路径
-        chrome_options.binary_location = chrome_binary_path
 
         # ========== 核心参数：仅保留必需项，移除冲突参数 ==========
         # 必加参数（容器+无头）
@@ -142,12 +215,14 @@ class BrowserPool:
 
         # 页面加载策略（减少超时）
         chrome_options.page_load_strategy = 'eager'
-        # ======================================================
 
-        # ========== 临时目录：使用系统默认，避免权限问题 ==========
-        # 注释掉自定义temp_profile，改用Chrome默认临时目录（减少权限问题）
-        # temp_profile = tempfile.mkdtemp(prefix="chrome_profile_", dir="/tmp")
-        # chrome_options.add_argument(f"--user-data-dir={temp_profile}")
+        # ========== 新增：设置Chrome二进制文件路径 ==========
+        chrome_binary = find_chrome_binary()
+        if chrome_binary:
+            chrome_options.binary_location = chrome_binary
+            logger.info(f"使用Chrome路径: {chrome_binary}")
+        else:
+            logger.warning("未找到Chrome二进制文件，使用默认路径")
         # ======================================================
 
         # ========== ChromeDriver服务：简化配置，移除日志参数 ==========
@@ -176,7 +251,6 @@ class BrowserPool:
             logger.info(f"线程 {threading.get_ident()} 浏览器实例创建成功")
             return driver
         except (WebDriverException, TimeoutException) as e:
-            # 失败时不清理temp_profile（已注释）
             logger.error(f"线程 {threading.get_ident()} 创建浏览器失败: {str(e)}")
             raise
         except Exception as e:

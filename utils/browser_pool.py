@@ -4,7 +4,7 @@ import tempfile
 import shutil
 import logging
 import time
-import subprocess
+import subprocess  # 确保已导入
 from threading import local
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -54,7 +54,11 @@ def setup_chromedriver():
         except Exception as e:
             logger.warning(f"验证ChromeDriver版本失败: {str(e)}")
 
-        return Service(executable_path=LOCAL_CHROMEDRIVER_PATH)
+        # 修复：log_output不设置字符串，改用subprocess.DEVNULL（正确的文件描述符）
+        service = Service(executable_path=LOCAL_CHROMEDRIVER_PATH)
+        # 可选：禁用Driver日志（使用正确的常量）
+        service.log_output = subprocess.DEVNULL
+        return service
     except Exception as e:
         logger.error(f"设置ChromeDriver失败: {str(e)}")
         raise
@@ -174,8 +178,7 @@ class BrowserPool:
         # ========== 强制使用本地ChromeDriver ==========
         try:
             service = setup_chromedriver()
-            # 禁用Driver日志（减少干扰）
-            service.log_output = os.devnull
+            # 移除错误的os.devnull设置，已在setup_chromedriver中用subprocess.DEVNULL配置
         except Exception as e:
             logger.error(f"线程 {threading.get_ident()} 设置ChromeDriver服务失败: {str(e)}")
             raise

@@ -11,6 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, NoSuchElementException
 from utils.browser_pool import get_browser, release_browser
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, WebDriverException
 
 # ========== 1. 新增/优化全局超时配置（核心：避免无限等待） ==========
 # 基础元素定位超时（容器并行建议20-30秒）
@@ -160,34 +161,45 @@ class TestBashUI:
         self.sort_start_time = time.time()
 
         with allure.step("步骤1：林禹成账号登录bash系统"):
-            # 兼容Linux容器网络，增加页面加载失败重试
             login_url = "http://fat-bash-web.svfactory.com:6180/#/signIn"
-            for retry in range(3):  # 重试次数从2→3
+            # 增加重试次数到5次，延长每次重试间隔
+            for retry in range(5):
                 try:
                     self.driver.get(login_url)
-                    allure.attach(f"访问登录页: {login_url}", name="页面访问",
+                    allure.attach(f"第{retry + 1}次访问登录页: {login_url}", name="页面访问",
                                   attachment_type=allure.attachment_type.TEXT)
-                    # 优化：不仅等title，还等账号输入框（更精准）
-                    WebDriverWait(self.driver, CRITICAL_TIMEOUT).until(
-                        EC.presence_of_element_located((By.XPATH, '//input[@placeholder="请输入账号"]'))
+
+                    # 等待页面DOM加载完成（不等待资源，配合Chrome的page_load_strategy='none'）
+                    time.sleep(3)  # 强制等待3秒，让DOM渲染
+                    # 检查页面是否有核心元素（比如登录表单）
+                    login_form = WebDriverWait(self.driver, 15).until(
+                        EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'login-form')]"))
                     )
-                    # 验证页面标题
-                    WebDriverWait(self.driver, 10).until(EC.title_contains("登录"))
-                    allure.attach("登录页加载成功", name="页面加载", attachment_type=allure.attachment_type.TEXT)
+                    allure.attach("登录表单已加载", name="页面加载状态", attachment_type=allure.attachment_type.TEXT)
+
+                    # 再次等待输入框可交互
+                    username_input = WebDriverWait(self.driver, 10).until(
+                        EC.element_to_be_clickable((By.XPATH, "//input[@type='text']"))
+                    )
+                    allure.attach("登录页加载成功", name="页面加载结果", attachment_type=allure.attachment_type.TEXT)
+                    allure.attach(self.driver.get_screenshot_as_png(), name=f"登录页加载成功（第{retry + 1}次）",
+                                  attachment_type=allure.attachment_type.PNG)
                     break
-                except TimeoutException as e:
-                    if retry == 2:
-                        allure.attach(f"页面加载超时: {str(e)}", name="页面加载错误",
+                except (TimeoutException, WebDriverException) as e:
+                    if retry == 4:
+                        # 最后一次失败：保存详细信息
+                        allure.attach(f"页面加载超时（重试5次）: {str(e)}", name="页面加载失败",
                                       attachment_type=allure.attachment_type.TEXT)
-                        allure.attach(self.driver.get_screenshot_as_png(), name="登录页加载失败截图",
+                        allure.attach(self.driver.get_screenshot_as_png(), name="登录页加载失败最终截图",
                                       attachment_type=allure.attachment_type.PNG)
                         allure.attach(self.driver.page_source, name="登录页加载失败源码",
                                       attachment_type=allure.attachment_type.HTML)
                         raise
-                    allure.attach(f"登录页加载失败，第{retry + 1}次重试", name="页面重试",
-                                  attachment_type=allure.attachment_type.TEXT)
+                    # 重试前刷新+延长等待
                     self.driver.refresh()
-                    time.sleep(3)  # 延长重试间隔
+                    time.sleep(5)  # 每次重试间隔5秒
+                    allure.attach(f"第{retry + 1}次加载失败，刷新后重试", name="页面重试",
+                                  attachment_type=allure.attachment_type.TEXT)
 
             # 输入账号（使用重试函数，等待可交互）
             username_input = self._retry_find_element((By.XPATH, '//input[@placeholder="请输入账号"]'),

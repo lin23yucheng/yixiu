@@ -139,6 +139,20 @@ class BrowserPool:
         chrome_options = Options()
 
         # ========== 核心优化：Chrome配置（解决超时/无头渲染问题） ==========
+        # 1. 禁用网络相关的阻塞功能
+        chrome_options.add_argument("--disable-features=NetworkService")  # 禁用网络服务，减少资源占用
+        chrome_options.add_argument("--disable-features=NetworkServiceInProcess")
+
+        # 2. 调整页面加载策略为"none"（完全不等待资源加载，仅加载DOM）
+        chrome_options.page_load_strategy = 'none'  # 替代原来的'eager'，更激进的加载策略
+
+        # 3. 禁用缓存（避免旧资源干扰）
+        chrome_options.add_argument("--disable-cache")
+        chrome_options.add_argument("--disable-application-cache")
+
+        # 4. 强制使用HTTP/1.1（避免HTTP/2的兼容性问题）
+        chrome_options.add_argument("--force-fieldtrials=*DisableHTTP2/Enabled/")
+
         # 1. 无头模式增强（避免检测+渲染异常）
         chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # 禁用自动化检测

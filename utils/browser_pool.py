@@ -26,37 +26,35 @@ browser_semaphore = threading.Semaphore(MAX_BROWSER_INSTANCES)
 RETRY_TIMES = 2
 RETRY_DELAY = 3
 
+# ========== 核心修改：固定本地ChromeDriver路径（与bash脚本对齐） ==========
+LOCAL_CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
 
-# ========== 新增：使用webdriver-manager自动管理ChromeDriver ==========
+
 def setup_chromedriver():
-    """使用webdriver-manager自动安装和管理ChromeDriver"""
+    """强制使用本地ChromeDriver（禁用自动下载）"""
     try:
-        # 尝试导入webdriver_manager
-        from webdriver_manager.chrome import ChromeDriverManager
-        from selenium.webdriver.chrome.service import Service as ChromeService
+        # 验证本地ChromeDriver是否存在且可执行
+        if not os.path.exists(LOCAL_CHROMEDRIVER_PATH):
+            raise FileNotFoundError(f"ChromeDriver文件不存在: {LOCAL_CHROMEDRIVER_PATH}")
+        if not os.access(LOCAL_CHROMEDRIVER_PATH, os.X_OK):
+            raise PermissionError(f"ChromeDriver无执行权限: {LOCAL_CHROMEDRIVER_PATH}")
 
-        logger.info("使用webdriver-manager自动管理ChromeDriver")
+        logger.info(f"使用本地ChromeDriver: {LOCAL_CHROMEDRIVER_PATH}")
+        # 验证Driver版本（可选，确保与Chrome匹配）
+        try:
+            result = subprocess.run(
+                [LOCAL_CHROMEDRIVER_PATH, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                driver_version = result.stdout.strip()
+                logger.info(f"ChromeDriver版本: {driver_version}")
+        except Exception as e:
+            logger.warning(f"验证ChromeDriver版本失败: {str(e)}")
 
-        # 自动下载并获取ChromeDriver路径
-        driver_path = ChromeDriverManager().install()
-        logger.info(f"ChromeDriver已安装到: {driver_path}")
-
-        return ChromeService(executable_path=driver_path)
-    except ImportError:
-        logger.warning("webdriver-manager未安装，使用系统ChromeDriver")
-        # 检查系统ChromeDriver
-        chromedriver_paths = [
-            "/usr/local/bin/chromedriver",
-            "/usr/bin/chromedriver"
-        ]
-
-        for path in chromedriver_paths:
-            if os.path.exists(path) and os.access(path, os.X_OK):
-                logger.info(f"使用系统ChromeDriver: {path}")
-                return Service(executable_path=path)
-
-        logger.error("未找到可用的ChromeDriver")
-        raise Exception("未找到ChromeDriver，请安装webdriver-manager或手动安装ChromeDriver")
+        return Service(executable_path=LOCAL_CHROMEDRIVER_PATH)
     except Exception as e:
         logger.error(f"设置ChromeDriver失败: {str(e)}")
         raise
@@ -64,6 +62,12 @@ def setup_chromedriver():
 
 def find_chrome_binary():
     """查找系统上的Chrome或Chromium二进制文件路径"""
+    # 优先读取环境变量（bash脚本中设置的CHROME_BIN_PATH）
+    chrome_env_path = os.getenv("CHROME_BIN_PATH")
+    if chrome_env_path and os.path.exists(chrome_env_path) and os.access(chrome_env_path, os.X_OK):
+        logger.info(f"从环境变量找到Chrome二进制文件: {chrome_env_path}")
+        return chrome_env_path
+
     chrome_paths = [
         "/usr/bin/google-chrome",
         "/usr/bin/google-chrome-stable",
@@ -96,8 +100,8 @@ def find_chrome_binary():
     except (subprocess.SubprocessError, FileNotFoundError):
         pass
 
-    logger.warning("未找到Chrome或Chromium二进制文件")
-    return None
+    logger.error("未找到Chrome或Chromium二进制文件")
+    raise FileNotFoundError("Chrome浏览器未安装，请检查环境")
 
 
 class BrowserPool:
@@ -131,46 +135,65 @@ class BrowserPool:
 
         chrome_options = Options()
 
-        # ========== Chrome配置 ==========
+        # ========== Chrome增强配置（容器/内网适配） ==========
+        # 无头模式（必选，Zadig容器无界面）
         chrome_options.add_argument("--headless=new")
+        # 容器环境必需
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
+        # 窗口大小
         chrome_options.add_argument("--window-size=1920,1080")
+        # 禁用不必要组件
         chrome_options.add_argument("--disable-extensions")
         chrome_options.add_argument("--disable-infobars")
         chrome_options.add_argument("--disable-notifications")
+        chrome_options.add_argument("--disable-images")  # 禁用图片加载，加快速度
+        # 屏蔽自动化检测
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option('useAutomationExtension', False)
+        # 页面加载策略（eager比normal快，减少超时）
         chrome_options.page_load_strategy = 'eager'
+        # 忽略证书错误（内网测试必选）
+        chrome_options.add_argument("--ignore-certificate-errors")
+        chrome_options.add_argument("--ignore-ssl-errors")
+        # 禁用日志冗余输出
+        chrome_options.add_argument("--log-level=3")
+        # 禁用网络安全限制（内网测试可选）
+        chrome_options.add_argument("--disable-web-security")
 
         # 设置Chrome二进制文件路径
-        chrome_binary = find_chrome_binary()
-        if chrome_binary:
+        try:
+            chrome_binary = find_chrome_binary()
             chrome_options.binary_location = chrome_binary
             logger.info(f"使用Chrome路径: {chrome_binary}")
-        else:
-            logger.warning("未找到Chrome二进制文件，使用默认路径")
+        except FileNotFoundError as e:
+            logger.error(f"线程 {threading.get_ident()} Chrome路径配置失败: {str(e)}")
+            raise
 
-        # ========== 使用webdriver-manager管理ChromeDriver ==========
+        # ========== 强制使用本地ChromeDriver ==========
         try:
             service = setup_chromedriver()
+            # 禁用Driver日志（减少干扰）
+            service.log_output = os.devnull
         except Exception as e:
-            logger.error(f"设置ChromeDriver服务失败: {str(e)}")
-            # 尝试使用默认Service
-            service = Service()
+            logger.error(f"线程 {threading.get_ident()} 设置ChromeDriver服务失败: {str(e)}")
+            raise
 
         # 创建driver
         try:
             driver = webdriver.Chrome(service=service, options=chrome_options)
 
-            # 超时配置
-            driver.set_page_load_timeout(60)
-            driver.set_script_timeout(60)
-            driver.implicitly_wait(15)
+            # 超时配置（优化避免TimeoutException）
+            driver.set_page_load_timeout(30)  # 缩短超时时间，避免长时间等待
+            driver.set_script_timeout(30)
+            driver.implicitly_wait(10)  # 缩短隐式等待
 
-            # 屏蔽webdriver
+            # 屏蔽webdriver特征
             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            driver.execute_cdp_cmd('Network.setUserAgentOverride', {
+                "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+            })
 
             logger.info(f"线程 {threading.get_ident()} 浏览器实例创建成功")
             return driver
@@ -194,7 +217,9 @@ class BrowserPool:
                 logger.error(f"线程 {threading.get_ident()} 释放浏览器异常: {str(e)}")
             finally:
                 del cls._thread_local.driver
-                browser_semaphore.release()
+                # 修复：仅当信号量已获取时释放（避免重复释放）
+                if browser_semaphore._value < MAX_BROWSER_INSTANCES:
+                    browser_semaphore.release()
 
 
 def get_browser():

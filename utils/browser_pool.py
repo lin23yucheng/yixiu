@@ -4,7 +4,7 @@ import tempfile
 import shutil
 import logging
 import time
-import subprocess  # 确保已导入
+import subprocess
 from threading import local
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -23,10 +23,10 @@ logger = logging.getLogger(__name__)
 # ========== 并行限流配置 ==========
 MAX_BROWSER_INSTANCES = 2
 browser_semaphore = threading.Semaphore(MAX_BROWSER_INSTANCES)
-RETRY_TIMES = 2
-RETRY_DELAY = 3
+RETRY_TIMES = 3  # 增加重试次数（从2→3）
+RETRY_DELAY = 5  # 增加重试间隔（从3→5秒）
 
-# ========== 核心修改：固定本地ChromeDriver路径（与bash脚本对齐） ==========
+# ========== 核心配置：固定本地ChromeDriver路径 ==========
 LOCAL_CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
 
 
@@ -40,7 +40,7 @@ def setup_chromedriver():
             raise PermissionError(f"ChromeDriver无执行权限: {LOCAL_CHROMEDRIVER_PATH}")
 
         logger.info(f"使用本地ChromeDriver: {LOCAL_CHROMEDRIVER_PATH}")
-        # 验证Driver版本（可选，确保与Chrome匹配）
+        # 验证Driver版本
         try:
             result = subprocess.run(
                 [LOCAL_CHROMEDRIVER_PATH, "--version"],
@@ -54,9 +54,8 @@ def setup_chromedriver():
         except Exception as e:
             logger.warning(f"验证ChromeDriver版本失败: {str(e)}")
 
-        # 修复：log_output不设置字符串，改用subprocess.DEVNULL（正确的文件描述符）
+        # 修复：使用subprocess.DEVNULL（正确的文件描述符）
         service = Service(executable_path=LOCAL_CHROMEDRIVER_PATH)
-        # 可选：禁用Driver日志（使用正确的常量）
         service.log_output = subprocess.DEVNULL
         return service
     except Exception as e:
@@ -65,7 +64,7 @@ def setup_chromedriver():
 
 
 def find_chrome_binary():
-    """查找系统上的Chrome或Chromium二进制文件路径"""
+    """查找系统上的Chrome二进制文件路径"""
     # 优先读取环境变量（bash脚本中设置的CHROME_BIN_PATH）
     chrome_env_path = os.getenv("CHROME_BIN_PATH")
     if chrome_env_path and os.path.exists(chrome_env_path) and os.access(chrome_env_path, os.X_OK):
@@ -121,7 +120,7 @@ class BrowserPool:
 
     @classmethod
     def _create_driver_with_retry(cls):
-        """带重试的driver创建"""
+        """带重试的driver创建（增加重试次数）"""
         for retry in range(RETRY_TIMES):
             try:
                 return cls._create_driver()
@@ -134,37 +133,44 @@ class BrowserPool:
 
     @classmethod
     def _create_driver(cls):
-        """创建浏览器实例"""
+        """创建浏览器实例（核心优化：解决超时/渲染问题）"""
         logger.info(f"线程 {threading.get_ident()} 开始创建浏览器实例")
 
         chrome_options = Options()
 
-        # ========== Chrome增强配置（容器/内网适配） ==========
-        # 无头模式（必选，Zadig容器无界面）
+        # ========== 核心优化：Chrome配置（解决超时/无头渲染问题） ==========
+        # 1. 无头模式增强（避免检测+渲染异常）
         chrome_options.add_argument("--headless=new")
-        # 容器环境必需
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # 禁用自动化检测
+        chrome_options.add_argument("--disable-features=VizDisplayCompositor")  # 修复无头模式渲染
+
+        # 2. 容器环境必需
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
-        # 窗口大小
-        chrome_options.add_argument("--window-size=1920,1080")
-        # 禁用不必要组件
-        chrome_options.add_argument("--disable-extensions")
-        chrome_options.add_argument("--disable-infobars")
-        chrome_options.add_argument("--disable-notifications")
-        chrome_options.add_argument("--disable-images")  # 禁用图片加载，加快速度
-        # 屏蔽自动化检测
+
+        # 3. 网络/加载优化（解决内网慢加载）
+        chrome_options.add_argument("--disable-network-throttling")  # 禁用网络节流
+        chrome_options.add_argument("--disable-background-networking")  # 禁用后台网络
+        chrome_options.add_argument("--enable-javascript")  # 强制启用JS
+        chrome_options.add_argument("--disable-images")  # 禁用图片加速加载
+        chrome_options.add_argument("--window-size=1920,1080")  # 固定窗口大小
+
+        # 4. 屏蔽自动化特征
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option('useAutomationExtension', False)
-        # 页面加载策略（eager比normal快，减少超时）
+
+        # 5. 页面加载策略（eager比normal快，减少超时）
         chrome_options.page_load_strategy = 'eager'
-        # 忽略证书错误（内网测试必选）
+
+        # 6. 忽略证书/SSL错误（内网必选）
         chrome_options.add_argument("--ignore-certificate-errors")
         chrome_options.add_argument("--ignore-ssl-errors")
-        # 禁用日志冗余输出
+        chrome_options.add_argument("--allow-insecure-localhost")  # 允许不安全的本地主机
+
+        # 7. 禁用冗余日志
         chrome_options.add_argument("--log-level=3")
-        # 禁用网络安全限制（内网测试可选）
-        chrome_options.add_argument("--disable-web-security")
+        chrome_options.add_argument("--silent")
 
         # 设置Chrome二进制文件路径
         try:
@@ -175,10 +181,9 @@ class BrowserPool:
             logger.error(f"线程 {threading.get_ident()} Chrome路径配置失败: {str(e)}")
             raise
 
-        # ========== 强制使用本地ChromeDriver ==========
+        # 强制使用本地ChromeDriver
         try:
             service = setup_chromedriver()
-            # 移除错误的os.devnull设置，已在setup_chromedriver中用subprocess.DEVNULL配置
         except Exception as e:
             logger.error(f"线程 {threading.get_ident()} 设置ChromeDriver服务失败: {str(e)}")
             raise
@@ -187,15 +192,16 @@ class BrowserPool:
         try:
             driver = webdriver.Chrome(service=service, options=chrome_options)
 
-            # 超时配置（优化避免TimeoutException）
-            driver.set_page_load_timeout(30)  # 缩短超时时间，避免长时间等待
-            driver.set_script_timeout(30)
-            driver.implicitly_wait(10)  # 缩短隐式等待
+            # ========== 超时配置优化（适配内网慢加载） ==========
+            driver.set_page_load_timeout(60)  # 页面加载超时延长到60秒
+            driver.set_script_timeout(60)  # 脚本执行超时延长到60秒
+            driver.implicitly_wait(20)  # 隐式等待延长到20秒
 
-            # 屏蔽webdriver特征
+            # 强化屏蔽webdriver特征
             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            # 模拟真实UA
             driver.execute_cdp_cmd('Network.setUserAgentOverride', {
-                "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+                "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.40 Safari/537.36"
             })
 
             logger.info(f"线程 {threading.get_ident()} 浏览器实例创建成功")
@@ -220,7 +226,7 @@ class BrowserPool:
                 logger.error(f"线程 {threading.get_ident()} 释放浏览器异常: {str(e)}")
             finally:
                 del cls._thread_local.driver
-                # 修复：仅当信号量已获取时释放（避免重复释放）
+                # 修复：仅当信号量已获取时释放
                 if browser_semaphore._value < MAX_BROWSER_INSTANCES:
                     browser_semaphore.release()
 

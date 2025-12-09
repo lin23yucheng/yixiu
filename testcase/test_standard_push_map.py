@@ -23,9 +23,12 @@ section_two = "bash"
 space_name = config.get(section_one, "space_name")
 miai_product_code = config.get(section_one, "miai-product-code")
 
-# 推图命令
-fat_command = "main.exe test --grpc=fat-yixiu-brainstorm-grpc.svfactory.com:9181 -m 1"  # fat
-# fat_command = "main.exe test  --grpc=yixiu-grpc.idmaic.cn:9181 -m 1"  # 生产
+# ========== 核心修改1：替换main.exe为go-main（Linux可执行文件） ==========
+# 原命令：fat_command = "main.exe test --grpc=fat-yixiu-brainstorm-grpc.svfactory.com:9181 -m 1"
+# 新命令：使用./go-main（Linux下相对路径，需确保go-main在目标目录）
+fat_command = "./go-main test --grpc=fat-yixiu-brainstorm-grpc.svfactory.com:9181 -m 1"  # fat
+# fat_command = "./go-main test  --grpc=yixiu-grpc.idmaic.cn:9181 -m 1"  # 生产
+# ======================================================================
 
 # 初始化日志记录器
 logger = logging.getLogger(__name__)
@@ -48,6 +51,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 
 def run_renaming_scripts():
     """执行2D和3D图像重命名脚本"""
+    # 原有逻辑不变，无需修改
     try:
         logger.info("开始执行2D和3D图像重命名脚本")
 
@@ -80,6 +84,7 @@ def run_renaming_scripts():
 
 def update_data_json():
     """更新data.json文件内容"""
+    # 原有逻辑不变，无需修改
     try:
         # 1. 读取accessToken.txt
         token_path = PROJECT_ROOT / "testdata" / "accessToken.txt"
@@ -150,22 +155,38 @@ def update_data_json():
 def execute_grpc_command():
     """执行GRPC命令"""
     try:
-        # 目标目录
+        # 目标目录（go-main所在目录）
         target_dir = PROJECT_ROOT / "testdata" / "brainstormGRpcClient" / "2.0"
+
+        # ========== 核心修改2：给go-main添加执行权限（Linux必需） ==========
+        go_main_path = target_dir / "go-main"
+        if go_main_path.exists():
+            # 添加执行权限（chmod +x）
+            os.chmod(go_main_path, 0o755)  # 755权限：所有者可读可写可执行，其他可读可执行
+            logger.info(f"已为go-main添加执行权限: {go_main_path}")
+        else:
+            logger.error(f"go-main文件不存在！路径：{go_main_path}")
+            allure.attach(
+                f"go-main文件不存在！路径：{go_main_path}",
+                name="文件缺失错误",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            return False
+        # ==================================================================
 
         # 切换到目标目录
         os.chdir(target_dir)
         logger.info(f"切换到目录: {target_dir}")
 
-        # 记录当前目录内容到报告
+        # 记录当前目录内容到报告（验证go-main是否存在）
         dir_contents = "\n".join(os.listdir(target_dir))
         allure.attach(
             dir_contents,
-            name="目标目录内容",
+            name="目标目录内容（含go-main验证）",
             attachment_type=allure.attachment_type.TEXT
         )
 
-        # 执行命令
+        # 执行命令（已替换为./go-main）
         logger.info(f"执行命令: {fat_command}")
         result = subprocess.run(
             fat_command,

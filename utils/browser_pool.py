@@ -6,9 +6,10 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import WebDriverException
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import ChromeType
-from webdriver_manager.core.driver_cache import DriverCacheManager
+# 注释掉容器中不需要的webdriver-manager（已手动安装chromedriver）
+# from webdriver_manager.chrome import ChromeDriverManager
+# from webdriver_manager.core.os_manager import ChromeType
+# from webdriver_manager.core.driver_cache import DriverCacheManager
 from threading import local
 
 
@@ -24,24 +25,28 @@ class BrowserPool:
 
     @classmethod
     def _create_driver(cls):
-        """优化后的浏览器创建方法"""
+        """优化后的浏览器创建方法（适配Linux容器+无头模式）"""
         print(f"线程 {threading.get_ident()} 开始创建浏览器实例")
 
-        # 添加加速参数
+        # 添加加速+容器适配参数
         chrome_options = Options()
 
-        # 基本性能优化参数
+        # ========== 核心新增：容器无头模式（必加） ==========
+        chrome_options.add_argument("--headless=new")  # 无头模式（无图形界面运行）
+        # ==================================================
+
+        # 基本性能优化+容器适配参数
         chrome_options.add_argument("--disable-extensions")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")  # 无头模式下GPU无用，禁用
+        chrome_options.add_argument("--no-sandbox")  # root用户运行必需（容器默认root）
+        chrome_options.add_argument("--disable-dev-shm-usage")  # 解决容器/dev/shm内存不足
         chrome_options.add_argument("--disable-logging")
         chrome_options.add_argument("--log-level=3")
         chrome_options.add_argument("--silent")
         chrome_options.add_argument("--disable-web-security")
         chrome_options.add_argument("--allow-running-insecure-content")
 
-        # 禁用自动化标志
+        # 禁用自动化标志（避免被网站检测）
         chrome_options.add_experimental_option("excludeSwitches", ["enable-logging", "enable-automation"])
         chrome_options.add_experimental_option('useAutomationExtension', False)
 
@@ -55,25 +60,27 @@ class BrowserPool:
         chrome_options.add_argument("--disable-session-crashed-bubble")
         chrome_options.add_argument("--disable-features=VizDisplayCompositor")
 
-        # 设置窗口大小和最大化
+        # 窗口大小（无头模式下无需最大化，固定尺寸即可）
         chrome_options.add_argument("--window-size=1920,1080")
-        chrome_options.add_argument("--start-maximized")
+        # 注释掉最大化（无头模式下无效，且会报错）
+        # chrome_options.add_argument("--start-maximized")
 
-        # 为每个实例创建独立的临时用户数据目录
-        temp_profile = tempfile.mkdtemp()
+        # ========== 容器适配：临时目录权限优化 ==========
+        # 容器中/tmp目录权限更友好，指定临时目录到/tmp
+        temp_profile = tempfile.mkdtemp(prefix="chrome_profile_", dir="/tmp")
         chrome_options.add_argument(f"--user-data-dir={temp_profile}")
         chrome_options.add_argument(f"--profile-directory=Profile{threading.get_ident()}")
+        # ==============================================
 
-        # 使用 webdriver-manager 自动管理 ChromeDriver，配置国内镜像
+        # ========== 容器适配：使用手动安装的chromedriver（无需自动下载） ==========
         try:
-            print(f"线程 {threading.get_ident()} 开始下载/获取 ChromeDriver")
-            # 配置国内镜像源
-            os.environ['WDM_CHROMEDRIVER_REPO'] = 'https://cdn.npmmirror.com/binaries/chromedriver'
-            service = Service(ChromeDriverManager().install())
-            print(f"线程 {threading.get_ident()} ChromeDriver 准备就绪")
+            print(f"线程 {threading.get_ident()} 使用容器中已安装的chromedriver")
+            # 容器中chromedriver已安装到/usr/local/bin（Zadig脚本中配置）
+            service = Service(executable_path="/usr/local/bin/chromedriver")
         except Exception as e:
-            print(f"线程 {threading.get_ident()} ChromeDriverManager 失败，使用默认方式: {str(e)}")
+            print(f"线程 {threading.get_ident()} 使用默认chromedriver路径: {str(e)}")
             service = Service()
+        # ==================================================
 
         # 创建并返回浏览器实例
         try:
@@ -83,35 +90,42 @@ class BrowserPool:
             # 移除自动化标记
             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
-            # 窗口最大化
-            try:
-                driver.maximize_window()
-                print(f"线程 {threading.get_ident()} 浏览器窗口已最大化")
-            except Exception as e:
-                print(f"线程 {threading.get_ident()} 窗口最大化失败: {str(e)}")
+            # ========== 注释掉无头模式下无效的最大化操作 ==========
+            # try:
+            #     driver.maximize_window()
+            #     print(f"线程 {threading.get_ident()} 浏览器窗口已最大化")
+            # except Exception as e:
+            #     print(f"线程 {threading.get_ident()} 窗口最大化失败: {str(e)}")
+            # ==================================================
 
-            print(f"线程 {threading.get_ident()} 浏览器实例创建成功")
+            print(f"线程 {threading.get_ident()} 浏览器实例创建成功（容器无头模式）")
             return driver
         except WebDriverException as e:
             print(f"线程 {threading.get_ident()} 创建浏览器实例失败 (WebDriverException): {str(e)}")
+            # 清理临时目录
+            if os.path.exists(temp_profile):
+                shutil.rmtree(temp_profile, ignore_errors=True)
             raise
         except Exception as e:
             print(f"线程 {threading.get_ident()} 创建浏览器实例失败 (Exception): {str(e)}")
+            # 清理临时目录
+            if os.path.exists(temp_profile):
+                shutil.rmtree(temp_profile, ignore_errors=True)
             raise
 
     @classmethod
     def cleanup(cls):
-        """清理当前线程的浏览器资源"""
+        """清理当前线程的浏览器资源（适配容器）"""
         if hasattr(cls._thread_local, 'driver'):
             driver = cls._thread_local.driver
             try:
                 print(f"线程 {threading.get_ident()} 开始释放浏览器实例")
-                driver.quit()
+                driver.quit()  # 强制退出，避免容器残留进程
                 print(f"线程 {threading.get_ident()} 浏览器实例释放成功")
             except Exception as e:
                 print(f"线程 {threading.get_ident()} 释放浏览器异常: {str(e)}")
             finally:
-                # 清理临时用户数据目录
+                # 清理临时用户数据目录（容器/tmp目录）
                 try:
                     if hasattr(driver, 'options'):
                         profile_path = driver.options.arguments

@@ -20,6 +20,7 @@ token = login.login()
 # git push gitlab main
 # git push origin main
 # git push github main
+# git push origin zadig-use
 
 class ApiSpace:
     # 项目空间查询

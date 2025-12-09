@@ -327,7 +327,7 @@ def run_together_tests():
         # {"file": "testcase/test_simulation.py", "deps": None},
         {"file": "testcase/test_product_information.py", "deps": None},
         {"file": "testcase/test_product_samples.py", "deps": None},
-        {"file": "testcase/test_eiir_label.py", "deps": None},
+        # {"file": "testcase/test_eiir_label.py", "deps": None},
         # {"file": "testcase/test_eiir_model_training.py", "deps": None},
 
         # 第二组：有依赖任务

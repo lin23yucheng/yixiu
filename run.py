@@ -8,6 +8,8 @@ import psutil
 import signal
 from common.Log import MyLog, set_log_level
 from multiprocessing import Process, Manager
+
+# 单独执行推图使用
 from bash.push.client_bash import push_images_manual
 
 # 添加全局变量来跟踪是否需要生成报告

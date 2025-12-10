@@ -57,6 +57,7 @@ class Assertions:
             # 简化错误信息
             raise AssertionError(error_msg) from e
 
+    # noinspection PyUnboundLocalVariable
     def assert_in_text(self, body, expected_msg):
         """
         验证response body中是否包含预期字符串

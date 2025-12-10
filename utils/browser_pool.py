@@ -2,14 +2,12 @@ import threading
 import os
 import tempfile
 import shutil
+from threading import local
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import WebDriverException
 from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import ChromeType
-from webdriver_manager.core.driver_cache import DriverCacheManager
-from threading import local
 
 
 class BrowserPool:

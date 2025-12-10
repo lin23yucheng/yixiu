@@ -358,16 +358,6 @@ def run_together_tests():
                 p.join(timeout=10)
         print("正在生成报告...")
 
-    # ========== 最终合并所有Allure临时文件（兜底） ==========
-    MyLog.info("===== 最终合并所有进程的Allure结果 ======")
-    if os.path.exists(ALLURE_TEMP_ROOT):
-        for temp_dir in os.listdir(ALLURE_TEMP_ROOT):
-            temp_path = os.path.join(ALLURE_TEMP_ROOT, temp_dir)
-            if os.path.isdir(temp_path):
-                merge_allure_results(temp_path, ALLURE_RESULTS_ROOT)
-    # 删除空的临时根目录
-    shutil.rmtree(ALLURE_TEMP_ROOT, ignore_errors=True)
-
     # ========== 统计并输出测试结果 ==========
     end_time = time.time()
     overall_time = end_time - start_time

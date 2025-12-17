@@ -59,9 +59,16 @@ class ApiModelTrain:
         self.client = client
         self.product_info_id = api_space.ApiSpace().product_query()
 
-    # 模型方案查询
+    # 目标检测/实例分割模型方案查询
     def query_model(self):
-        url = f"{env}/miai/brainstorm/newmodelcasetemplate/list/1"
+        url = f"{env}/miai/brainstorm/algorithmcase/list/1"
+
+        response = self.client.post_with_retry(url, json=None)
+        return response
+
+    # 图像分类模型方案查询
+    def query_model_cls(self):
+        url = f"{env}/miai/brainstorm/algorithmcase/list/2"
 
         response = self.client.post_with_retry(url, json=None)
         return response
@@ -74,12 +81,13 @@ class ApiModelTrain:
         return response
 
     # 开始模型训练
-    def start_train(self, caseId, modelSize, computingPowerId, trainTaskId, Width, Height, modelCaseTemplateId, epoch,batchSize,modelVersion):
+    def start_train(self, Width, Height, caseId, modelSize, computingPowerId, epoch, batchSize, lr,
+                    trainTaskId, modelCaseTemplateId):
         url = f"{env}/miai/brainstorm/newmodeltrain/startTrain"
-        payload = {"resizeWidth": Width, "resizeHeight": Height, "caseId": caseId, "modelSize": modelSize,
-                   "gpuCount": "1", "gpuSize": 999, "source": 0, "keepLabels": [],
-                   "computingPowerId": computingPowerId, "trainParams": True, "schemePhase": 1,"modelVersion":modelVersion,
-                   "paramSetting1": {"epoch": epoch, "batchSize": batchSize, "lr": 0.0002}, "paramSetting2": None,
+        payload = {"openMoreParam": False, "hyperparameters": None, "resizeWidth": Width, "resizeHeight": Height,
+                   "caseId": caseId, "modelSize": modelSize, "gpuSize": 999, "source": 0, "keepLabels": [],
+                   "computingPowerId": computingPowerId, "trainParams": True, "schemePhase": 1, "modelVersion": None,
+                   "paramSetting1": {"epoch": epoch, "batchSize": batchSize, "lr": lr}, "paramSetting2": None,
                    "trainTaskId": trainTaskId, "remark": f"接口自动化训练-{time_str}",
                    "modelCaseTemplateId": modelCaseTemplateId}
 
@@ -235,8 +243,8 @@ if __name__ == '__main__':
 
     query_model_data = api.query_model()
     print("模型方案接口返回JSON:")
-    print(json.dumps(query_model_data, indent=2, ensure_ascii=False))
-    print('-' * 100)
-    query_machine_data = api.query_machine()
-    print("训练机器接口返回JSON:")
-    print(json.dumps(query_machine_data, indent=2, ensure_ascii=False))
+    print(json.dumps(query_model_data.json(), indent=2, ensure_ascii=False))
+    # print('-' * 100)
+    # query_machine_data = api.query_machine()
+    # print("训练机器接口返回JSON:")
+    # print(json.dumps(query_machine_data.json(), indent=2, ensure_ascii=False))

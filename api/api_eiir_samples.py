@@ -49,6 +49,12 @@ class ApiEiirSamples:
                                                "componentLabel": componentLabel, "taskId": [], "selectIds": [],
                                                "notSelectIds": []}}
 
+        ss = {"taskName": "是的地方", "trainingSetProportion": 70, "testSetProportion": 30,
+              "sampleCenterPageRequest": {"sampleType": 1, "startTime": "2025-05-30T16:00:00.000Z",
+                                          "endTime": "2025-08-01T15:59:59.000Z", "imgName": "", "subTaskId": "",
+                                          "machineId": ["具身测试_25031201"], "cameraId": [], "labelStatus": ["3"],
+                                          "componentLabel": ["ccc"], "taskId": [], "selectIds": [], "notSelectIds": []}}
+
         response = self.client.post_with_retry(url, json=payload)
         return response
 

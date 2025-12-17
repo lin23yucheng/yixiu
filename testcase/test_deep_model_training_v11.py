@@ -402,17 +402,33 @@ class TestDeepModelTraining:
                     pytest.fail(f"无效的裁剪值: {self.cut_value}, 预期值为1024/768")
                 target_case_name = cut_case_mapping[self.cut_value]
 
-                # 查找匹配的case
-                matched_case = next(
-                    (case for case in model_data['data'] if case['caseName'] == target_case_name),
-                    None
-                )
-                if not matched_case:
-                    pytest.fail(f"Case '{target_case_name}' 在响应中未找到")
-                case_id = matched_case['caseId']
+                # 查找匹配的模型数据
+                matched_model = None
+                case_id = None
+                modelCaseTemplateId = None
+
+                for model_item in model_data['data']:
+                    # 查找name与目标case名称匹配的数据
+                    if model_item.get('name') == target_case_name:
+                        matched_model = model_item
+                        break
+
+                if not matched_model:
+                    pytest.fail(f"模型 '{target_case_name}' 在响应中未找到")
+
+                # 在匹配的模型中查找modelVersionList中caseName为"Det V4"的项
+                model_version_list = matched_model.get('modelVersionList', [])
+                for version in model_version_list:
+                    if version.get('caseName') == "Det V4":
+                        case_id = version.get('caseId')
+                        modelCaseTemplateId = version.get('modelCaseTemplateId')
+                        break
+
+                if not case_id or not modelCaseTemplateId:
+                    pytest.fail(f"在模型 '{target_case_name}' 中未找到caseName为'Det V4'的版本")
 
                 allure.attach(
-                    f"找到 caseId: {case_id} (cut={self.cut_value})",
+                    f"找到 caseId: {case_id}, modelCaseTemplateId: {modelCaseTemplateId} (cut={self.cut_value})",
                     name="模型案例",
                     attachment_type=allure.attachment_type.TEXT
                 )
@@ -439,8 +455,8 @@ class TestDeepModelTraining:
                 )
 
             with allure.step("子步骤3：组装参数并开始YoloV11训练"):
-                train_response = self.api_model.start_train(case_id, -1, computing_power_id, self.trainTaskId, "", "",
-                                                            "1704414001586651234", 30, 16, 11)
+                train_response = self.api_model.start_train("", "", case_id, -1, computing_power_id, 30, 16, 0.0002,
+                                                            self.trainTaskId, modelCaseTemplateId)
                 assertions.assert_code(train_response.status_code, 200)
                 train_data = train_response.json()
                 assertions.assert_in_text(train_data['msg'], '操作成功')

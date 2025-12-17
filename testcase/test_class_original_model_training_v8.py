@@ -144,13 +144,50 @@ class TestClassOriginalModelTraining:
             self.__class__.trainTaskId = self.trainTaskId  # 更新类变量
 
         with allure.step("步骤3：开始分类大图YoloV8模型训练"):
-            with allure.step("子步骤1：查询训练机器获取computingPowerId"):
+            with allure.step("子步骤1：查询模型方案获取caseId"):
+                model_response = self.api_model.query_model_cls()
+                assertions.assert_code(model_response.status_code, 200)
+                model_data = model_response.json()
+                assertions.assert_in_text(model_data['msg'], '操作成功')
+
+                # 查找name为"图像分类"的模型数据
+                matched_model = None
+                case_id = None
+                modelCaseTemplateId = None
+
+                for model_item in model_data['data']:
+                    # 查找name为"图像分类"的数据
+                    if model_item.get('name') == "图像分类":
+                        matched_model = model_item
+                        break
+
+                if not matched_model:
+                    pytest.fail("模型 '图像分类' 在响应中未找到")
+
+                # 在匹配的模型中查找modelVersionList中caseName为"Cls V2"的项
+                model_version_list = matched_model.get('modelVersionList', [])
+                for version in model_version_list:
+                    if version.get('caseName') == "Cls V2":
+                        case_id = version.get('caseId')
+                        modelCaseTemplateId = version.get('modelCaseTemplateId')
+                        break
+
+                if not case_id or not modelCaseTemplateId:
+                    pytest.fail("在模型 '图像分类' 中未找到caseName为'Cls V2'的版本")
+
+                allure.attach(
+                    f"找到 caseId: {case_id}, modelCaseTemplateId: {modelCaseTemplateId}",
+                    name="图像分类模型案例",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
+            with allure.step("子步骤2：查询训练机器获取computingPowerId"):
                 machine_response = self.api_model.query_machine()
                 assertions.assert_code(machine_response.status_code, 200)
                 machine_data = machine_response.json()
                 assertions.assert_in_text(machine_data['msg'], '操作成功')
 
-                # 查找测试机器
+                # 查找指定的训练机器
                 test_machine = next(
                     (machine for machine in machine_data['data'] if machine['name'] == self.machine_name),
                     None
@@ -165,11 +202,10 @@ class TestClassOriginalModelTraining:
                     attachment_type=allure.attachment_type.TEXT
                 )
 
-            with allure.step("子步骤2：组装参数并开始YoloV8训练"):
-                train_response = self.api_model.start_train("official_yolov8_cls_model", -1, computing_power_id,
-                                                            self.trainTaskId, "100", "100", "1704414001586651246", 30,
-                                                            16,
-                                                            8)
+            with allure.step("子步骤3：组装参数并开始分类大图-YoloV8训练"):
+                train_response = self.api_model.start_train("100", "100", case_id, -1, computing_power_id, 30, 16,
+                                                            0.0002,
+                                                            self.trainTaskId, modelCaseTemplateId)
                 assertions.assert_code(train_response.status_code, 200)
                 train_data = train_response.json()
                 assertions.assert_in_text(train_data['msg'], '操作成功')

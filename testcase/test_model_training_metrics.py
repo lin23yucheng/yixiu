@@ -52,26 +52,49 @@ class TestModelTrainingMetrics:
 
     def _get_machine_id(self):
         """获取训练机器ID"""
-        machine_response = self.api_model.query_machine()
-        assertions.assert_code(machine_response.status_code, 200)
-        machine_data = machine_response.json()
-        assertions.assert_in_text(machine_data['msg'], '操作成功')
+        max_retries = 5
+        retry_delay = 3
 
-        # 查找测试机器
-        test_machine = next(
-            (machine for machine in machine_data['data'] if machine['name'] == self.machine_name),
-            None
-        )
-        if not test_machine:
-            pytest.fail(f"{self.machine_name}在机器列表中未找到")
+        for attempt in range(max_retries):
+            try:
+                machine_response = self.api_model.query_machine()
+                assertions.assert_code(machine_response.status_code, 200)
+                machine_data = machine_response.json()
+                assertions.assert_in_text(machine_data['msg'], '操作成功')
 
-        computing_power_id = test_machine['computingPowerId']
-        allure.attach(
-            f"找到训练机器ID: {computing_power_id}",
-            name="训练机器ID",
-            attachment_type=allure.attachment_type.TEXT
-        )
-        return computing_power_id
+                # 查找测试机器
+                test_machine = next(
+                    (machine for machine in machine_data['data'] if machine['name'] == self.machine_name),
+                    None
+                )
+                if not test_machine:
+                    pytest.fail(f"{self.machine_name}在机器列表中未找到")
+
+                computing_power_id = test_machine['computingPowerId']
+                allure.attach(
+                    f"找到训练机器ID: {computing_power_id}",
+                    name="训练机器ID",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+                return computing_power_id
+
+            except Exception as e:
+                if attempt < max_retries - 1:  # 如果不是最后一次尝试
+                    allure.attach(
+                        f"第{attempt + 1}次尝试获取机器ID失败: {str(e)}",
+                        name="重试信息",
+                        attachment_type=allure.attachment_type.TEXT
+                    )
+                    time.sleep(retry_delay)
+                    continue
+                else:
+                    # 最后一次尝试仍然失败，抛出异常
+                    allure.attach(
+                        f"获取机器ID失败，已重试{max_retries}次: {str(e)}",
+                        name="最终错误",
+                        attachment_type=allure.attachment_type.TEXT
+                    )
+                    raise
 
     def _monitor_training_only(self, trainTaskId, task_description="模型训练"):
         """

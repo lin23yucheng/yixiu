@@ -303,6 +303,8 @@ def run_order_tests():
         MyLog.info("===== 测试任务完成 =====")
 
 
+# -------------------------------------------------------------------------------------------------------------------- #
+
 """并行执行（存在依赖关系）"""
 
 
@@ -334,7 +336,8 @@ def run_together_tests():
         {"file": "testcase/test_bash_ui.py", "deps": ["testcase/test_bash.py"], "require_success": True},
         {"file": "testcase/test_2D_label.py", "deps": ["testcase/test_bash_ui.py"], "require_success": True},
         {"file": "testcase/test_3D_label.py", "deps": ["testcase/test_standard_push_map.py"], "require_success": True},
-        {"file": "testcase/test_eiir_model_training.py", "deps": ["testcase/test_eiir_label.py"], "require_success": True},
+        {"file": "testcase/test_eiir_model_training.py", "deps": ["testcase/test_eiir_label.py"],
+         "require_success": True},
         {"file": "testcase/test_model_training_metrics.py", "deps": ["testcase/test_data_training_task.py"],
          "require_success": True}
     ]
@@ -450,6 +453,8 @@ def run_together_tests():
 
     MyLog.info("===== 并行测试完成 =====")
 
+
+# -------------------------------------------------------------------------------------------------------------------- #
 
 if __name__ == "__main__":
     # 注册信号处理器

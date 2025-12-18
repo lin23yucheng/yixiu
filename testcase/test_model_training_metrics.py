@@ -52,26 +52,49 @@ class TestModelTrainingMetrics:
 
     def _get_machine_id(self):
         """获取训练机器ID"""
-        machine_response = self.api_model.query_machine()
-        assertions.assert_code(machine_response.status_code, 200)
-        machine_data = machine_response.json()
-        assertions.assert_in_text(machine_data['msg'], '操作成功')
+        max_retries = 5
+        retry_delay = 3
 
-        # 查找测试机器
-        test_machine = next(
-            (machine for machine in machine_data['data'] if machine['name'] == self.machine_name),
-            None
-        )
-        if not test_machine:
-            pytest.fail(f"{self.machine_name}在机器列表中未找到")
+        for attempt in range(max_retries):
+            try:
+                machine_response = self.api_model.query_machine()
+                assertions.assert_code(machine_response.status_code, 200)
+                machine_data = machine_response.json()
+                assertions.assert_in_text(machine_data['msg'], '操作成功')
 
-        computing_power_id = test_machine['computingPowerId']
-        allure.attach(
-            f"找到训练机器ID: {computing_power_id}",
-            name="训练机器ID",
-            attachment_type=allure.attachment_type.TEXT
-        )
-        return computing_power_id
+                # 查找测试机器
+                test_machine = next(
+                    (machine for machine in machine_data['data'] if machine['name'] == self.machine_name),
+                    None
+                )
+                if not test_machine:
+                    pytest.fail(f"{self.machine_name}在机器列表中未找到")
+
+                computing_power_id = test_machine['computingPowerId']
+                allure.attach(
+                    f"找到训练机器ID: {computing_power_id}",
+                    name="训练机器ID",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+                return computing_power_id
+
+            except Exception as e:
+                if attempt < max_retries - 1:  # 如果不是最后一次尝试
+                    allure.attach(
+                        f"第{attempt + 1}次尝试获取机器ID失败: {str(e)}",
+                        name="重试信息",
+                        attachment_type=allure.attachment_type.TEXT
+                    )
+                    time.sleep(retry_delay)
+                    continue
+                else:
+                    # 最后一次尝试仍然失败，抛出异常
+                    allure.attach(
+                        f"获取机器ID失败，已重试{max_retries}次: {str(e)}",
+                        name="最终错误",
+                        attachment_type=allure.attachment_type.TEXT
+                    )
+                    raise
 
     def _monitor_training_only(self, trainTaskId, task_description="模型训练"):
         """
@@ -149,20 +172,20 @@ class TestModelTrainingMetrics:
                     # 间隔等待
                     time.sleep(self.poll_interval)
 
-    def _start_training(self, model_name, modelSize, computing_power_id, task_id, modelCaseTemplateId, epoch,
-                        batchSize, version):
+    def _start_training(self, caseId, modelSize, computing_power_id, epoch, batchSize, lr,
+                        trainTaskId, modelCaseTemplateId):
         """启动训练的通用方法"""
         train_response = self.api_model.start_train(
-            model_name,
+            "",
+            "",
+            caseId,
             modelSize,
             computing_power_id,
-            task_id,
-            "",
-            "",
-            modelCaseTemplateId,
             epoch,
             batchSize,
-            version
+            lr,
+            trainTaskId,
+            modelCaseTemplateId
         )
         assertions.assert_code(train_response.status_code, 200)
         train_data = train_response.json()
@@ -209,7 +232,7 @@ class TestModelTrainingMetrics:
             allure.attach(diff_report, name="指标差异", attachment_type=allure.attachment_type.TEXT)
             return False
 
-    @allure.story("验证Yolov8模型训练前后指标一致")
+    @allure.story("验证实例分割-Yolov8模型训练前后指标一致")
     @pytest.mark.order(1)
     def test_model_train_metrics_v8(self):
         """验证Yolov8模型训练指标在多次训练后保持一致"""
@@ -217,21 +240,50 @@ class TestModelTrainingMetrics:
         total_start = time.time()
 
         with allure.step("步骤1：开始Yolov8实例分割模型训练"):
-            with allure.step("子步骤1：查询训练机器获取computingPowerId"):
+            with allure.step("子步骤1：查询模型方案获取caseId"):
+                model_response = self.api_model.query_model()
+                assertions.assert_code(model_response.status_code, 200)
+                model_data = model_response.json()
+                assertions.assert_in_text(model_data['msg'], '操作成功')
+
+                # 查找name为"实例分割"的模型数据
+                matched_model = None
+                case_id = None
+                modelCaseTemplateId = None
+
+                for model_item in model_data['data']:
+                    # 查找name为"实例分割"的数据
+                    if model_item.get('name') == "实例分割":
+                        matched_model = model_item
+                        break
+
+                if not matched_model:
+                    pytest.fail("模型 '实例分割' 在响应中未找到")
+
+                # 在匹配的模型中查找modelVersionList中caseName为"DetS V2"的项
+                model_version_list = matched_model.get('modelVersionList', [])
+                for version in model_version_list:
+                    if version.get('caseName') == "DetS V2":
+                        case_id = version.get('caseId')
+                        modelCaseTemplateId = version.get('modelCaseTemplateId')
+                        break
+
+                if not case_id or not modelCaseTemplateId:
+                    pytest.fail("在模型 '实例分割' 中未找到caseName为'DetS V2'的版本")
+
+                allure.attach(
+                    f"找到 caseId: {case_id}, modelCaseTemplateId: {modelCaseTemplateId}",
+                    name="实例分割模型案例",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
+            with allure.step("子步骤2：查询训练机器获取computingPowerId"):
                 computing_power_id = self._get_machine_id()
 
-            with allure.step("子步骤2：组装参数并开始训练"):
-                self._start_training(
-                    "official_yolov8_seg_model",
-                    -1,
-                    computing_power_id,
-                    self.train_task_id_v8,
-                    "1704414001586651237",
-                    30,
-                    16,
-                    8
-
-                )
+            with allure.step("子步骤3：组装参数并开始训练"):
+                self._start_training(case_id, "-1", computing_power_id, 30, 16, 0.0002,
+                                     self.train_task_id_v8, modelCaseTemplateId
+                                     )
 
         with allure.step("步骤2：监控训练进度"):
             try:
@@ -297,7 +349,7 @@ class TestModelTrainingMetrics:
             attachment_type=allure.attachment_type.TEXT
         )
 
-    @allure.story("验证Yolov11模型训练前后指标一致")
+    @allure.story("验证实例分割-Yolov11模型训练前后指标一致")
     @pytest.mark.order(2)
     def test_model_train_metrics_v11(self):
         """验证Yolov11模型训练指标在多次训练后保持一致"""
@@ -305,22 +357,50 @@ class TestModelTrainingMetrics:
         total_start = time.time()
 
         with allure.step("步骤1：开始Yolov11实例分割模型训练"):
-            with allure.step("子步骤1：查询训练机器获取computingPowerId"):
-                computing_power_id = self._get_machine_id()
+            with allure.step("子步骤1：查询模型方案获取caseId"):
+                model_response = self.api_model.query_model()
+                assertions.assert_code(model_response.status_code, 200)
+                model_data = model_response.json()
+                assertions.assert_in_text(model_data['msg'], '操作成功')
 
-            with allure.step("子步骤2：组装参数并开始训练"):
-                self._start_training(
-                    "official_yolov8_seg_model",
-                    -1,
-                    computing_power_id,
-                    self.train_task_id_v11,
-                    "1704414001586651237",
-                    30,
-                    16,
-                    11
+                # 查找name为"实例分割"的模型数据
+                matched_model = None
+                case_id = None
+                modelCaseTemplateId = None
 
+                for model_item in model_data['data']:
+                    # 查找name为"实例分割"的数据
+                    if model_item.get('name') == "实例分割":
+                        matched_model = model_item
+                        break
+
+                if not matched_model:
+                    pytest.fail("模型 '实例分割' 在响应中未找到")
+
+                # 在匹配的模型中查找modelVersionList中caseName为"DetS V4"的项
+                model_version_list = matched_model.get('modelVersionList', [])
+                for version in model_version_list:
+                    if version.get('caseName') == "DetS V4":
+                        case_id = version.get('caseId')
+                        modelCaseTemplateId = version.get('modelCaseTemplateId')
+                        break
+
+                if not case_id or not modelCaseTemplateId:
+                    pytest.fail("在模型 '实例分割' 中未找到caseName为'DetS V4'的版本")
+
+                allure.attach(
+                    f"找到 caseId: {case_id}, modelCaseTemplateId: {modelCaseTemplateId}",
+                    name="实例分割模型案例",
+                    attachment_type=allure.attachment_type.TEXT
                 )
 
+            with allure.step("子步骤2：查询训练机器获取computingPowerId"):
+                computing_power_id = self._get_machine_id()
+
+            with allure.step("子步骤3：组装参数并开始训练"):
+                self._start_training(case_id, "-1",computing_power_id, 30, 16, 0.0002,
+                                     self.train_task_id_v11, modelCaseTemplateId
+                                     )
         with allure.step("步骤2：监控训练进度"):
             try:
                 _, success = self._monitor_training_only(self.train_task_id_v11, "YoloV11实例分割训练")
@@ -385,7 +465,7 @@ class TestModelTrainingMetrics:
             attachment_type=allure.attachment_type.TEXT
         )
 
-    @allure.story("验证Yolov12模型训练前后指标一致")
+    @allure.story("验证实例分割-Yolov12模型训练前后指标一致")
     @pytest.mark.order(3)
     def test_model_train_metrics_v12(self):
         """验证Yolov12模型训练指标在多次训练后保持一致"""
@@ -393,21 +473,50 @@ class TestModelTrainingMetrics:
         total_start = time.time()
 
         with allure.step("步骤1：开始Yolov12实例分割模型训练"):
-            with allure.step("子步骤1：查询训练机器获取computingPowerId"):
+            with allure.step("子步骤1：查询模型方案获取caseId"):
+                model_response = self.api_model.query_model()
+                assertions.assert_code(model_response.status_code, 200)
+                model_data = model_response.json()
+                assertions.assert_in_text(model_data['msg'], '操作成功')
+
+                # 查找name为"实例分割"的模型数据
+                matched_model = None
+                case_id = None
+                modelCaseTemplateId = None
+
+                for model_item in model_data['data']:
+                    # 查找name为"实例分割"的数据
+                    if model_item.get('name') == "实例分割":
+                        matched_model = model_item
+                        break
+
+                if not matched_model:
+                    pytest.fail("模型 '实例分割' 在响应中未找到")
+
+                # 在匹配的模型中查找modelVersionList中caseName为"DetS V3"的项
+                model_version_list = matched_model.get('modelVersionList', [])
+                for version in model_version_list:
+                    if version.get('caseName') == "DetS V3":
+                        case_id = version.get('caseId')
+                        modelCaseTemplateId = version.get('modelCaseTemplateId')
+                        break
+
+                if not case_id or not modelCaseTemplateId:
+                    pytest.fail("在模型 '实例分割' 中未找到caseName为'DetS V3'的版本")
+
+                allure.attach(
+                    f"找到 caseId: {case_id}, modelCaseTemplateId: {modelCaseTemplateId}",
+                    name="实例分割模型案例",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
+            with allure.step("子步骤2：查询训练机器获取computingPowerId"):
                 computing_power_id = self._get_machine_id()
 
-            with allure.step("子步骤2：组装参数并开始训练"):
-                self._start_training(
-                    "official_yolov8_seg_model",
-                    -1,
-                    computing_power_id,
-                    self.train_task_id_v12,
-                    "1704414001586651237",
-                    30,
-                    16,
-                    12
-
-                )
+            with allure.step("子步骤3：组装参数并开始训练"):
+                self._start_training(case_id,"-1", computing_power_id, 30, 16, 0.0002,
+                                     self.train_task_id_v12, modelCaseTemplateId
+                                     )
 
         with allure.step("步骤2：监控训练进度"):
             try:
@@ -473,28 +582,57 @@ class TestModelTrainingMetrics:
             attachment_type=allure.attachment_type.TEXT
         )
 
-    @allure.story("验证mtl模型训练成功")
+    @allure.story("验证目标检测-mtl模型训练成功")
     @pytest.mark.order(4)
     def test_model_train_metrics_mtl(self):
         allure.dynamic.title(f"mtl训练完成 (ID: {self.train_task_id_mtl})")
         total_start = time.time()
 
         with allure.step("步骤1：开始mtl-v1模型训练"):
-            with allure.step("子步骤1：查询训练机器获取computingPowerId"):
+            with allure.step("子步骤1：查询模型方案获取caseId"):
+                model_response = self.api_model.query_model()
+                assertions.assert_code(model_response.status_code, 200)
+                model_data = model_response.json()
+                assertions.assert_in_text(model_data['msg'], '操作成功')
+
+                # 查找name为"目标检测"的模型数据
+                matched_model = None
+                case_id = None
+                modelCaseTemplateId = None
+
+                for model_item in model_data['data']:
+                    # 查找name为"目标检测"的数据
+                    if model_item.get('name') == "目标检测":
+                        matched_model = model_item
+                        break
+
+                if not matched_model:
+                    pytest.fail("模型 '目标检测' 在响应中未找到")
+
+                # 在匹配的模型中查找modelVersionList中caseName为"Det V1"的项
+                model_version_list = matched_model.get('modelVersionList', [])
+                for version in model_version_list:
+                    if version.get('caseName') == "Det V1":
+                        case_id = version.get('caseId')
+                        modelCaseTemplateId = version.get('modelCaseTemplateId')
+                        break
+
+                if not case_id or not modelCaseTemplateId:
+                    pytest.fail("在模型 '目标检测' 中未找到caseName为'Det V1'的版本")
+
+                allure.attach(
+                    f"找到 caseId: {case_id}, modelCaseTemplateId: {modelCaseTemplateId}",
+                    name="目标检测V1模型案例",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
+            with allure.step("子步骤2：查询训练机器获取computingPowerId"):
                 computing_power_id = self._get_machine_id()
 
-            with allure.step("子步骤2：组装参数并开始训练"):
-                self._start_training(
-                    "official_yolov8_det_model",
-                    1,
-                    computing_power_id,
-                    self.train_task_id_mtl,
-                    "1704414001586651212",
-                    10,
-                    6,
-                    -1
-
-                )
+            with allure.step("子步骤3：组装参数并开始训练"):
+                self._start_training(case_id,"2", computing_power_id, 10, 3, 0.0002,
+                                     self.train_task_id_mtl, modelCaseTemplateId
+                                     )
 
         with allure.step("步骤2：监控训练进度"):
             try:

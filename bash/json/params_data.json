@@ -1,12 +1,12 @@
 {
-    "access_token": "QEtAbkFmQKPl9Pnsk7RmOAVEtjOWbZI8+5V+DETTsBVuXSUpKibJWi1b0AF4lzZiVo8bErnejdTgut3ev/vdsSjMtS9gtxeisIsB2LeLHLdLozqEhrVKSStvUSQkEGftR/TlewtLcqR3XkL/axuQyMkk2sy9ZnbVc5hHxrRREeK1/1DrSSl2V6p4i6/S69rmaQsgvmBN/tDfgKsT5hyDkNii/iU0qu+hWlQgO7MEg757JFVeyr7OzqwmxEP0K28YrPPRrHbp/vV2oDoH4uFztGK3ghms98UO6KKgixdZ8dSvu4sm8hBYLqFXofPtyg9U6p8914UxjfEvWxQ6UrzxY1SLu2BADS4GyJz06a1GhFeRY0ioZDEPjf9SIDTNV++qEVyvLBfUlzRpIyI4z2tcQnU8rwQAlUvdY5HFt6X3Eayw2nGC8zEgo9wfFp2MEeSw5A6OubWBUhqLeoHmiPyfSl0JRsO41x2mnNxwJFshUk/QifTxEpUttEJJlxrF3RyOwIVn/wHIuugbAEvU8hrnDA==",
-    "device_no": "JHOCT001",
-    "product_name": "JHOCT001",
+    "access_token": "QEtAbkFmQKPl9Pnsk7RmOAVEtjOWbZI8+5V+DETTsBVuXSUpKibJWi1b0AF4lzZiVo8bErnejdTgut3ev/vdscrTlAwapKbmPiqIHBfesfoSikqnjZIZDtV15sXdxHOmBZAGlHawMtj0E7RI4UwOvl6HdG5hTWq1pa2qngbr7OY7NNsCI5jAaxUuZtr0HBv0cb/ppKcO3CX/6IKrF9rRf7pfgZ2HEBEb6EBIywrmY1im+7XdBij6coqv3LJL6Vcytt5jWUlz66mCVv2Vuf6KD2eiLXfOMXbzfKfatIBudCZv2yv325Gzq/RExX+9E+8k/5irpQRu/ctS9en4oleQ6jnBK5M/mk+XfeC/YFMNBqPxa5qDpLxOsg7hsgIdgTAn",
+    "device_no": "test_jiqi_token",
+    "product_name": "test_jiqi_token",
     "optical_side_id": 18,
     "width": 2448,
     "height": 2048,
     "encoded_image_path": "bash2/images/",
-    "image_header": "-JHOCT001-01-02-03-04-",
+    "image_header": "-test_jiqi_token-01-02-03-04-",
     "model_version": "1",
     "request_type": "normal",
     "DetectionResult": [

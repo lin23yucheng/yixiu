@@ -331,14 +331,14 @@ class TestModelTrainingMetrics:
                         attachment_type=allure.attachment_type.TEXT
                     )
 
-                # 指标对比逻辑
+                # 指标不一致则失败
                 if not self._compare_indicators(latest_indicators, oldest_indicators):
                     allure.attach("❌ 模型训练指标前后不一致", name="验证结果")
-                    print("警告: Yolov8模型训练指标前后不一致")
+                    pytest.fail("Yolov8模型训练指标前后不一致，请检查训练过程")
 
             except Exception as e:
                 allure.attach(f"指标对比失败: {str(e)}", name="错误详情")
-                print(f"警告: 指标对比过程中发生错误: {str(e)}")
+                pytest.fail(f"指标对比过程中发生错误: {str(e)}")
 
         # 添加总耗时统计
         total_duration = time.time() - total_start
@@ -398,7 +398,7 @@ class TestModelTrainingMetrics:
                 computing_power_id = self._get_machine_id()
 
             with allure.step("子步骤3：组装参数并开始训练"):
-                self._start_training(case_id, "-1",computing_power_id, 30, 16, 0.0002,
+                self._start_training(case_id, "-1", computing_power_id, 30, 16, 0.0002,
                                      self.train_task_id_v11, modelCaseTemplateId
                                      )
         with allure.step("步骤2：监控训练进度"):
@@ -447,14 +447,14 @@ class TestModelTrainingMetrics:
                         attachment_type=allure.attachment_type.TEXT
                     )
 
-                # 指标对比逻辑
+                # 指标不一致则失败
                 if not self._compare_indicators(latest_indicators, oldest_indicators):
                     allure.attach("❌ 模型训练指标前后不一致", name="验证结果")
-                    print("警告: Yolov11模型训练指标前后不一致")
+                    pytest.fail("Yolov11模型训练指标前后不一致，请检查训练过程")
 
             except Exception as e:
                 allure.attach(f"指标对比失败: {str(e)}", name="错误详情")
-                print(f"警告: 指标对比过程中发生错误: {str(e)}")
+                pytest.fail(f"指标对比过程中发生错误: {str(e)}")
 
         # 添加总耗时统计
         total_duration = time.time() - total_start
@@ -514,7 +514,7 @@ class TestModelTrainingMetrics:
                 computing_power_id = self._get_machine_id()
 
             with allure.step("子步骤3：组装参数并开始训练"):
-                self._start_training(case_id,"-1", computing_power_id, 30, 16, 0.0002,
+                self._start_training(case_id, "-1", computing_power_id, 30, 16, 0.0002,
                                      self.train_task_id_v12, modelCaseTemplateId
                                      )
 
@@ -564,14 +564,14 @@ class TestModelTrainingMetrics:
                         attachment_type=allure.attachment_type.TEXT
                     )
 
-                # 指标对比逻辑
+                # 指标不一致则失败
                 if not self._compare_indicators(latest_indicators, oldest_indicators):
                     allure.attach("❌ 模型训练指标前后不一致", name="验证结果")
-                    print("警告: Yolov12模型训练指标前后不一致")
+                    pytest.fail("Yolov12模型训练指标前后不一致，请检查训练过程")
 
             except Exception as e:
                 allure.attach(f"指标对比失败: {str(e)}", name="错误详情")
-                print(f"警告: 指标对比过程中发生错误: {str(e)}")
+                pytest.fail(f"指标对比过程中发生错误: {str(e)}")
 
         # 添加总耗时统计
         total_duration = time.time() - total_start
@@ -630,7 +630,7 @@ class TestModelTrainingMetrics:
                 computing_power_id = self._get_machine_id()
 
             with allure.step("子步骤3：组装参数并开始训练"):
-                self._start_training(case_id,"2", computing_power_id, 10, 3, 0.0002,
+                self._start_training(case_id, "2", computing_power_id, 10, 3, 0.0002,
                                      self.train_task_id_mtl, modelCaseTemplateId
                                      )
 

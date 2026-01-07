@@ -1,12 +1,12 @@
 {
-    "access_token": "QEtAbkFmQKPl9Pnsk7RmOAVEtjOWbZI8+5V+DETTsBVuXSUpKibJWi1b0AF4lzZiVo8bErnejdTgut3ev/vdscrTlAwapKbmPiqIHBfesfoSikqnjZIZDtV15sXdxHOmBZAGlHawMtj0E7RI4UwOvl6HdG5hTWq1pa2qngbr7OY7NNsCI5jAaxUuZtr0HBv0cb/ppKcO3CX/6IKrF9rRf7pfgZ2HEBEb6EBIywrmY1im+7XdBij6coqv3LJL6Vcytt5jWUlz66mCVv2Vuf6KD2eiLXfOMXbzfKfatIBudCZv2yv325Gzq/RExX+9E+8k/5irpQRu/ctS9en4oleQ6jnBK5M/mk+XfeC/YFMNBqPxa5qDpLxOsg7hsgIdgTAn",
-    "device_no": "test_jiqi_token",
-    "product_name": "test_jiqi_token",
+    "access_token": "QEtAbkFmQKPl9Pnsk7RmOAVEtjOWbZI8+5V+DETTsBVuXSUpKibJWi1b0AF4lzZiVo8bErnejdTgut3ev/vdseBO0C2D3glfsrUcvkiKgH/1dhozipFlffTix+IJaI1EnKbYtX3Pnd4iYUFyHF1aw6WMnd15V+nD0PsUwGagUi8XZU/bjJtyTQfoHvYerX5e",
+    "device_no": "BBB",
+    "product_name": "BBB",
     "optical_side_id": 18,
     "width": 2448,
     "height": 2048,
     "encoded_image_path": "bash2/images/",
-    "image_header": "-test_jiqi_token-01-02-03-04-",
+    "image_header": "-BBB-01-02-03-04-",
     "model_version": "1",
     "request_type": "normal",
     "DetectionResult": [

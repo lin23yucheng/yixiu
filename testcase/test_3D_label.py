@@ -7,7 +7,7 @@ import allure
 from common import Assert
 from datetime import datetime, timedelta
 from common.Request_Response import ApiClient
-from api import api_login, api_3D_label, api_other_sample_library
+from api import api_login, api_3D_label, api_other_sample_library, api_product_label
 
 assertions = Assert.Assertions()
 time_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
@@ -33,6 +33,7 @@ class Test3DLabel:
         """初始化接口封装实例"""
         cls.api_other_sample = api_other_sample_library.ApiOtherSample(global_client)
         cls.api_3d_label = api_3D_label.Api3DLabel(global_client)
+        cls.api_product_label = api_product_label.ApiProductLabel(global_client)
         cls.task_name = None
         cls.sampledatasyncid_1 = None
         cls.sampledatasyncid_2 = None
@@ -521,25 +522,114 @@ class Test3DLabel:
 
             # 提取前两条数据的labelName值
             label_data = response_data.get('data', [])
+
+            # 检查是否有足够的标签数据
             if len(label_data) >= 2:
                 Test3DLabel.label_3d_1 = label_data[0].get('labelName')
                 Test3DLabel.label_3d_2 = label_data[1].get('labelName')
-
-                # 记录提取的标签名称到Allure报告
-                extracted_labels = (
-                    f"提取的前两条labelName:\n"
-                    f"1. {Test3DLabel.label_3d_1}\n"
-                    f"2. {Test3DLabel.label_3d_2}"
-                )
-                allure.attach(extracted_labels,
-                              name="提取的labelName",
-                              attachment_type=allure.attachment_type.TEXT)
             else:
-                error_msg = "错误: 响应数据不足2条，无法提取全部labelName"
-                allure.attach(error_msg,
-                              name="标签数据提取失败",
+                # 标签数据不足，需要添加产品标签
+                allure.attach(f"检测到标签数据不足，当前数据量: {len(label_data)}，需要至少2条数据",
+                              name="标签数据检查",
                               attachment_type=allure.attachment_type.TEXT)
-                pytest.fail(error_msg)
+
+                with allure.step("子步骤1：添加产品标签") as substep1:
+                    add_response = self.api_product_label.add_product_label()
+                    assertions.assert_code(add_response.status_code, 200)
+                    add_response_data = add_response.json()
+                    assertions.assert_in_text(add_response_data['msg'], '成功')
+
+                    allure.attach(f"添加产品标签结果: {add_response_data['msg']}",
+                                  name="添加产品标签结果",
+                                  attachment_type=allure.attachment_type.TEXT)
+
+                with allure.step("子步骤2：查询产品标签") as substep2:
+                    query_response = self.api_product_label.query_product_label()
+                    assertions.assert_code(query_response.status_code, 200)
+                    query_response_data = query_response.json()
+                    assertions.assert_in_text(query_response_data['msg'], '成功')
+
+                    label_list = query_response_data.get('data', {}).get('list', [])
+                    target_label_data = None
+                    for item in label_list:
+                        if item.get('labelName') == 'suokong':
+                            target_label_data = item
+                            break
+
+                    if target_label_data:
+                        priority = target_label_data.get('priority')
+                        label_id = target_label_data.get('labelId')
+
+                        # 记录提取的数据
+                        extracted_info = (
+                            f"找到labelName为'suokong'的数据:\n"
+                            f"priority: {priority}\n"
+                            f"labelId: {label_id}"
+                        )
+                        allure.attach(extracted_info,
+                                      name="提取的标签数据",
+                                      attachment_type=allure.attachment_type.TEXT)
+                    else:
+                        error_msg = "错误: 未找到labelName为'suokong'的标签数据"
+                        allure.attach(error_msg,
+                                      name="查询标签失败",
+                                      attachment_type=allure.attachment_type.TEXT)
+                        pytest.fail(error_msg)
+
+                with allure.step("子步骤3：修改产品标签") as substep3:
+                    if target_label_data:
+                        modify_response = self.api_product_label.modify_product_label(priority, label_id)
+                        assertions.assert_code(modify_response.status_code, 200)
+                        modify_response_data = modify_response.json()
+                        assertions.assert_in_text(modify_response_data['msg'], '成功')
+
+                        allure.attach(f"修改产品标签结果: {modify_response_data['msg']}",
+                                      name="修改产品标签结果",
+                                      attachment_type=allure.attachment_type.TEXT)
+                    else:
+                        error_msg = "错误: 无法执行修改操作，因为未找到labelName为'suokong'的标签数据"
+                        allure.attach(error_msg,
+                                      name="修改标签失败",
+                                      attachment_type=allure.attachment_type.TEXT)
+                        pytest.fail(error_msg)
+
+                with allure.step("子步骤4：重新获取标注标签") as requery_step:
+                    response = self.api_3d_label.query_3d_label()
+                    assertions.assert_code(response.status_code, 200)
+                    response_data = response.json()
+                    assertions.assert_in_text(response_data['msg'], '成功')
+
+                    # 重新提取前两条数据的labelName值
+                    label_data = response_data.get('data', [])
+                    if len(label_data) >= 2:
+                        Test3DLabel.label_3d_1 = label_data[0].get('labelName')
+                        Test3DLabel.label_3d_2 = label_data[1].get('labelName')
+
+                        # 记录提取的标签名称到Allure报告
+                        extracted_labels = (
+                            f"重新提取的前两条labelName:\n"
+                            f"1. {Test3DLabel.label_3d_1}\n"
+                            f"2. {Test3DLabel.label_3d_2}"
+                        )
+                        allure.attach(extracted_labels,
+                                      name="重新提取的labelName",
+                                      attachment_type=allure.attachment_type.TEXT)
+                    else:
+                        error_msg = f"错误: 重新添加标签后仍未提取到足够的标签数据，当前数据量: {len(label_data)}"
+                        allure.attach(error_msg,
+                                      name="标签数据提取失败",
+                                      attachment_type=allure.attachment_type.TEXT)
+                        pytest.fail(error_msg)
+
+            # 记录提取的标签名称到Allure报告
+            extracted_labels = (
+                f"提取的前两条labelName:\n"
+                f"1. {Test3DLabel.label_3d_1}\n"
+                f"2. {Test3DLabel.label_3d_2}"
+            )
+            allure.attach(extracted_labels,
+                          name="提取的labelName",
+                          attachment_type=allure.attachment_type.TEXT)
 
         with allure.step("步骤13：3D标注第一张") as step13:
             response = self.api_3d_label.label_3d(Test3DLabel.dimensionDataId_1, [566.0107005214322, 243.03692916466312,

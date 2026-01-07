@@ -7,7 +7,7 @@ import allure
 from common import Assert
 from datetime import datetime, timedelta
 from common.Request_Response import ApiClient
-from api import api_login, api_bash_sample_library, api_2D_label
+from api import api_login, api_bash_sample_library, api_2D_label, api_product_label
 
 assertions = Assert.Assertions()
 time_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
@@ -28,6 +28,7 @@ class TestLabel:
         """初始化接口封装实例"""
         cls.api_bash_sample = api_bash_sample_library.ApiBashSample(global_client)
         cls.api_2d_label = api_2D_label.Api2DLabel(global_client)
+        cls.api_product_label = api_product_label.ApiProductLabel(global_client)
         cls.task_name = None
         cls.sampleDataSyncId_1 = None
         cls.sampleDataSyncId_2 = None
@@ -517,6 +518,119 @@ class TestLabel:
                     polygon_label = item.get('labelName')
                     break
 
+            # 检查是否成功提取到所需标签
+            missing_labels = []
+            if not rectangle_label:
+                missing_labels.append('矩形')
+            if not polygon_label:
+                missing_labels.append('多边形')
+
+            if missing_labels:
+                # 有标签缺失，需要添加产品标签
+                allure.attach(f"检测到缺失标签类型: {', '.join(missing_labels)}，开始添加产品标签",
+                              name="标签缺失处理",
+                              attachment_type=allure.attachment_type.TEXT)
+
+                with allure.step("子步骤1：添加产品标签") as substep1:
+                    add_response = self.api_product_label.add_product_label()
+                    assertions.assert_code(add_response.status_code, 200)
+                    add_response_data = add_response.json()
+                    assertions.assert_in_text(add_response_data['msg'], '成功')
+
+                    allure.attach(f"添加产品标签结果: {add_response_data['msg']}",
+                                  name="添加产品标签结果",
+                                  attachment_type=allure.attachment_type.TEXT)
+
+                with allure.step("子步骤2：查询产品标签") as substep2:
+                    query_response = self.api_product_label.query_product_label()
+                    assertions.assert_code(query_response.status_code, 200)
+                    query_response_data = query_response.json()
+                    assertions.assert_in_text(query_response_data['msg'], '成功')
+
+                    # 在响应中查找labelName等于"suokong"的数据
+                    label_list = query_response_data.get('data', {}).get('list', [])
+                    target_label_data = None
+                    for item in label_list:
+                        if item.get('labelName') == 'suokong':
+                            target_label_data = item
+                            break
+
+                    if target_label_data:
+                        priority = target_label_data.get('priority')
+                        label_id = target_label_data.get('labelId')
+
+                        # 记录提取的数据
+                        extracted_info = (
+                            f"找到labelName为'suokong'的数据:\n"
+                            f"priority: {priority}\n"
+                            f"labelId: {label_id}"
+                        )
+                        allure.attach(extracted_info,
+                                      name="提取的标签数据",
+                                      attachment_type=allure.attachment_type.TEXT)
+                    else:
+                        error_msg = "错误: 未找到labelName为'suokong'的标签数据"
+                        allure.attach(error_msg,
+                                      name="查询标签失败",
+                                      attachment_type=allure.attachment_type.TEXT)
+                        pytest.fail(error_msg)
+
+                with allure.step("子步骤3：修改产品标签") as substep3:
+                    if target_label_data:
+                        modify_response = self.api_product_label.modify_product_label(priority, label_id)
+                        assertions.assert_code(modify_response.status_code, 200)
+                        modify_response_data = modify_response.json()
+                        assertions.assert_in_text(modify_response_data['msg'], '成功')
+
+                        allure.attach(f"修改产品标签结果: {modify_response_data['msg']}",
+                                      name="修改产品标签结果",
+                                      attachment_type=allure.attachment_type.TEXT)
+                    else:
+                        error_msg = "错误: 无法执行修改操作，因为未找到labelName为'suokong'的标签数据"
+                        allure.attach(error_msg,
+                                      name="修改标签失败",
+                                      attachment_type=allure.attachment_type.TEXT)
+                        pytest.fail(error_msg)
+
+                with allure.step("子步骤4：重新获取标注缺陷") as requery_step:
+                    response = self.api_2d_label.query_2d_label()
+                    assertions.assert_code(response.status_code, 200)
+                    response_data = response.json()
+                    assertions.assert_in_text(response_data['msg'], '成功')
+
+                    # 重新提取标记方法为"矩形"和"多边形"的第一条数据的labelName
+                    label_data = response_data.get('data', [])
+
+                    rectangle_label = None
+                    polygon_label = None
+
+                    # 查找标记方法为"矩形"的第一条数据
+                    for item in label_data:
+                        if item.get('markMethod') == '矩形':
+                            rectangle_label = item.get('labelName')
+                            break
+
+                    # 查找标记方法为"多边形"的第一条数据
+                    for item in label_data:
+                        if item.get('markMethod') == '多边形':
+                            polygon_label = item.get('labelName')
+                            break
+
+                    # 再次检查是否成功提取到所需标签
+                    if not rectangle_label:
+                        error_msg = "错误: 重新添加标签后仍未找到标记方法为'矩形'的标签数据"
+                        allure.attach(error_msg,
+                                      name="矩形标签提取失败",
+                                      attachment_type=allure.attachment_type.TEXT)
+                        pytest.fail(error_msg)
+
+                    if not polygon_label:
+                        error_msg = "错误: 重新添加标签后仍未找到标记方法为'多边形'的标签数据"
+                        allure.attach(error_msg,
+                                      name="多边形标签提取失败",
+                                      attachment_type=allure.attachment_type.TEXT)
+                        pytest.fail(error_msg)
+
             # 赋值给类变量
             if rectangle_label:
                 TestLabel.label_2d_1 = rectangle_label
@@ -532,21 +646,6 @@ class TestLabel:
             allure.attach(extracted_labels,
                           name="提取的labelName",
                           attachment_type=allure.attachment_type.TEXT)
-
-            # 检查是否成功提取到所需标签
-            if not rectangle_label:
-                error_msg = "错误: 未找到标记方法为'矩形'的标签数据"
-                allure.attach(error_msg,
-                              name="矩形标签提取失败",
-                              attachment_type=allure.attachment_type.TEXT)
-                pytest.fail(error_msg)
-
-            if not polygon_label:
-                error_msg = "错误: 未找到标记方法为'多边形'的标签数据"
-                allure.attach(error_msg,
-                              name="多边形标签提取失败",
-                              attachment_type=allure.attachment_type.TEXT)
-                pytest.fail(error_msg)
 
         with allure.step("步骤5：标注矩形-无争议") as step5:
             # 记录标注参数到Allure

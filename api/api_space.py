@@ -208,6 +208,16 @@ class ApiSpace:
         print(f"Token文件已保存到: {target_path}")
         return target_path
 
+    # 新增镜像
+    def add_image(self, imageType, imagePath):
+        url = f"{env}/miai/brainstorm/modelimage/create"
+        data = {"imageType": imageType, "imagePath": imagePath}
+        header = {"content-type": "application/json", "Authorization": token}
+
+        rep = requests.post(url=url, json=data, headers=header)
+        print(rep.json())
+        return rep
+
 
 if __name__ == '__main__':
     api = ApiSpace()

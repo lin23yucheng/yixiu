@@ -1,12 +1,12 @@
 {
-    "access_token": "QEtAbkFmQKPl9Pnsk7RmOAVEtjOWbZI8+5V+DETTsBVuXSUpKibJWi1b0AF4lzZiVo8bErnejdTgut3ev/vdseBO0C2D3glfsrUcvkiKgH/1dhozipFlffTix+IJaI1EnKbYtX3Pnd4iYUFyHF1aw6WMnd15V+nD0PsUwGagUi8XZU/bjJtyTQfoHvYerX5e",
-    "device_no": "BBB",
-    "product_name": "BBB",
+    "access_token": "SnHFuyZ9Xy6BXJyQTL30oC5k07ga6NQRloseFYN9/3WxLgKBRN5QChuyh7VUpTPxVo8bErnejdTgut3ev/vdsX2b9nRTU4flzFXAaZ1dFzYrBGzFiPagG7COoh62OkeXj6pCww+ePoIS17H51cfDivfhqmbfZN81TX/DoQ+2DTXTOhYjZC/pcoukXLK9AGwa",
+    "device_no": "yy",
+    "product_name": "yy",
     "optical_side_id": 18,
     "width": 2448,
     "height": 2048,
     "encoded_image_path": "bash2/images/",
-    "image_header": "-BBB-01-02-03-04-",
+    "image_header": "-yy-01-02-03-04-",
     "model_version": "1",
     "request_type": "normal",
     "DetectionResult": [

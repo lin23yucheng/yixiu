@@ -193,8 +193,8 @@ def run_order_tests():
 
     # 定义要执行的测试文件列表
     test_files = [
-        "testcase/test_bash.py",
-        "testcase/test_bash_ui.py"
+        "testcase/test_standard_push_map.py",
+        "testcase/test_3D_label.py"
     ]
 
     # 添加项目根目录到Python路径

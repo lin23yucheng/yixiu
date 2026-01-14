@@ -1,7 +1,6 @@
 """
 综合样本库相关接口
 """
-
 from api import api_login, api_space
 from common.Request_Response import ApiClient
 
@@ -36,7 +35,7 @@ class ApiComprehensiveSampleLibrary:
         response = self.client.post_with_retry(url, json=payload)
         return response
 
-    # 综合样本库-创建深度训练任务（globalDatasetType：0为训练集）
+    # 综合样本库-创建目标检测/分类切图训练任务（globalDatasetType：0为训练集）
     def create_deep_training_tasks(self, defectName, photoId, cut, taskName, classifyType, caseId, caseName,
                                    create_type,
                                    iscut, remark):
@@ -50,7 +49,44 @@ class ApiComprehensiveSampleLibrary:
                    "testSetProportion": 30,
                    "caseId": caseId, "caseName": caseName, "cut": iscut, "filter": False, "remark": remark,
                    "defectCount": "[{\"labelName\":\"\",\"count\":\"\"}]", "cutHeight": cut, "cutWidth": cut,
-                   "typeMapping": "{\"liangdian\":\"liangdian\",\"liebian\":\"liebian\"}", "type": create_type}
+                   "type": create_type}
+
+        response = self.client.post_with_retry(url, json=payload)
+        print(response.json())
+        return response
+
+    # 综合样本库-创建分类大图训练任务（globalDatasetType：0为训练集）
+    def create_class_training_tasks(self, defectName, photoId, cut, taskName, classifyType, caseId, caseName,
+                                    create_type, iscut, remark):
+        # 读取配置文件获取classify_type
+        import configparser
+        import json
+        import os
+
+        config = configparser.ConfigParser()
+        config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
+        config.read(config_path, encoding='utf-8')
+
+        classify_types = eval(config.get('class_original_ids', 'classify_type'))
+
+        # 验证列表长度，如果不足则报错
+        if len(classify_types) < 2:
+            raise ValueError("配置文件[class_original_ids]下的classify_type列表至少需要包含两个元素")
+
+        # 构造映射字典（每个标签映射到自己）
+        type_mapping_dict = {t: t for t in classify_types}
+        type_mapping = json.dumps(type_mapping_dict)
+
+        url = f"{env}/miai/brainstorm/global/sample/createTrainTask"
+        payload = {"endTime": None, "startTime": None, "imgName": "", "globalDatasetType": 0, "visualGrade": [],
+                   "bashSampleType": [], "productId": [self.product_info_id], "defectName": defectName,
+                   "photoId": photoId,
+                   "classifyType": classifyType, "imageDefinition": [], "sampleType": [],
+                   "dataAlgorithmSampleType": [], "deepModelSampleType": [], "selectIds": [], "notSelectIds": [],
+                   "taskName": taskName, "testSetMinValue": 0, "testSetProportion": 30, "caseId": caseId,
+                   "caseName": caseName, "cut": iscut, "remark": remark,
+                   "defectCount": "[{\"labelName\":\"\",\"count\":\"\"}]", "cutHeight": cut, "cutWidth": cut,
+                   "typeMapping": type_mapping, "type": create_type}
 
         response = self.client.post_with_retry(url, json=payload)
         print(response.json())
@@ -115,6 +151,6 @@ class ApiComprehensiveSampleLibrary:
 if __name__ == '__main__':
     api = ApiComprehensiveSampleLibrary(global_client)
     # api.comprehensive_sample_query(None, ["shang"], ["1", "2", "3"])
-    api.create_deep_training_tasks(["dahenxian"], [], 1024, "测试集01", [], "detection", "目标检测/分割", 1, True,"")
+    api.create_deep_training_tasks(["dahenxian"], [], 1024, "测试集01", [], "detection", "目标检测/分割", 1, True, "")
     # api.append_deep_training_tasks(["yimo"], ["1", "2"], None)
     # api.append_deep_training_tasks2(None, ["3"], ["ok"], None, 1)

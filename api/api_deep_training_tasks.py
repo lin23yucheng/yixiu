@@ -123,10 +123,7 @@ class ApiPostProcess:
     def report_analysis(self, verifyId):
         url = f"{env}/miai/brainstorm/model/verify/report/reanalysis"
         payload = {"verifyId": verifyId,
-                   "thresholds": [{"showName": "全局阈值", "label": "all", "score": "0.1"},
-                                  {"showName": "裂边阈值", "label": "liebian",
-                                   "score": "0.5"},
-                                  {"showName": "伤阈值", "label": "shang", "score": "0.08"}],
+                   "thresholds": [{"showName": "全局阈值", "label": "all", "score": "0.05"}],
                    "filterNonDetection": False}
 
         response = self.client.post_with_retry(url, json=payload)

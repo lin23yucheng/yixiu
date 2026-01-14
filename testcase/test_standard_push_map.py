@@ -19,13 +19,11 @@ assertions = Assert.Assertions()
 config = configparser.ConfigParser()
 config.read("./config/env_config.ini")
 section_one = "Inspection"
-section_two = "bash"
 space_name = config.get(section_one, "space_name")
 miai_product_code = config.get(section_one, "miai-product-code")
 
 # 推图命令
-fat_command = "main.exe test --grpc=fat-yixiu-brainstorm-grpc.svfactory.com:9181 -m 1"  # fat
-# fat_command = "main.exe test  --grpc=yixiu-grpc.idmaic.cn:9181 -m 1"  # 生产
+grpc_command = config.get(section_one, "grpc_command")
 
 # 初始化日志记录器
 logger = logging.getLogger(__name__)
@@ -150,6 +148,7 @@ def update_data_json():
 def execute_grpc_command():
     """执行GRPC命令"""
     try:
+
         # 目标目录
         target_dir = PROJECT_ROOT / "testdata" / "brainstormGRpcClient" / "2.0"
 
@@ -166,9 +165,9 @@ def execute_grpc_command():
         )
 
         # 执行命令
-        logger.info(f"执行命令: {fat_command}")
+        logger.info(f"执行命令: {grpc_command}")
         result = subprocess.run(
-            fat_command,
+            grpc_command,
             shell=True,
             check=True,
             stdout=subprocess.PIPE,

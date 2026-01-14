@@ -110,7 +110,7 @@ class TestClassOriginalModelTraining:
 
         with allure.step("步骤1：创建分类大图训练任务"):
             sleep(2)
-            response = self.api_comprehensive.create_deep_training_tasks(
+            response = self.api_comprehensive.create_class_training_tasks(
                 defectName=[],
                 photoId=[],
                 cut=224,

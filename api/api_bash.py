@@ -1,12 +1,18 @@
 """
 bash系统相关接口
 """
+import os
+import configparser
 import requests
 from api import api_space
 from common.Request_Response import ApiClient
 
-bash_fat = "http://fat-bash-gw.svfactory.com:6180"
-
+# bash_fat = "http://fat-bash-gw.svfactory.com:6180"
+# 从配置文件读取bash_fat值
+config = configparser.ConfigParser()
+config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'env_config.ini')
+config.read(config_path, encoding='utf-8')
+bash_fat = config.get('bash', 'bash_fat')
 
 class ApiBashSample:
     def __init__(self, client: ApiClient):

@@ -30,6 +30,9 @@ class TestBashUI:
         cls.password = config.get('bash', 'myself_password')
         cls.miaiproductcode = config.get('Inspection', 'miai-product-code')
 
+        # 从配置文件获取UI地址
+        cls.ui_bash_fat = config.get('bash', 'ui_bash_fat')
+
         # 推图线程控制
         cls.push_thread = None
         cls.push_completed = threading.Event()
@@ -45,7 +48,8 @@ class TestBashUI:
     @allure.story("启动推图&分拣图片")
     def test_seat_operation(self):
         with allure.step("步骤1：林禹成账号登录bash系统"):
-            self.driver.get("http://fat-bash-web.svfactory.com:6180/#/signIn")
+            # self.driver.get("http://fat-bash-web.svfactory.com:6180/#/signIn")
+            self.driver.get(self.ui_bash_fat)  # 使用从配置文件读取的URL
             # 输入账号
             username_input = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//input[@placeholder="请输入账号"]'))
